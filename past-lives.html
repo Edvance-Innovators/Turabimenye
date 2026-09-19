@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="rw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ubuzima Bwashize & Buzaza — TURABIMENYE!</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ==================== FIXED LOGO (upper-left, stays put) ==================== */
+        .site-logo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 260px;
+            height: auto;
+            z-index: 110;
+            pointer-events: none;
+            opacity: 0;
+            animation: logoIntro 0.9s ease forwards;
+        }
+
+        .site-logo img {
+            display: block;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.25));
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        /* ==================== PAGE SHELL (pushes tabs below logo) ==================== */
+        .pl-shell {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 160px 20px 0;
+        }
+
+        .pl-shell .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 0 auto 28px;
+        }
+
+        .pl-shell .nav-tab {
+            padding: 12px 32px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            border: 2px solid transparent;
+            backdrop-filter: blur(10px);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .pl-shell .nav-tab:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .pl-shell .nav-tab.active {
+            background: #fff;
+            color: #764ba2;
+            border-color: #764ba2;
+        }
+
+        @keyframes logoIntro {
+            0%   { opacity: 0; transform: translateY(-6px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @media (max-width: 700px) {
+            .site-logo { width: 110px; top: 8px; left: 8px; }
+            .pl-shell { padding: 120px 16px 0; }
+            .pl-shell .nav-tab {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+            }
+            .pl-shell .nav-tab i {
+                display: none;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .site-logo { animation: none; opacity: 1; }
+        }
+
+        * { box-sizing: border-box; }
+
+        /* ==================== PAST LIVES PAGE ==================== */
+        .pl-page {
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 0 20px 80px;
+        }
+
+        .pl-hero {
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 24px;
+            padding: 36px 32px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .pl-hero .pl-badge {
+            display: inline-block;
+            background: #ede4f7;
+            color: #5b3d8a;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            padding: 5px 14px;
+            border-radius: 999px;
+            margin-bottom: 14px;
+            text-transform: uppercase;
+        }
+
+        .pl-hero h1 {
+            font-size: 2.2rem;
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.15;
+        }
+
+        .pl-hero .pl-sub {
+            color: #666;
+            font-size: 1rem;
+            line-height: 1.55;
+            margin-bottom: 20px;
+        }
+
+        .pl-hero .pl-count {
+            color: #8a6f3c;
+            font-size: 0.82rem;
+            font-style: italic;
+        }
+
+        /* Setup form (name + birthdate) */
+        .pl-setup {
+            background: #fff;
+            border-radius: 20px;
+            padding: 28px 26px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+        }
+
+        .pl-setup h2 {
+            font-size: 1.25rem;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .pl-setup p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .pl-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .pl-field label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #5b3d8a;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .pl-field input {
+            padding: 13px 16px;
+            border: 2px solid #e8e8e6;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            color: #333;
+            background: #fafaf9;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+
+        .pl-field input:focus {
+            outline: none;
+            border-color: #764ba2;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(118, 75, 162, 0.12);
+        }
+
+        .pl-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 999px;
+            background: #764ba2;
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.15s ease;
+            width: 100%;
+        }
+
+        .pl-btn:hover { background: #5f3d8a; transform: translateY(-1px); }
+
+        .pl-btn.ghost {
+            background: #fff;
+            color: #5b3d8a;
+            border: 1px solid #ddd6fe;
+        }
+
+        .pl-btn.ghost:hover { background: #faf7ff; }
+
+        /* Lives preview grid (8 cards) */
+        .pl-lives-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .pl-life-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 18px 18px 20px;
+            border: 1px solid #e8e8e6;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .pl-life-card .pl-life-emoji {
+            font-size: 1.75rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .pl-life-card h3 {
+            font-size: 0.95rem;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .pl-life-card .pl-life-era {
+            color: #8a6f3c;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 8px;
+        }
+
+        .pl-life-card .pl-life-desc {
+            color: #666;
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        /* Quiz step */
+        .pl-quiz {
+            background: #fff;
+            border-radius: 20px;
+            padding: 32px 26px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .pl-progress-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.78rem;
+            color: #8a6f3c;
+            font-weight: 700;
+        }
+
+        .pl-progress-bar {
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: #f0eaf7;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .pl-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #764ba2 0%, #8e44ad 100%);
+            border-radius: 999px;
+            transition: width 0.35s ease;
+        }
+
+        .pl-question {
+            font-size: 1.25rem;
+            color: #333;
+            font-weight: 700;
+            line-height: 1.35;
+            margin-bottom: 22px;
+            min-height: 3.5rem;
+        }
+
+        .pl-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .pl-option {
+            text-align: left;
+            background: #fafaf9;
+            border: 2px solid #e8e8e6;
+            border-radius: 14px;
+            padding: 14px 18px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-family: inherit;
+        }
+
+        .pl-option:hover {
+            border-color: #764ba2;
+            background: #f8f4ff;
+            transform: translateY(-1px);
+        }
+
+        .pl-option .pl-opt-letter {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #ede4f7;
+            color: #5b3d8a;
+            font-weight: 800;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .pl-option .pl-opt-body {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            text-align: left;
+        }
+
+        .pl-option .pl-opt-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .pl-option .pl-opt-hint {
+            font-size: 0.82rem;
+            color: #888;
+            line-height: 1.4;
+        }
+
+        /* Result card */
+        .pl-result {
+            background: #fff;
+            border-radius: 24px;
+            padding: 36px 30px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.20);
+            text-align: center;
+        }
+
+        .pl-result .pl-res-emoji {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .pl-result .pl-res-era {
+            color: #8a6f3c;
+            font-size: 0.82rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+
+        .pl-result .pl-res-title {
+            font-size: 1.6rem;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .pl-result .pl-res-sub {
+            color: #555;
+            font-size: 0.95rem;
+            line-height: 1.55;
+            max-width: 520px;
+            margin: 0 auto 20px;
+        }
+
+        .pl-res-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin: 24px 0;
+            text-align: left;
+        }
+
+        .pl-metric {
+            background: #fafaf9;
+            border: 1px solid #e8e8e6;
+            border-radius: 14px;
+            padding: 14px 16px;
+        }
+
+        .pl-metric .pl-metric-label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #5b3d8a;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 6px;
+        }
+
+        .pl-metric .pl-metric-value {
+            font-size: 0.92rem;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .pl-bars {
+            text-align: left;
+            margin: 24px 0 8px;
+        }
+
+        .pl-bars h4 {
+            font-size: 0.82rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #5b3d8a;
+            margin-bottom: 12px;
+        }
+
+        .pl-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: #444;
+        }
+
+        .pl-bar-row .pl-bar-label {
+            flex: 0 0 42%;
+            font-weight: 600;
+        }
+
+        .pl-bar-row .pl-bar-track {
+            flex: 1;
+            height: 12px;
+            background: #f0eaf7;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .pl-bar-row .pl-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #764ba2 0%, #8e44ad 100%);
+            border-radius: 999px;
+            transition: width 0.6s ease;
+        }
+
+        .pl-bar-row .pl-bar-value {
+            flex: 0 0 46px;
+            text-align: right;
+            font-weight: 700;
+            color: #5b3d8a;
+            font-size: 0.82rem;
+        }
+
+        .pl-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 24px;
+        }
+
+        .pl-actions .pl-btn { width: auto; }
+
+        .pl-note {
+            color: #999;
+            font-size: 0.75rem;
+            margin-top: 20px;
+            font-style: italic;
+            text-align: center;
+        }
+
+        @media (max-width: 700px) {
+            .pl-page { padding: 0 14px 60px; }
+            .pl-hero { padding: 28px 20px; }
+            .pl-hero h1 { font-size: 1.6rem; }
+            .pl-quiz, .pl-result, .pl-setup { padding: 24px 18px; }
+            .pl-question { font-size: 1.08rem; }
+            .pl-bar-row .pl-bar-label { flex-basis: 55%; font-size: 0.78rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="site-logo" id="siteLogo" aria-hidden="true">
+        <img src="logo.png" alt="TURABIMENYE logo">
+    </div>
+
+    <div class="pl-shell">
+        <!-- ===== MAIN NAV TABS ===== -->
+        <div class="nav-tabs">
+            <a class="nav-tab" href="index.html">
+                <i>🔍</i> Ikora Inkuru
+            </a>
+            <a class="nav-tab" href="index.html#collection">
+                <i>📚</i> Ibyakusanyirijwe
+            </a>
+            <a class="nav-tab" href="numerology.html">
+                <i>🔢</i> Ibarurizo
+            </a>
+            <a class="nav-tab active" href="past-lives.html">
+                <i>✨</i> Ubuzima Bwashize
+            </a>
+        </div>
+
+        <div class="pl-page">
+            <!-- ===== HERO ===== -->
+            <section class="pl-hero">
+                <span class="pl-badge">✨ Ubuzima Bwashize &amp; Buzaza</span>
+                <h1>Ni iyihe nzira y’ubuzima bwawe?</h1>
+                <p class="pl-sub">
+                    Dufite <strong>ibice 12</strong> by’ibibazo byoroshye. Bikubwira imwe mu nzira
+                    <strong>8</strong> z’ubuzima bwawe bwashize cyangwa buzaza. Igiteranyo: <strong>iminota 3</strong>.
+                </p>
+                <p class="pl-count" id="plTakenCount"></p>
+            </section>
+
+            <!-- ===== LIVES PREVIEW ===== -->
+            <div id="plLivesGrid" class="pl-lives-grid"></div>
+
+            <!-- ===== SETUP FORM ===== -->
+            <div id="plSetup" class="pl-setup">
+                <h2>Tangira ubushakashatsi</h2>
+                <p>Andika amazina yawe yombi n’itariki y’amavuko kugira ngo tubone inzira yawe bwite.</p>
+
+                <form id="plSetupForm" onsubmit="event.preventDefault(); startPastLifeQuiz();">
+                    <div class="pl-field">
+                        <label for="plFullName">Amazina yombi</label>
+                        <input type="text" id="plFullName" placeholder="Urugero: Mukamana Alice" required>
+                    </div>
+                    <div class="pl-field">
+                        <label for="plBirthdate">Itariki y’amavuko</label>
+                        <input type="date" id="plBirthdate" required>
+                    </div>
+                    <button type="submit" class="pl-btn">🚀 Tangira ikibazo</button>
+                </form>
+            </div>
+
+            <!-- ===== QUIZ ===== -->
+            <div id="plQuiz" class="pl-quiz" style="display: none;">
+                <div class="pl-progress-row">
+                    <span id="plProgressText">Ikibazo 1 kuri 12</span>
+                    <span id="plProgressPercent">8%</span>
+                </div>
+                <div class="pl-progress-bar">
+                    <div class="pl-progress-fill" id="plProgressFill"></div>
+                </div>
+
+                <div class="pl-question" id="plQuestionText"></div>
+                <div class="pl-options" id="plOptions"></div>
+            </div>
+
+            <!-- ===== RESULT ===== -->
+            <div id="plResult" class="pl-result" style="display: none;">
+                <span class="pl-res-emoji" id="plResEmoji">✨</span>
+                <div class="pl-res-era" id="plResEra">Ancient Egypt</div>
+                <h2 class="pl-res-title" id="plResTitle">Priest / Pharaoh Energy</h2>
+                <p class="pl-res-sub" id="plResSub"></p>
+
+                <div class="pl-res-metrics">
+                    <div class="pl-metric">
+                        <span class="pl-metric-label">Impano</span>
+                        <span class="pl-metric-value" id="plResGifts"></span>
+                    </div>
+                    <div class="pl-metric">
+                        <span class="pl-metric-label">Ibyago</span>
+                        <span class="pl-metric-value" id="plResShadow"></span>
+                    </div>
+                    <div class="pl-metric">
+                        <span class="pl-metric-label">Ibigaragara ubu</span>
+                        <span class="pl-metric-value" id="plResTraces"></span>
+                    </div>
+                </div>
+
+                <div class="pl-bars">
+                    <h4>Uko inzira 8 zigenda</h4>
+                    <div id="plBars"></div>
+                </div>
+
+                <div class="pl-actions">
+                    <button type="button" class="pl-btn ghost" onclick="restartPastLifeQuiz()">🔄 Ongera ugerageze</button>
+                    <button type="button" class="pl-btn" onclick="savePastLifeResult()">💾 Bika mu konti</button>
+                </div>
+
+                <p class="pl-note">
+                    Iri suzuma ni iry’imyidagaduro n’imyitwarire. Ntabwo ari isuzuma ry’ubumenyi.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="past-lives.js"></script>
+    <script src="account-bar.js"></script>
+</body>
+</html>

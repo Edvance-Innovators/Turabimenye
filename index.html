@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="rw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TURABIMENYE! - Amateka y'Intwari</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ==================== LOGO (scrolls with page, upper-left) ==================== */
+        .site-logo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 260px;
+            height: auto;
+            z-index: 110;
+            pointer-events: none;
+        }
+
+        .site-logo img {
+            display: block;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.25));
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        @media (max-width: 700px) {
+            .site-logo { width: 110px; top: 8px; left: 8px; }
+        }
+
+        /* ==================== QUOTE SCROLL (parchment, fixed under user pill) ==================== */
+        .quote-roll {
+    position: absolute;                /* ⬅ scrolls with the page, no longer fixed */
+    top: 88px;
+    right: 20px;
+    width: 260px;
+    max-height: 78vh;
+    z-index: 1100;                     /* above collection controls */
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 4px 2px 10px;
+    overflow: hidden;
+}
+
+        .quote-roll-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+            position: relative;
+            z-index: 2;
+            animation: none !important;
+            transition: 10.5s ease !important;
+        }
+
+        .quote-roll-header h3 {
+            font-size: 0.5rem;
+            color: #5b3d8a;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            animation: none !important;
+            transition: none !important;
+            text-shadow: none;
+        }
+
+        .quote-continent-select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background: #ede4f7;
+            color: #5b3d8a;
+            font-size: 0.66rem;
+            font-weight: 700;
+            padding: 4px 22px 4px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(118, 75, 162, 0.25);
+            cursor: pointer;
+            white-space: nowrap;
+            outline: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'><path fill='%235b3d8a' d='M0 0 L8 0 L4 6 Z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            transition: background 0.2s ease, transform 0.15s ease;
+        }
+        .quote-continent-select:hover { background-color: #e4d7f2; }
+        .quote-continent-select:focus { box-shadow: 0 0 0 2px rgba(118,75,162,0.35); }
+
+        .quote-roll-arrow {
+            align-self: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 20%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, #764ba2 0%, #5b3d8a 100%);
+            box-shadow: 0 4px 12px rgba(91, 61, 138, 0.35), inset 0 1px 0 rgba(255,255,255,0.3);
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            position: relative;
+        }
+        .quote-roll-arrow:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(91, 61, 138, 0.45), inset 0 1px 0 rgba(255,255,255,0.4);
+        }
+        .quote-roll-arrow:active { transform: translateY(0) scale(0.97); }
+        .quote-roll-arrow::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 1px solid rgba(118, 75, 162, 0.35);
+            pointer-events: none;
+        }
+        .quote-roll-arrow--prev::before { content: '▲'; }
+        .quote-roll-arrow--next::before { content: '▼'; }
+
+        .quote-roll-list {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 22px;
+            padding: 3px 4px;
+            overflow: hidden;
+        }
+
+        .quote-roll-empty {
+            text-align: center;
+            color: #888;
+            font-size: 0.78rem;
+            padding: 20px 6px;
+            font-style: italic;
+        }
+
+        /* ============ PARCHMENT SCROLL ============ */
+        .flyer {
+            --flyer-accent: #e91e63;
+            position: relative;
+            width: calc(100% - 24px);
+            margin: 0 auto;
+            padding: 6px 0;
+            opacity: 0;
+            transform: translateY(14px);
+            animation: scrollUnroll 1.75s ease forwards;
+        }
+
+        .flyer:nth-child(1) { animation-delay: 0.10s; }
+        .flyer:nth-child(2) { animation-delay: 0.25s; }
+        .flyer:nth-child(3) { animation-delay: 0.40s; }
+        .flyer:nth-child(4) { animation-delay: 0.55s; }
+        .flyer:nth-child(5) { animation-delay: 0.70s; }
+        .flyer:nth-child(6) { animation-delay: 0.85s; }
+
+        @keyframes scrollUnroll {
+            0%   { opacity: 0; transform: translateY(14px) scaleY(0.9); max-height: 0; }
+            100% { opacity: 1; transform: translateY(0) scaleY(1);     max-height: 500px; }
+        }
+        .flyer--enter-down { animation: scrollInDown 0.5s ease forwards; }
+        .flyer--enter-up   { animation: scrollInUp   0.5s ease forwards; }
+        @keyframes scrollInDown {
+            0%   { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0);     }
+        }
+        @keyframes scrollInUp {
+            0%   { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0);    }
+        }
+
+        .flyer__paper {
+            position: relative;
+            margin: 0 8px;
+            padding: 16px 14px 18px;
+            min-height: 150px;
+            background:
+                linear-gradient(180deg,
+                    rgba(180, 220, 235, 0.55) 0%,
+                    rgba(235, 240, 240, 0.0) 22%,
+                    rgba(245, 238, 215, 1.0) 50%,
+                    rgba(235, 225, 190, 0.0) 78%,
+                    rgba(230, 210, 170, 0.55) 100%),
+                radial-gradient(ellipse at 30% 40%, #fbf6e7 0%, #f3e9c8 65%, #e9dbb4 100%),
+                radial-gradient(circle at 12% 82%, rgba(180, 140, 80, 0.22) 0%, transparent 22%),
+                radial-gradient(circle at 88% 18%, rgba(180, 140, 80, 0.20) 0%, transparent 25%),
+                radial-gradient(circle at 70% 92%, rgba(150, 120, 60, 0.16) 0%, transparent 30%),
+                radial-gradient(circle at 25% 12%, rgba(200, 180, 130, 0.18) 0%, transparent 28%);
+            box-shadow:
+                inset 0 0 30px rgba(140, 105, 60, 0.20),
+                inset 0 0 0 1px rgba(150, 110, 60, 0.18),
+                0 2px 6px rgba(0, 0, 0, 0.15);
+            clip-path: polygon(
+                0 1.5%, 4% 0, 12% 1%, 22% 0, 34% 1.2%, 46% 0.2%, 58% 1%, 70% 0, 82% 1%, 92% 0.3%, 100% 1.4%,
+                100% 98.6%, 92% 99.7%, 82% 99%, 70% 100%, 58% 99%, 46% 99.8%, 34% 98.8%, 22% 100%, 12% 99%, 4% 100%, 0 98.5%
+            );
+        }
+
+        .flyer__paper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                radial-gradient(rgba(120, 90, 45, 0.12) 0.6px, transparent 0.9px),
+                radial-gradient(rgba(150, 180, 195, 0.12) 0.5px, transparent 0.8px),
+                radial-gradient(rgba(200, 170, 110, 0.10) 0.7px, transparent 1px);
+            background-size: 3px 3px, 7px 7px, 5px 5px;
+            background-position: 0 0, 2px 3px, 1px 4px;
+            opacity: 0.85;
+            mix-blend-mode: multiply;
+        }
+
+        .flyer__roll {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 20px;
+            z-index: 3;
+            background:
+                linear-gradient(180deg,
+                    #e8d9a8 0%,
+                    #f4ead0 30%,
+                    #e1d0a0 60%,
+                    #b89f68 100%);
+            border-radius: 999px;
+            box-shadow:
+                inset 0 2px 3px rgba(255, 255, 255, 0.75),
+                inset 0 -3px 5px rgba(120, 84, 40, 0.45),
+                0 2px 5px rgba(0, 0, 0, 0.20);
+        }
+
+        .flyer__roll--top    { top: 0; }
+        .flyer__roll--bottom { bottom: 0; }
+
+        .flyer__roll::before,
+        .flyer__roll::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            width: 16px;
+            height: 24px;
+            border-radius: 999px;
+            background:
+                linear-gradient(180deg,
+                    #d9c791 0%,
+                    #f0e5c0 40%,
+                    #c9b482 100%);
+            box-shadow:
+                inset 0 2px 2px rgba(255,255,255,0.6),
+                inset 0 -2px 3px rgba(80, 55, 20, 0.45),
+                0 1px 3px rgba(0,0,0,0.25);
+            z-index: 4;
+        }
+        .flyer__roll::before { left: -6px; }
+        .flyer__roll::after  { right: -6px; }
+
+        .flyer__portrait {
+            position: relative;
+            width: 64px;
+            height: 64px;
+            margin: 2px auto 10px;
+            border-radius: 50%;
+            background: var(--flyer-accent);
+            background-image: radial-gradient(rgba(255,255,255,0.28) 1.2px, transparent 1.3px);
+            background-size: 8px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow:
+                0 0 0 2px #f6efd8,
+                0 0 0 3px rgba(150, 110, 60, 0.5),
+                0 0 0 4px #f6efd8,
+                0 2px 6px rgba(0, 0, 0, 0.20);
+            z-index: 2;
+        }
+        .flyer__portrait img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            filter: sepia(0.22) contrast(1.02) saturate(0.9);
+        }
+        .flyer__portrait .flyer__initials {
+            font-family: 'Georgia', serif;
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b8 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: #5b21b8;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));
+        }
+
+        .flyer__quote {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-style: italic;
+            color: #3b2f1a;
+            font-size: 0.5rem;
+            line-height: 1.55;
+            margin: 0;
+            padding: 0 4px 6px;
+            text-align: center;
+        }
+
+        .flyer__author {
+            display: block;
+            font-family: 'Georgia', serif;
+            font-size: 0.7rem;
+            color: #5a4318;
+            font-weight: 700;
+            padding: 0 4px 2px;
+            text-align: center;
+            letter-spacing: 0.02em;
+        }
+
+        .flyer__role {
+            display: block;
+            font-family: 'Georgia', serif;
+            font-size: 0.6rem;
+            color: #8a6f3c;
+            font-style: italic;
+            padding: 0 4px 4px;
+            text-align: center;
+        }
+
+        .flyer--loading .flyer__quote {
+            opacity: 0.55;
+            font-style: normal;
+        }
+
+        @media (max-width: 900px) {
+            .quote-roll {
+                position: static;
+                width: 100%;
+                max-height: none;
+                margin: 14px auto 0;
+                padding: 10px 14px 20px;
+            }
+            .flyer__portrait { width: 56px; height: 56px; }
+        }
+
+        /* ==================== LOGIN MODAL STYLES ==================== */
+        .login-modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: fadeIn 0.03s ease;
+        }
+        .login-modal {
+            background: white;
+            border-radius: 30px;
+            padding: 40px;
+            max-width: 450px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp 0.4s ease;
+            position: relative;
+        }
+        .login-modal .close-btn {
+            position: absolute;
+            top: 20px; right: 20px;
+            background: none; border: none;
+            font-size: 1.5rem; cursor: pointer;
+            color: #999; transition: all 0.3s ease;
+        }
+        .login-modal .close-btn:hover { color: #e74c3c; transform: scale(1.1); }
+        .login-modal h2 {
+            color: #764ba2; margin-bottom: 30px;
+            display: flex; align-items: center;
+            gap: 10px; font-size: 1.8rem;
+        }
+        .login-modal .form-group { margin-bottom: 20px; }
+        .login-modal .form-group label {
+            display: block; margin-bottom: 8px;
+            color: #555; font-weight: 600;
+        }
+        .login-modal .form-group input {
+            width: 100%; padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        .login-modal .form-group input:focus {
+            outline: none; border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1);
+        }
+        .login-modal .login-btn {
+            width: 100%; padding: 14px;
+            background: #764ba2; color: white;
+            border: none; border-radius: 50px;
+            font-size: 1.1rem; font-weight: 600;
+            cursor: pointer; transition: all 0.3s ease;
+            display: flex; align-items: center;
+            justify-content: center; gap: 10px;
+            margin-bottom: 15px;
+        }
+        .login-modal .login-btn:hover { background: #667eea; transform: scale(1.02); }
+        .login-modal .anonymous-btn {
+            width: 100%; padding: 14px;
+            background: #95a5a6; color: white;
+            border: none; border-radius: 50px;
+            font-size: 1rem; cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex; align-items: center;
+            justify-content: center; gap: 10px;
+        }
+        .login-modal .anonymous-btn:hover { background: #7f8c8d; transform: scale(1.02); }
+        .login-modal .toggle-form {
+            text-align: center; margin-top: 20px; color: #666;
+        }
+        .login-modal .toggle-form a {
+            color: #764ba2; text-decoration: none;
+            font-weight: 600; cursor: pointer;
+        }
+        .login-modal .toggle-form a:hover { text-decoration: underline; }
+        .login-modal .divider {
+            display: flex; align-items: center;
+            text-align: center; margin: 20px 0;
+        }
+        .login-modal .divider::before,
+        .login-modal .divider::after {
+            content: ''; flex: 1;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .login-modal .divider span {
+            padding: 0 10px; color: #999; font-size: 0.9rem;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+
+        /* ==================== RWANDAN PROVERB WIDGET ==================== */
+        .proverb-widget-wrap {
+            display: flex; justify-content: center;
+            width: 100%; margin: 12px auto 4px;
+        }
+        .proverb-widget {
+            width: min(520px, 94%);
+            background: transparent; box-shadow: none;
+            border: none; text-align: center;
+        }
+        .proverb-kinyarwanda {
+            font-size: 1rem; font-weight: 600;
+            color: rgba(255, 255, 255, 0.96);
+            font-style: italic; line-height: 1.5;
+            font-family: 'Georgia', serif;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+            margin-bottom: 10px;
+            transition: color 0.9s ease, text-shadow 0.9s ease;
+            --proverb-anim-duration: 4s;
+        }
+        .proverb-anim-glow { animation: proverbGlow var(--proverb-anim-duration) ease-in-out infinite; }
+        .proverb-anim-float { animation: proverbFloat var(--proverb-anim-duration) ease-in-out infinite; }
+        .proverb-anim-pulse { animation: proverbPulse var(--proverb-anim-duration) ease-in-out infinite; }
+        .proverb-anim-breathe { animation: proverbBreathe var(--proverb-anim-duration) ease-in-out infinite; }
+        .proverb-anim-wave { animation: proverbWave var(--proverb-anim-duration) ease-in-out infinite; }
+        .proverb-anim-drift { animation: proverbDrift var(--proverb-anim-duration) ease-in-out infinite; }
+        .proverb-anim-shimmer { animation: proverbShimmer var(--proverb-anim-duration) ease-in-out infinite; }
+        @keyframes proverbGlow {
+            0%, 100% { filter: brightness(1); transform: scale(1); }
+            50% { filter: brightness(1.2); transform: scale(1.02); }
+        }
+        @keyframes proverbFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        @keyframes proverbPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.72; }
+        }
+        @keyframes proverbBreathe {
+            0%, 100% { transform: scale(1); letter-spacing: 0; }
+            50% { transform: scale(1.035); letter-spacing: 0.04em; }
+        }
+        @keyframes proverbWave {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(4px) rotate(0.4deg); }
+            75% { transform: translateX(-4px) rotate(-0.4deg); }
+        }
+        @keyframes proverbDrift {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(3px, -3px); }
+            66% { transform: translate(-3px, 2px); }
+        }
+        @keyframes proverbShimmer {
+            0%, 100% { filter: brightness(1) saturate(1); }
+            50% { filter: brightness(1.25) saturate(1.35); }
+        }
+        .proverb-actions {
+            display: flex; justify-content: center;
+            align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .proverb-lang-btn, .proverb-refresh {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            color: rgba(255, 255, 255, 0.95);
+            border-radius: 20px; padding: 6px 14px;
+            font-size: 0.78rem; cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .proverb-refresh {
+            width: 32px; height: 32px; padding: 0;
+            border-radius: 50%;
+            display: inline-flex; align-items: center;
+            justify-content: center;
+        }
+        .proverb-lang-btn:hover, .proverb-refresh:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-1px);
+        }
+        .proverb-refresh:hover { transform: rotate(180deg); }
+        .proverb-trans-overlay {
+            position: fixed; inset: 0;
+            background: rgba(15, 20, 35, 0.55);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: flex; align-items: center;
+            justify-content: center;
+            z-index: 10050; padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+        .proverb-trans-modal {
+            background: rgba(255, 255, 255, 0.88);
+            border-radius: 18px; padding: 22px 24px;
+            max-width: 480px; width: 100%;
+            max-height: 70vh; overflow-y: auto;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+            position: relative; text-align: left;
+        }
+        .proverb-trans-close {
+            position: absolute; top: 10px; right: 12px;
+            background: none; border: none;
+            font-size: 1.5rem; line-height: 1;
+            cursor: pointer; color: #666;
+        }
+        .proverb-trans-close:hover { color: #e74c3c; }
+        .proverb-trans-loading {
+            color: #555; font-size: 0.9rem;
+            text-align: center; padding: 12px 0;
+        }
+        .proverb-trans-modal .loading-spinner {
+            border-color: #764ba2; border-top-color: transparent;
+        }
+        .proverb-lang-line {
+            margin-bottom: 12px; padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        .proverb-lang-line:last-child {
+            border-bottom: none; margin-bottom: 0;
+        }
+        .proverb-lang-name {
+            display: block; font-size: 0.72rem;
+            font-weight: 700; color: #764ba2;
+            text-transform: uppercase;
+            letter-spacing: 0.04em; margin-bottom: 4px;
+        }
+        .proverb-lang-text {
+            display: block; font-size: 0.9rem;
+            color: #222; font-style: italic;
+            line-height: 1.45;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,0.7);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .proverb-error { color: #e74c3c !important; }
+        @media (max-width: 550px) {
+            .proverb-widget { width: min(340px, 96%); }
+            .proverb-kinyarwanda { font-size: 0.8rem; }
+        }
+
+        /* ==================== USER STATUS ==================== */
+        .user-status {
+            position: absolute;
+            top: 20px; right: 20px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: flex; align-items: center;
+            gap: 15px; z-index: 100;
+        }
+        .user-badge {
+            padding: 5px 15px; border-radius: 30px;
+            font-size: 0.9rem; font-weight: 600;
+        }
+        .user-badge.anonymous { background: #95a5a6; color: white; }
+        .user-badge.registered { background: #2ecc71; color: white; }
+        .user-status button {
+            background: #764ba2; color: white;
+            border: none; padding: 8px 20px;
+            border-radius: 30px; cursor: pointer;
+            font-size: 0.9rem; transition: all 0.3s ease;
+        }
+        .user-status button:hover { background: #667eea; transform: scale(1.05); }
+
+        /* ==================== OTHER STYLES ==================== */
+        .filter-section { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .filter-dropdown-btn {
+            padding: 6px 12px; font-size: 0.8rem;
+            background: #764ba2; color: white;
+            border: none; border-radius: 20px;
+            cursor: pointer; display: flex;
+            align-items: center; gap: 5px;
+        }
+        .clear-filter {
+            padding: 6px 14px; font-size: 0.8rem;
+            background: #e74c3c; color: white;
+            border: none; border-radius: 20px;
+            cursor: pointer;
+        }
+        .interaction-bar {
+            display: flex; gap: 8px;
+            flex-wrap: wrap; margin: 12px 0;
+        }
+        .interaction-btn {
+            background: #34495e; color: white;
+            border: none; padding: 8px 16px;
+            border-radius: 30px; cursor: pointer;
+            display: inline-flex; align-items: center;
+            gap: 6px; font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+        .interaction-btn:hover { transform: scale(1.02); }
+        .interaction-btn.liked { background: #e74c3c; color: white; }
+        .interaction-btn.knew-active { background: #2ecc71; color: white; }
+        .interaction-btn.didntknow-active { background: #e67e22; color: white; }
+        .interaction-btn.disabled { opacity: 0.7; cursor: not-allowed; }
+        .btn-label { font-size: 0.75rem; }
+        .session-badge {
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            width: 18px; height: 18px;
+            display: inline-flex; align-items: center;
+            justify-content: center; font-size: 0.7rem;
+        }
+        .flyer-number-tag { font-size: 1rem; }
+        .flyer-card { background: transparent; }
+        .flyer-image {
+            height: 180px; background-size: cover;
+            background-position: center; position: relative;
+        }
+        .continent-badge {
+            position: absolute; bottom: 10px; left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 4px 12px; border-radius: 40px;
+            color: white; font-size: 0.75rem;
+            backdrop-filter: blur(4px);
+        }
+        .flyer-content { padding: 15px; }
+        .flyer-title {
+            font-size: 1.1rem; margin-bottom: 10px;
+            padding-right: 35px;
+        }
+        .flyer-metadata {
+            display: flex; gap: 15px;
+            font-size: 0.75rem; color: #666;
+            margin: 10px 0;
+        }
+        .comments-section {
+            margin-top: 12px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+        .comment-input { display: flex; gap: 8px; }
+        .comment-input input {
+            flex: 1; padding: 8px 12px;
+            border-radius: 25px; border: 1px solid #ddd;
+            font-size: 0.85rem;
+        }
+        .comment-input button {
+            background: #764ba2; color: white;
+            border: none; padding: 8px 18px;
+            border-radius: 25px; cursor: pointer;
+        }
+        .comment-list {
+            margin-top: 10px; max-height: 150px;
+            overflow-y: auto;
+        }
+        .comment-item {
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.8rem;
+        }
+        .comment-author { font-weight: bold; color: #764ba2; }
+        .comment-time { font-size: 0.65rem; color: #999; margin-top: 2px; }
+        .read-more-hint {
+            color: #999; font-size: 0.7rem;
+            margin-top: 5px; text-align: center;
+        }
+        .search-box input {
+            width: 100%; padding: 10px 15px;
+            border-radius: 30px;
+            border: 2px solid #e0e0e0;
+            font-size: 0.9rem;
+        }
+        .no-results {
+            text-align: center; padding: 50px;
+            color: #666; font-size: 1.1rem;
+        }
+        .numerology-nav-btn {
+            background: #2ecc71 !important;
+            color: #fff !important;
+            text-decoration: none;
+            padding: 8px 16px; border-radius: 30px;
+            font-size: 0.85rem; font-weight: 600;
+            display: none; white-space: nowrap;
+        }
+        .numerology-nav-btn:hover {
+            background: #27ae60 !important;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- ===== LOGO (scrolls with page, upper-left) ===== -->
+        <div class="site-logo" id="siteLogo" aria-hidden="true">
+            <img src="logo.png" alt="TURABIMENYE logo">
+        </div>
+
+        <!-- User Status in Header -->
+        <!-- <div class="user-status" id="userStatus">
+            <span class="user-badge anonymous" id="userBadge">🕶️ Uwihitira</span>
+            <a href="numerology.html" class="numerology-nav-btn" id="numerologyNavBtn">🔢 Ibarurizo</a>
+            <button onclick="showLoginModal()" id="authButton">🔐 Injira</button>
+        </div> -->
+
+        <!-- ===== QUOTE SCROLL (parchment, fixed under user login pill) ===== -->
+        <aside class="quote-roll" id="quoteRoll" aria-label="Prominent figures quotes">
+            <div class="quote-roll-header">
+                <h3>💬 Imenyekaniro</h3>
+                <select id="quoteContinentSelect"
+        class="quote-continent-select"
+        aria-label="Hitamo itsinda"
+        onchange="onQuoteCategoryChange(this.value)">
+    <optgroup label="🌍 Afurika">
+        <option value="africa-indigenous">🏺 Abasangwabutaka</option>
+        <option value="africa-kings">👑 Abami</option>
+        <option value="africa-warriors">⚔️ Intwari</option>
+        <option value="africa-heroes">🦸 Abarwanyi</option>
+        <option value="africa-wisemen">📜 Abanyabwenge</option>
+    </optgroup>
+    <optgroup label="🌐 Isi Yose">
+        <option value="worldwide-famous" selected>⭐ Abazwi</option>
+        <option value="worldwide-continental">🗺️ Abo ku migabane</option>
+        <option value="worldwide-popular">🔥 Abakunzwe</option>
+        <option value="worldwide-unpopular">❄️ Abatarakundwa</option>
+        <option value="worldwide-trending">📈 Abari ku isonga</option>
+    </optgroup>
+</select>
+            </div>
+
+            <button type="button"
+                    class="quote-roll-arrow quote-roll-arrow--prev"
+                    id="quoteRollPrev"
+                    aria-label="Amagambo yabanjirije"
+                    onclick="quoteRollPrev()"></button>
+
+            <div class="quote-roll-list" id="quoteRollList"></div>
+
+            <button type="button"
+                    class="quote-roll-arrow quote-roll-arrow--next"
+                    id="quoteRollNext"
+                    aria-label="Amagambo akurikira"
+                    onclick="quoteRollNext()"></button>
+        </aside>
+
+        <header class="app-header">
+            <h1>TURABIMENYE!</h1>
+            <p>Shakisha Amateka ukoresheje utuzingo</p>
+
+            <div class="proverb-widget-wrap">
+                <div class="proverb-widget" id="proverbWidget">
+                    <div class="proverb-kinyarwanda" id="dailyProverb">
+                        <span class="loading-spinner"></span> Itegura...
+                    </div>
+                    <div class="proverb-actions">
+                        <button type="button" class="proverb-lang-btn" onclick="toggleProverbTranslations(event)">🌍 Soma mu zindi ndimi</button>
+                        <button type="button" class="proverb-refresh" onclick="refreshProverb(event)" title="Shaka undi mugani">🔄</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Proverb translations popup -->
+        <div id="proverbTransOverlay" class="proverb-trans-overlay" style="display: none;" onclick="hideProverbTranslations(event)">
+            <div class="proverb-trans-modal" onclick="event.stopPropagation()">
+                <button type="button" class="proverb-trans-close" onclick="hideProverbTranslations(event)" aria-label="Gufunga">&times;</button>
+                <div id="proverbTranslations"></div>
+            </div>
+        </div>
+
+        <!-- Login Modal (starts hidden) -->
+        <div id="loginModal" class="login-modal-overlay" style="display: none;">
+            <div class="login-modal">
+                <button class="close-btn" onclick="hideLoginModal()">&times;</button>
+
+                <h2 id="modalTitle"><i>🔐</i> Injira</h2>
+
+                <div id="loginForm">
+                    <div class="form-group">
+                        <label><i>📧</i> Imeyili</label>
+                        <input type="email" id="loginEmail" placeholder="andika imeyili yawe">
+                    </div>
+                    <div class="form-group">
+                        <label><i>🔑</i> Ijambo ry'ibanga</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••">
+                    </div>
+                    <button class="login-btn" onclick="handleLogin()">
+                        <i>🔓</i> Injira
+                    </button>
+
+                    <div class="divider"><span>cyangwa</span></div>
+
+                    <button class="anonymous-btn" onclick="continueAsAnonymous()">
+                        <i>🕶️</i> Komeza nk'umwihitira
+                    </button>
+
+                    <p class="toggle-form">
+                        Nta konti ufite?
+                        <a onclick="showRegisterForm()">Iyandikishe</a>
+                    </p>
+                </div>
+
+                <div id="registerForm" style="display: none;">
+                    <div class="form-group">
+                        <label><i>👤</i> Izina</label>
+                        <input type="text" id="regName" placeholder="andika izina ryawe">
+                    </div>
+                    <div class="form-group">
+                        <label><i>📧</i> Imeyili</label>
+                        <input type="email" id="regEmail" placeholder="andika imeyili yawe">
+                    </div>
+                    <div class="form-group">
+                        <label><i>🔑</i> Ijambo ry'ibanga</label>
+                        <input type="password" id="regPassword" placeholder="hanga ijambo ry'ibanga">
+                    </div>
+                    <button class="login-btn" onclick="handleRegister()">
+                        <i>📝</i> Iyandikishe
+                    </button>
+
+                    <div class="divider"><span>cyangwa</span></div>
+
+                    <button class="anonymous-btn" onclick="continueAsAnonymous()">
+                        <i>🕶️</i> Komeza nk'umwihitira
+                    </button>
+
+                    <p class="toggle-form">
+                        Ufite konti?
+                        <a onclick="showLoginForm()">Injira</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('generator')" id="tabGenerator">
+                <i>🔍</i> Ikora Inkuru
+            </button>
+            <button class="nav-tab" onclick="showTab('collection')" id="tabCollection">
+                <i>📚</i> Ibyakusanyirijwe
+                <span class="count-badge" id="collectionCount">0</span>
+            </button>
+            <a class="nav-tab nav-tab-link" href="numerology.html" id="tabNumerology">
+                <i>🔢</i> Ibarurizo
+            </a>
+            <a class="nav-tab nav-tab-link" href="past-lives.html" id="tabPastLives">
+                <i>✨</i> Ubuzima Bwashize
+            </a>
+        </div>
+
+        <!-- ===== GENERATOR TAB (first page) ===== -->
+        <div id="generatorTab">
+            <div class="file-upload-section">
+                <label for="fileInput" class="file-upload-label">
+                    <i>📂</i> Inkuru yanditse (.txt)
+                </label>
+                <input type="file" id="fileInput" accept=".txt" onchange="handleFileUpload(event)">
+                <div class="file-info" id="fileInfo">
+                    <i>ℹ️</i> Nta dosiye yatoranyijwe
+                </div>
+            </div>
+
+            <div class="parser-section">
+                <div class="parser-title">
+                    <i>📖</i>
+                    <span>Andika Inkuru (Izahindurwa mu Kinyarwanda)</span>
+                </div>
+
+                <div class="text-input-area">
+                    <textarea id="historicalText" placeholder="Andika inkuru yawe mu rurimi rwawe... Izahindurwa mu Kinyarwanda iyo ukanditse.
+
+Urugero:
+'Mu itumba ryo mu 1777, i Valley Forge, ingabo za George Washington zahuye n'ikigeragezo gikomeye. Abasirikare baburaga imyenda n'ibiryo, bahura n'imibabaro ikomeye. Ariko mu gihe cy'umwijima, umutima wabo ntiwacogora.'"></textarea>
+                </div>
+
+                <div class="extraction-options">
+                    <button class="extract-btn" onclick="extractStories()" id="extractBtn">
+                        <i>🔍</i> Gukora no Guhindura Inkuru
+                    </button>
+                </div>
+
+                <div id="storyPreview" class="story-preview" style="display: none;"></div>
+
+                <div class="format-example">
+                    <strong>📋 Urugero rw'Imiterere ya Dosiye .txt:</strong><br>
+                    ---<br>
+                    title: Ndabaga - Umukobwa w'intwari<br>
+                    description: Umukobwa w'intwari wagiye ku rugamba<br>
+                    fullDescription: Mu bihe bya kera, hari umukobwa witwaga Ndabaga wari uzwi ku butwari bwe...<br>
+                    date: Igikorwa cy'ubutwari<br>
+                    image: https://images.unsplash.com/photo-1590523277543-a94c2e4eb44b?w=800&amp;h=450&amp;fit=crop<br>
+                    continent: africa<br>
+                    category: Umugabane<br>
+                    region: Afurika y'Iburasirazuba<br>
+                    keywords: Ubutwari, Umukobwa, Intambara, Rwanda<br>
+                    ---
+                    <p style="margin-top:10px; color:#666;"><i>Icyitonderwa: Porogaramu izahindura inkuru zose mu Kinyarwanda. Ushobora no gushyiraho ifoto (dosiye cyangwa link) mbere yo gukora flyer.</i></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collection Tab — no quote-roll here, only flyers -->
+        <div id="collectionTab" style="display: none;">
+            <div class="controls">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Shakisha utuzingo...">
+                </div>
+
+                <div class="filter-section">
+                    <div class="filter-dropdown">
+                        <button class="filter-dropdown-btn" id="continentFilterBtn">
+                            <span><i>🌍</i> <span id="selectedContinent">Imigabane Yose</span></span>
+                            <i>▼</i>
+                        </button>
+                        <div class="filter-dropdown-content">
+                            <div class="filter-option active" data-continent="all" onclick="filterByContinent('all')"><i>🌍</i> Imigabane Yose</div>
+                            <div class="filter-option" data-continent="africa" onclick="filterByContinent('africa')"><i>🌍</i> Afurika</div>
+                            <div class="filter-option" data-continent="asia" onclick="filterByContinent('asia')"><i>🌏</i> Aziya</div>
+                            <div class="filter-option" data-continent="europe" onclick="filterByContinent('europe')"><i>🌍</i> Uburayi</div>
+                            <div class="filter-option" data-continent="north-america" onclick="filterByContinent('north-america')"><i>🌎</i> Amerika ya Ruguru</div>
+                            <div class="filter-option" data-continent="south-america" onclick="filterByContinent('south-america')"><i>🌎</i> Amerika y'Epfo</div>
+                            <div class="filter-option" data-continent="australia" onclick="filterByContinent('australia')"><i>🌏</i> Ositariya/Oceania</div>
+                            <div class="filter-option" data-continent="antarctica" onclick="filterByContinent('antarctica')"><i>❄️</i> Antaragitika</div>
+                            <div class="filter-option" data-continent="cosmic" onclick="filterByContinent('cosmic')"><i>🚀</i> Ikirere</div>
+                            <div class="filter-option" data-continent="worldwide" onclick="filterByContinent('worldwide')"><i>🌐</i> Isi Yose</div>
+                        </div>
+                    </div>
+
+                    <div class="filter-dropdown">
+                        <button class="filter-dropdown-btn" id="categoryFilterBtn">
+                            <span><i>📌</i> <span id="selectedCategory">Ibyiciro Byose</span></span>
+                            <i>▼</i>
+                        </button>
+                        <div class="filter-dropdown-content">
+                            <div class="filter-option active" data-category="all" onclick="filterByCategory('all')"><i>📌</i> Ibyiciro Byose</div>
+                            <div class="filter-option" data-category="worldwide" onclick="filterByCategory('worldwide')"><i>🌐</i> Isi Yose</div>
+                            <div class="filter-option" data-category="cosmic" onclick="filterByCategory('cosmic')"><i>🚀</i> Inkuru z'Ikirere</div>
+                            <div class="filter-option" data-category="continental" onclick="filterByCategory('continental')"><i>🌍</i> Umugabane</div>
+                        </div>
+                    </div>
+
+                    <div class="filter-dropdown">
+                        <button class="filter-dropdown-btn">
+                            <span><i>🔄</i> <span id="selectedSort">Ibiheruka</span></span>
+                            <i>▼</i>
+                        </button>
+                        <div class="filter-dropdown-content">
+                            <div class="filter-option active" data-sort="newest" onclick="sortBy('newest')"><i>🆕</i> Ibiheruka</div>
+                            <div class="filter-option" data-sort="oldest" onclick="sortBy('oldest')"><i>📅</i> Ibya Kera</div>
+                            <div class="filter-option" data-sort="most-liked" onclick="sortBy('most-liked')"><i>❤️</i> Byakunzwe Cyane</div>
+                            <div class="filter-option" data-sort="most-commented" onclick="sortBy('most-commented')"><i>💬</i> Byasuwe Cyane</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="activeFilters" style="display: none; margin-bottom: 15px;"></div>
+
+            <div id="flyersGrid" class="flyers-grid"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="account-bar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          if (window.location.hash === '#collection' && typeof showTab === 'function') {
+            showTab('collection');
+          }
+        });
+      </script>
+</body>
+</html>

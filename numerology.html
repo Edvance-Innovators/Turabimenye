@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="rw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ibarurizo — TURABIMENYE!</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ==================== FIXED LOGO (upper-left, stays put) ==================== */
+        .site-logo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 260px;
+            height: auto;
+            z-index: 110;
+            pointer-events: none;
+            opacity: 0;
+            animation: logoIntro 0.9s ease forwards;
+        }
+
+        .site-logo img {
+            display: block;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.25));
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        /* ==================== PAGE SHELL (pushes tabs below logo) ==================== */
+        .num-shell {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 160px 20px 0;
+        }
+
+        .num-shell .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 0 auto 28px;
+        }
+
+        .num-shell .nav-tab {
+            padding: 12px 32px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            border: 2px solid transparent;
+            backdrop-filter: blur(10px);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .num-shell .nav-tab:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .num-shell .nav-tab.active {
+            background: #fff;
+            color: #764ba2;
+            border-color: #764ba2;
+        }
+
+        @keyframes logoIntro {
+            0%   { opacity: 0; transform: translateY(-6px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @media (max-width: 700px) {
+            .site-logo { width: 110px; top: 8px; left: 8px; }
+            .num-shell { padding: 120px 16px 0; }
+            .num-shell .nav-tab {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+            }
+            .num-shell .nav-tab i {
+                display: none;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .site-logo { animation: none; opacity: 1; }
+        }
+
+        * { box-sizing: border-box; }
+
+        .num-page {
+            position: relative;
+            z-index: 1;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+        }
+
+        /* ===== CATEGORY TABS ===== */
+        .num-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .num-tab {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.85);
+            color: #5b3d8a;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .num-tab:hover {
+            background: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .num-tab.active {
+            background: #764ba2;
+            color: #ffffff;
+            box-shadow: 0 6px 16px rgba(118, 75, 162, 0.4);
+        }
+
+        .num-tab .tab-count {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            margin-left: 6px;
+        }
+
+        .num-tab.active .tab-count {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .num-hero {
+            background: rgba(255, 255, 255, 0.94);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+            margin-bottom: 24px;
+        }
+
+        .num-hero h1 {
+            color: #5b3d8a;
+            margin-bottom: 8px;
+        }
+
+        .num-hero p {
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .num-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .num-form input {
+            flex: 1;
+            min-width: 220px;
+            padding: 14px 16px;
+            border: 2px solid #ddd;
+            border-radius: 14px;
+            font-size: 1rem;
+        }
+
+        .num-form button {
+            padding: 14px 22px;
+            border: none;
+            border-radius: 14px;
+            background: #764ba2;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .num-query {
+            color: #fff;
+            margin: 8px 0 16px;
+        }
+
+        .db-count {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+
+        /* ===== AFRO-SUMERIAN ===== */
+        .afro-panel {
+            margin: 28px 0 18px;
+            border-radius: 28px;
+            background: linear-gradient(145deg, #fdf5e6, #f5e6d3);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+            border: 3px solid #b8860b;
+            padding: 6px;
+            overflow: hidden;
+        }
+
+        .afro-panel-header {
+            text-align: center;
+            padding: 16px 12px 6px;
+            color: #7a4e0e;
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .afro-panel-header::before,
+        .afro-panel-header::after {
+            content: "𒀭";
+            font-size: 1.8rem;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .afro-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+
+        .afro-division {
+            padding: 16px 22px 22px;
+        }
+
+        .afro-division + .afro-division {
+            border-left: 3px solid #b8860b;
+        }
+
+        .afro-division h3 {
+            font-size: 1.35rem;
+            color: #7a4e0e;
+            margin-bottom: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .afro-division h3 .sub {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #8b6b3d;
+        }
+
+        .afro-division .num-total,
+        .afro-division .num-reduced,
+        .afro-division .num-steps,
+        .afro-division .num-meaning {
+            font-size: 1.05rem;
+            margin-bottom: 10px;
+            color: #444;
+        }
+
+        .afro-division .num-reduced strong {
+            font-size: 1.7rem;
+            color: #7a4e0e;
+            background: #fff3e0;
+            padding: 2px 16px;
+            border-radius: 60px;
+            display: inline-block;
+        }
+
+        .afro-division .num-chips {
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .afro-division .num-chip {
+            background: #fff0d4;
+            border: 1px solid #d4a017;
+            font-size: 0.85rem;
+            padding: 4px 12px;
+            font-weight: 600;
+            color: #5a3e0a;
+        }
+
+        .sebidegede-diff {
+            margin-top: 16px;
+            background: #fff8e8;
+            border-radius: 14px;
+            padding: 12px 14px;
+            border: 1px dashed #d4a017;
+        }
+
+        .sebidegede-diff h4 {
+            color: #7a4e0e;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .sebidegede-diff .diff-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #7a4e0e;
+            margin-bottom: 8px;
+        }
+
+        .sebidegede-diff .diff-names {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .sebidegede-diff .diff-name-pill {
+            background: #ffeaa7;
+            border: 1px solid #d4a017;
+            border-radius: 999px;
+            padding: 4px 12px;
+            font-size: 0.85rem;
+            color: #5a3e0a;
+            font-weight: 600;
+        }
+
+        .num-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .num-card, .family-card {
+            background: #fff;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .num-card h3, .family-card h3 {
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .sys-pyth { border-top: 6px solid #764ba2; }
+        .sys-egypt { border-top: 6px solid #d4a017; }
+        .sys-latin { border-top: 6px solid #2f80ed; }
+
+        .num-total, .num-reduced, .num-steps, .num-meaning, .family-meta, .family-nums {
+            margin-bottom: 8px;
+            color: #444;
+            line-height: 1.4;
+        }
+
+        .num-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .num-chip {
+            background: #f3eef8;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.82rem;
+        }
+
+        /* ===== ASTROLOGY ===== */
+        .astro-section {
+            margin-top: 40px;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 28px;
+            padding: 28px 24px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+            border-left: 8px solid #8e44ad;
+        }
+
+        .astro-section h2 {
+            color: #5b3d8a;
+            margin-bottom: 6px;
+            font-size: 1.9rem;
+        }
+
+        .astro-section .sub {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        .birth-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            margin-bottom: 24px;
+            background: #f8f4ff;
+            padding: 18px 20px;
+            border-radius: 18px;
+            border: 1px dashed #bbaad5;
+        }
+
+        .birth-form .field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .birth-form label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #5b3d8a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .birth-form input {
+            padding: 10px 14px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 1rem;
+            min-width: 160px;
+        }
+
+        .birth-form button {
+            padding: 12px 22px;
+            border: none;
+            border-radius: 12px;
+            background: #8e44ad;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            height: fit-content;
+        }
+
+        .astro-flex {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 32px;
+            align-items: flex-start;
+        }
+
+        .chart-wrap {
+            flex: 0 0 360px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .chart-svg {
+            width: 340px;
+            height: 340px;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.18));
+        }
+
+        .astro-meaning {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .astro-meaning .big-number {
+            font-size: 3.4rem;
+            font-weight: 800;
+            color: #8e44ad;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .astro-meaning .label {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 16px;
+        }
+
+        .astro-meaning .desc {
+            background: #f8f4ff;
+            border-radius: 16px;
+            padding: 16px 18px;
+            color: #3a2a5a;
+            line-height: 1.5;
+            font-size: 1.02rem;
+        }
+
+        .birth-summary {
+            margin-top: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .birth-chip {
+            background: #ede4f7;
+            border-radius: 999px;
+            padding: 6px 16px;
+            font-size: 0.88rem;
+            color: #4a2e6e;
+            font-weight: 600;
+        }
+
+        .birth-chip strong { color: #5b3d8a; }
+
+        .bodies-section { margin-top: 28px; }
+
+        .bodies-section h3 {
+            color: #5b3d8a;
+            margin-bottom: 14px;
+            font-size: 1.3rem;
+        }
+
+        .bodies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+        }
+
+        .body-card {
+            background: #faf7ff;
+            border-radius: 14px;
+            padding: 10px 14px;
+            border-left: 5px solid #8e44ad;
+            font-size: 0.88rem;
+            color: #444;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .body-card .body-glyph {
+            font-size: 1.4rem;
+            color: #8e44ad;
+            min-width: 28px;
+            text-align: center;
+        }
+
+        .body-card .body-info strong {
+            display: block;
+            color: #5b3d8a;
+            font-size: 0.95rem;
+        }
+
+        .body-card .body-info span {
+            font-size: 0.78rem;
+            color: #666;
+        }
+
+        .live-section {
+            margin-top: 28px;
+            background: linear-gradient(145deg, #f3e9ff, #e8d9ff);
+            border-radius: 20px;
+            padding: 22px 24px;
+            border-left: 8px solid #8e44ad;
+        }
+
+        .live-section h3 {
+            color: #5b3d8a;
+            margin-bottom: 8px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .live-section h3 .pulse {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #e74c3c;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+
+        .live-section .live-time {
+            font-size: 0.82rem;
+            color: #6a4c93;
+            margin-bottom: 14px;
+            font-weight: 600;
+        }
+
+        .advice-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .advice-item {
+            background: #fff;
+            border-radius: 14px;
+            padding: 14px 16px;
+            border-left: 5px solid #8e44ad;
+            color: #3a2a5a;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .advice-item .advice-icon {
+            font-size: 1.2rem;
+            margin-right: 8px;
+        }
+
+        .advice-item .advice-label {
+            font-weight: 700;
+            color: #5b3d8a;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .house-section { margin-top: 28px; }
+
+        .house-section h3 {
+            color: #5b3d8a;
+            margin-bottom: 14px;
+            font-size: 1.3rem;
+        }
+
+        .house-card-single {
+            background: linear-gradient(145deg, #faf7ff, #f0e9fb);
+            border-radius: 20px;
+            padding: 22px 24px;
+            border-left: 8px solid #8e44ad;
+            color: #3a2a5a;
+            line-height: 1.5;
+            box-shadow: 0 6px 18px rgba(142, 68, 173, 0.12);
+        }
+
+        .house-card-single .house-num {
+            font-weight: 800;
+            color: #5b3d8a;
+            font-size: 1.4rem;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .house-card-single .house-name {
+            font-weight: 700;
+            color: #6a4c93;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.15rem;
+        }
+
+        .house-card-single .house-sign {
+            display: inline-block;
+            background: #ede4f7;
+            border-radius: 999px;
+            padding: 4px 14px;
+            font-size: 0.85rem;
+            color: #5b3d8a;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        .family-results { margin-top: 28px; }
+
+        .family-results h2 {
+            color: #fff;
+            margin-bottom: 14px;
+        }
+
+        .match-block {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 18px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+        }
+
+        .match-block h3 {
+            margin-bottom: 6px;
+            color: #333;
+        }
+
+        .match-rule {
+            color: #666;
+            font-size: 0.88rem;
+            margin-bottom: 12px;
+        }
+
+        .name-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .name-pill {
+            background: #f3eef8;
+            border: none;
+            border-radius: 999px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .name-pill:hover { background: #e4d7f2; }
+
+        .num-empty, #familyFileNote {
+            color: rgba(255, 255, 255, 0.9);
+            margin-top: 12px;
+        }
+
+        .num-legend {
+            margin-top: 28px;
+            color: rgba(255, 255, 255, 0.92);
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+
+        .stored-tag,
+        .new-tag {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .stored-tag { background: #2ecc71; color: #fff; }
+        .new-tag { background: #f39c12; color: #fff; }
+
+        .add-prompt {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 18px;
+            padding: 22px;
+            color: #333;
+        }
+
+        .add-prompt h2 { color: #5b3d8a; margin-bottom: 10px; }
+        .add-prompt p { margin-bottom: 10px; line-height: 1.5; }
+
+        .add-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .add-actions button,
+        .download-btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 12px;
+            background: #764ba2;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .add-actions .ghost { background: #95a5a6; }
+
+        .download-btn {
+            margin-top: 12px;
+            background: #2f80ed;
+        }
+
+        .download-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 700px) {
+            .afro-columns { grid-template-columns: 1fr; }
+            .afro-division + .afro-division {
+                border-left: none;
+                border-top: 3px solid #b8860b;
+            }
+            .afro-panel-header { font-size: 1.2rem; }
+            .afro-division h3 { font-size: 1.1rem; }
+            .afro-division .num-reduced strong { font-size: 1.4rem; }
+            .astro-flex { flex-direction: column; align-items: center; }
+            .astro-meaning { width: 100%; }
+            .birth-form { flex-direction: column; align-items: stretch; }
+            .chart-wrap { flex: 0 0 auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="site-logo" id="siteLogo" aria-hidden="true">
+        <img src="logo.png" alt="TURABIMENYE logo">
+    </div>
+
+    <div class="num-shell">
+        <!-- ===== MAIN NAV TABS ===== -->
+        <div class="nav-tabs">
+            <a class="nav-tab" href="index.html">
+                <i>🔍</i> Ikora Inkuru
+            </a>
+            <a class="nav-tab" href="index.html#collection">
+                <i>📚</i> Ibyakusanyirijwe
+            </a>
+            <a class="nav-tab active" href="numerology.html">
+                <i>🔢</i> Ibarurizo
+            </a>
+            <a class="nav-tab" href="past-lives.html">
+                <i>✨</i> Ubuzima Bwashize
+            </a>
+        </div>
+
+        <div class="num-page">
+            <section class="num-hero">
+                <h1>Ibarurizo ry’amazina, amagambo n’ahantu</h1>
+                <p>
+                    Kubafite konti. Hitamo icyiciro, andika. Uhabwa imibare ya
+                    <strong>Pythagorean</strong>, <strong>Egyptian</strong>, na <strong>Latin</strong>,
+                    hamwe n’igice kimwe cya <strong>Afro-Sumerian</strong> gifite ibice bibiri:
+                    <em>Afro-Sumerian</em> (cyclic, Q na X ntibikoreshwa) na
+                    <em>Sebidegede 2</em> (itari cyclic, igera kuri 24, itanga itandukaniro kuri 200).
+                    <br>
+                    <strong>Amazina</strong> yonyine ahabwa kandi <strong>ikarita y’inyenyeri</strong>.
+                    Amagambo n’ahantu babarurwa gusa mu mibare.
+                </p>
+
+                <div class="num-tabs" role="tablist">
+                    <button type="button" class="num-tab active" data-cat="names" onclick="switchNumerologyTab('names')">
+                        👤 Amazina <span class="tab-count" id="countNames">0</span>
+                    </button>
+                    <button type="button" class="num-tab" data-cat="words" onclick="switchNumerologyTab('words')">
+                        📖 Amagambo <span class="tab-count" id="countWords">0</span>
+                    </button>
+                    <button type="button" class="num-tab" data-cat="places" onclick="switchNumerologyTab('places')">
+                        📍 Ahantu <span class="tab-count" id="countPlaces">0</span>
+                    </button>
+                </div>
+
+                <form class="num-form" id="numerologyForm">
+                    <input id="numerologyInput" type="text" placeholder="Andika izina..." autocomplete="off">
+                    <button type="submit">Barura</button>
+                </form>
+
+                <div class="download-btns">
+                    <button type="button" class="download-btn" id="downloadFamilyNames">Manura family-names.json</button>
+                    <button type="button" class="download-btn" id="downloadWords" style="background:#16a085;">Manura words.json</button>
+                    <button type="button" class="download-btn" id="downloadPlaces" style="background:#c9a227;">Manura places.json</button>
+                </div>
+                <p id="familyFileNote" class="db-count"></p>
+            </section>
+
+            <div id="numerologyResults"></div>
+            <div class="family-results" id="familyResults"></div>
+
+            <!-- ===== ASTROLOGY CHART & HOUSES (names only) ===== -->
+            <div id="astroSection" class="astro-section" style="display: none;">
+                <h2>🔮 Ikarita y’inyenyeri (Astrology Chart)</h2>
+                <p class="sub">Iyi karita iboneka gusa ku <strong>mazina</strong>. Shyiramo itariki y’amavuko.</p>
+
+                <form class="birth-form" id="birthForm">
+                    <div class="field">
+                        <label for="birthDate">Itariki y'amavuko</label>
+                        <input type="date" id="birthDate" required>
+                    </div>
+                    <div class="field">
+                        <label for="birthTime">Isaha (niba ihari)</label>
+                        <input type="time" id="birthTime">
+                    </div>
+                    <div class="field">
+                        <label for="birthPlace">Aho wavukiye</label>
+                        <input type="text" id="birthPlace" placeholder="Umujyi, Igihugu">
+                    </div>
+                    <button type="submit">Erekana ikarita</button>
+                </form>
+
+                <div class="astro-flex">
+                    <div class="chart-wrap">
+                        <svg class="chart-svg" viewBox="0 0 360 360" id="astroChartSvg"></svg>
+                    </div>
+
+                    <div class="astro-meaning">
+                        <div class="big-number" id="astroBigNumber">–</div>
+                        <div class="label" id="astroLabel">Umubare w'inyenyeri</div>
+                        <div class="desc" id="astroDesc">
+                            Andika izina na itariki y’amavuko kugira ngo ubone ikarita y’inyenyeri.
+                        </div>
+                        <div class="birth-summary" id="birthSummary"></div>
+                    </div>
+                </div>
+
+                <div class="bodies-section" id="bodiesSection" style="display: none;">
+                    <h3>🪐 Imibiri y’ikirere (Celestial Bodies)</h3>
+                    <div class="bodies-grid" id="bodiesGrid"></div>
+                </div>
+
+                <div class="house-section" id="houseSection" style="display: none;">
+                    <h3>🏛️ Inzu yawe y’inyenyeri (Your Astrological House)</h3>
+                    <div id="houseCardContainer"></div>
+                </div>
+
+                <div class="live-section" id="liveSection" style="display: none;">
+                    <h3><span class="pulse"></span> Inama zigezweho (Live Advice)</h3>
+                    <p class="live-time" id="liveTime"></p>
+                    <div class="advice-list" id="adviceList"></div>
+                </div>
+            </div>
+
+            <p class="num-legend">
+                Pythagorean: A–I = 1–9, J–R = 1–9, S–Z = 1–8; 11, 22, 33 ntibicishwa.
+                Egyptian: agaciro k’inyuguti 1–8 (Chaldean/Egyptian chart).
+                Latin: gematria ya alifabeti ya Kilatini (A=1 … Z=500; J=I, U/W=V).
+                Afro-Sumerian: Q na X ntibikoreshwa (cyclic 1–9).
+                Sebidegede 2: itari cyclic, igera kuri 24, itanga itandukaniro kuri 200.
+            </p>
+        </div>
+    </div>
+
+    <script src="data/family-names.js"></script>
+    <script src="data/words.js"></script>
+    <script src="data/places.js"></script>
+    <script src="numerology.js"></script>
+    <script src="account-bar.js"></script>
+</body>
+</html>
