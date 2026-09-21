@@ -4,87 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ubuzima Bwashize & Buzaza — TURABIMENYE!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:ital,wght@0,600;1,500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* ==================== FIXED LOGO (upper-left, stays put) ==================== */
-        .site-logo {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 260px;
-            height: auto;
-            z-index: 110;
-            pointer-events: none;
-            opacity: 0;
-            animation: logoIntro 0.9s ease forwards;
-        }
+        .site-logo { opacity: 0; animation: logoIntro 0.9s ease forwards; }
 
-        .site-logo img {
-            display: block;
-            width: 100%;
-            height: auto;
-            filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.25));
-            user-select: none;
-            -webkit-user-drag: none;
-        }
-
-        /* ==================== PAGE SHELL (pushes tabs below logo) ==================== */
         .pl-shell {
-            max-width: 1400px;
+            max-width: 1280px;
             margin: 0 auto;
-            padding: 160px 20px 0;
+            padding: 0;
         }
 
         .pl-shell .nav-tabs {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin: 0 auto 28px;
-        }
-
-        .pl-shell .nav-tab {
-            padding: 12px 32px;
-            border-radius: 30px;
-            background: rgba(255, 255, 255, 0.2);
-            color: #fff;
-            font-weight: 600;
-            font-size: 1rem;
-            text-decoration: none;
-            border: 2px solid transparent;
-            backdrop-filter: blur(10px);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .pl-shell .nav-tab:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .pl-shell .nav-tab.active {
-            background: #fff;
-            color: #764ba2;
-            border-color: #764ba2;
+            margin-bottom: 20px;
         }
 
         @keyframes logoIntro {
             0%   { opacity: 0; transform: translateY(-6px) scale(0.95); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        @media (max-width: 700px) {
-            .site-logo { width: 110px; top: 8px; left: 8px; }
-            .pl-shell { padding: 120px 16px 0; }
-            .pl-shell .nav-tab {
-                padding: 8px 16px;
-                font-size: 0.85rem;
-            }
-            .pl-shell .nav-tab i {
-                display: none;
-            }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -97,15 +36,15 @@
         .pl-page {
             max-width: 780px;
             margin: 0 auto;
-            padding: 0 20px 80px;
+            padding: 0 0 48px;
         }
 
         .pl-hero {
             background: rgba(255, 255, 255, 0.96);
-            border-radius: 24px;
-            padding: 36px 32px;
+            border-radius: 20px;
+            padding: clamp(20px, 4vw, 36px);
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             text-align: center;
         }
 
@@ -123,10 +62,10 @@
         }
 
         .pl-hero h1 {
-            font-size: 2.2rem;
+            font-size: clamp(1.45rem, 5vw, 2.1rem);
             color: #333;
             margin-bottom: 10px;
-            line-height: 1.15;
+            line-height: 1.2;
         }
 
         .pl-hero .pl-sub {
@@ -226,9 +165,9 @@
         /* Lives preview grid (8 cards) */
         .pl-lives-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 14px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
         .pl-life-card {
@@ -498,7 +437,7 @@
             margin-top: 24px;
         }
 
-        .pl-actions .pl-btn { width: auto; }
+        .pl-actions .pl-btn { width: auto; min-width: min(100%, 200px); flex: 1; }
 
         .pl-note {
             color: #999;
@@ -509,21 +448,24 @@
         }
 
         @media (max-width: 700px) {
-            .pl-page { padding: 0 14px 60px; }
-            .pl-hero { padding: 28px 20px; }
-            .pl-hero h1 { font-size: 1.6rem; }
-            .pl-quiz, .pl-result, .pl-setup { padding: 24px 18px; }
-            .pl-question { font-size: 1.08rem; }
-            .pl-bar-row .pl-bar-label { flex-basis: 55%; font-size: 0.78rem; }
+            .pl-page { padding: 0 0 48px; }
+            .pl-hero { padding: 22px 16px; }
+            .pl-quiz, .pl-result, .pl-setup { padding: 20px 16px; }
+            .pl-question { font-size: 1.05rem; min-height: 0; }
+            .pl-bar-row { flex-wrap: wrap; }
+            .pl-bar-row .pl-bar-label { flex-basis: 100%; font-size: 0.8rem; }
+            .pl-bar-row .pl-bar-value { flex-basis: auto; }
         }
     </style>
 </head>
 <body>
-    <div class="site-logo" id="siteLogo" aria-hidden="true">
-        <img src="logo.png" alt="TURABIMENYE logo">
-    </div>
+    <div class="page-shell pl-shell">
+        <header class="site-brand">
+            <div class="site-logo" id="siteLogo" aria-hidden="true">
+                <img src="logo.png" alt="TURABIMENYE logo">
+            </div>
+        </header>
 
-    <div class="pl-shell">
         <!-- ===== MAIN NAV TABS ===== -->
         <div class="nav-tabs">
             <a class="nav-tab" href="index.html">

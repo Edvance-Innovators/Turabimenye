@@ -4,87 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ibarurizo — TURABIMENYE!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:ital,wght@0,600;1,500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* ==================== FIXED LOGO (upper-left, stays put) ==================== */
-        .site-logo {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 260px;
-            height: auto;
-            z-index: 110;
-            pointer-events: none;
-            opacity: 0;
-            animation: logoIntro 0.9s ease forwards;
-        }
+        .site-logo { opacity: 0; animation: logoIntro 0.9s ease forwards; }
 
-        .site-logo img {
-            display: block;
-            width: 100%;
-            height: auto;
-            filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.25));
-            user-select: none;
-            -webkit-user-drag: none;
-        }
-
-        /* ==================== PAGE SHELL (pushes tabs below logo) ==================== */
         .num-shell {
-            max-width: 1400px;
+            max-width: 1280px;
             margin: 0 auto;
-            padding: 160px 20px 0;
-        }
-
-        .num-shell .nav-tabs {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin: 0 auto 28px;
-        }
-
-        .num-shell .nav-tab {
-            padding: 12px 32px;
-            border-radius: 30px;
-            background: rgba(255, 255, 255, 0.2);
-            color: #fff;
-            font-weight: 600;
-            font-size: 1rem;
-            text-decoration: none;
-            border: 2px solid transparent;
-            backdrop-filter: blur(10px);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .num-shell .nav-tab:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .num-shell .nav-tab.active {
-            background: #fff;
-            color: #764ba2;
-            border-color: #764ba2;
+            padding: 0;
         }
 
         @keyframes logoIntro {
             0%   { opacity: 0; transform: translateY(-6px) scale(0.95); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        @media (max-width: 700px) {
-            .site-logo { width: 110px; top: 8px; left: 8px; }
-            .num-shell { padding: 120px 16px 0; }
-            .num-shell .nav-tab {
-                padding: 8px 16px;
-                font-size: 0.85rem;
-            }
-            .num-shell .nav-tab i {
-                display: none;
-            }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -98,7 +33,7 @@
             z-index: 1;
             max-width: 1100px;
             margin: 0 auto;
-            padding: 0 20px 60px;
+            padding: 0 0 48px;
         }
 
         /* ===== CATEGORY TABS ===== */
@@ -106,20 +41,28 @@
             display: flex;
             gap: 8px;
             margin-bottom: 16px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 4px;
+            scrollbar-width: none;
         }
+        .num-tabs::-webkit-scrollbar { display: none; }
 
         .num-tab {
-            padding: 10px 20px;
+            padding: 10px 16px;
             border: none;
-            border-radius: 25px;
+            border-radius: 999px;
             background: rgba(255, 255, 255, 0.85);
             color: #5b3d8a;
             font-weight: 700;
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             cursor: pointer;
             transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            white-space: nowrap;
+            flex: 0 0 auto;
+            font-family: inherit;
         }
 
         .num-tab:hover {
@@ -147,15 +90,17 @@
 
         .num-hero {
             background: rgba(255, 255, 255, 0.94);
-            border-radius: 24px;
-            padding: 28px;
+            border-radius: 20px;
+            padding: clamp(16px, 4vw, 28px);
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .num-hero h1 {
             color: #5b3d8a;
             margin-bottom: 8px;
+            font-size: clamp(1.25rem, 4.2vw, 1.9rem);
+            line-height: 1.2;
         }
 
         .num-hero p {
@@ -171,8 +116,8 @@
         }
 
         .num-form input {
-            flex: 1;
-            min-width: 220px;
+            flex: 1 1 100%;
+            min-width: 0;
             padding: 14px 16px;
             border: 2px solid #ddd;
             border-radius: 14px;
@@ -180,6 +125,7 @@
         }
 
         .num-form button {
+            width: 100%;
             padding: 14px 22px;
             border: none;
             border-radius: 14px;
@@ -187,6 +133,7 @@
             color: #fff;
             font-weight: 700;
             cursor: pointer;
+            font-family: inherit;
         }
 
         .num-query {
@@ -374,10 +321,10 @@
 
         /* ===== ASTROLOGY ===== */
         .astro-section {
-            margin-top: 40px;
+            margin-top: 28px;
             background: rgba(255, 255, 255, 0.96);
-            border-radius: 28px;
-            padding: 28px 24px;
+            border-radius: 20px;
+            padding: clamp(16px, 4vw, 28px);
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
             border-left: 8px solid #8e44ad;
         }
@@ -385,7 +332,7 @@
         .astro-section h2 {
             color: #5b3d8a;
             margin-bottom: 6px;
-            font-size: 1.9rem;
+            font-size: clamp(1.25rem, 4vw, 1.8rem);
         }
 
         .astro-section .sub {
@@ -406,12 +353,6 @@
             border: 1px dashed #bbaad5;
         }
 
-        .birth-form .field {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
         .birth-form label {
             font-size: 0.82rem;
             font-weight: 700;
@@ -425,10 +366,20 @@
             border: 2px solid #ddd;
             border-radius: 12px;
             font-size: 1rem;
-            min-width: 160px;
+            min-width: 0;
+            width: 100%;
+        }
+
+        .birth-form .field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1 1 140px;
+            min-width: 0;
         }
 
         .birth-form button {
+            width: 100%;
             padding: 12px 22px;
             border: none;
             border-radius: 12px;
@@ -437,6 +388,7 @@
             font-weight: 700;
             cursor: pointer;
             height: fit-content;
+            font-family: inherit;
         }
 
         .astro-flex {
@@ -447,15 +399,17 @@
         }
 
         .chart-wrap {
-            flex: 0 0 360px;
+            flex: 1 1 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
+            max-width: 100%;
         }
 
         .chart-svg {
-            width: 340px;
-            height: 340px;
+            width: min(340px, 100%);
+            height: auto;
+            aspect-ratio: 1;
             filter: drop-shadow(0 4px 12px rgba(0,0,0,0.18));
         }
 
@@ -465,7 +419,7 @@
         }
 
         .astro-meaning .big-number {
-            font-size: 3.4rem;
+            font-size: clamp(2.2rem, 8vw, 3.4rem);
             font-weight: 800;
             color: #8e44ad;
             line-height: 1;
@@ -758,8 +712,9 @@
         .add-actions .ghost { background: #95a5a6; }
 
         .download-btn {
-            margin-top: 12px;
+            margin-top: 0;
             background: #2f80ed;
+            width: 100%;
         }
 
         .download-btns {
@@ -769,28 +724,39 @@
             margin-top: 12px;
         }
 
+        @media (min-width: 640px) {
+            .num-form input { flex: 1 1 auto; }
+            .num-form button { width: auto; }
+            .birth-form button { width: auto; }
+            .download-btn { width: auto; }
+        }
+
         @media (max-width: 700px) {
             .afro-columns { grid-template-columns: 1fr; }
             .afro-division + .afro-division {
                 border-left: none;
                 border-top: 3px solid #b8860b;
             }
-            .afro-panel-header { font-size: 1.2rem; }
+            .afro-panel-header { font-size: 1.1rem; }
+            .afro-division { padding: 14px; }
             .afro-division h3 { font-size: 1.1rem; }
             .afro-division .num-reduced strong { font-size: 1.4rem; }
             .astro-flex { flex-direction: column; align-items: center; }
-            .astro-meaning { width: 100%; }
+            .astro-meaning { width: 100%; min-width: 0; }
             .birth-form { flex-direction: column; align-items: stretch; }
             .chart-wrap { flex: 0 0 auto; }
+            .num-legend { font-size: 0.82rem; }
         }
     </style>
 </head>
 <body>
-    <div class="site-logo" id="siteLogo" aria-hidden="true">
-        <img src="logo.png" alt="TURABIMENYE logo">
-    </div>
+    <div class="page-shell num-shell">
+        <header class="site-brand">
+            <div class="site-logo" id="siteLogo" aria-hidden="true">
+                <img src="logo.png" alt="TURABIMENYE logo">
+            </div>
+        </header>
 
-    <div class="num-shell">
         <!-- ===== MAIN NAV TABS ===== -->
         <div class="nav-tabs">
             <a class="nav-tab" href="index.html">

@@ -4,56 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TURABIMENYE! - Amateka y'Intwari</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:ital,wght@0,600;1,500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* ==================== LOGO (scrolls with page, upper-left) ==================== */
-        .site-logo {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 260px;
-            height: auto;
-            z-index: 110;
-            pointer-events: none;
-        }
-
-        .site-logo img {
-            display: block;
-            width: 100%;
-            height: auto;
-            filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.25));
-            user-select: none;
-            -webkit-user-drag: none;
-        }
-
-        @media (max-width: 700px) {
-            .site-logo { width: 110px; top: 8px; left: 8px; }
-        }
-
-        /* ==================== QUOTE SCROLL (parchment, fixed under user pill) ==================== */
+        /* ==================== QUOTE SCROLL ==================== */
         .quote-roll {
-    position: absolute;                /* ⬅ scrolls with the page, no longer fixed */
-    top: 88px;
-    right: 20px;
-    width: 260px;
-    max-height: 78vh;
-    z-index: 1100;                     /* above collection controls */
-    pointer-events: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    padding: 4px 2px 10px;
-    overflow: hidden;
-}
+            position: relative;
+            top: auto;
+            right: auto;
+            width: 100%;
+            max-height: none;
+            z-index: 5;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            padding: 10px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 18px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
 
         .quote-roll-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 4px;
+            gap: 8px;
+            flex-wrap: wrap;
             background: #ffffff;
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 8px 10px;
             box-shadow: 0 3px 10px rgba(0,0,0,0.12);
             position: relative;
@@ -62,8 +47,16 @@
             transition: 10.5s ease !important;
         }
 
+        .quote-roll-nav {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+        }
+
         .quote-roll-header h3 {
-            font-size: 0.5rem;
+            font-size: 0.78rem;
             color: #5b3d8a;
             margin: 0;
             display: flex;
@@ -129,16 +122,34 @@
             border: 1px solid rgba(118, 75, 162, 0.35);
             pointer-events: none;
         }
-        .quote-roll-arrow--prev::before { content: '▲'; }
-        .quote-roll-arrow--next::before { content: '▼'; }
+        .quote-roll-arrow--prev::before { content: '◀'; }
+        .quote-roll-arrow--next::before { content: '▶'; }
+        @media (min-width: 1100px) {
+            .quote-roll-arrow--prev::before { content: '▲'; }
+            .quote-roll-arrow--next::before { content: '▼'; }
+        }
+
+        .quote-roll-arrows {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
 
         .quote-roll-list {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: stretch;
-            gap: 22px;
+            gap: 12px;
             padding: 3px 4px;
-            overflow: hidden;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .quote-roll-list .flyer {
+            flex: 0 0 min(78%, 240px);
+            scroll-snap-align: start;
         }
 
         .quote-roll-empty {
@@ -311,10 +322,10 @@
         }
 
         .flyer__quote {
-            font-family: 'Georgia', 'Times New Roman', serif;
+            font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
             font-style: italic;
             color: #3b2f1a;
-            font-size: 0.5rem;
+            font-size: 0.82rem;
             line-height: 1.55;
             margin: 0;
             padding: 0 4px 6px;
@@ -347,14 +358,30 @@
             font-style: normal;
         }
 
-        @media (max-width: 900px) {
+        @media (min-width: 1100px) {
             .quote-roll {
-                position: static;
-                width: 100%;
-                max-height: none;
-                margin: 14px auto 0;
-                padding: 10px 14px 20px;
+                padding: 8px 6px 12px;
+                background: transparent;
+                border: none;
+                backdrop-filter: none;
             }
+            .quote-roll-list {
+                flex-direction: column;
+                overflow: hidden;
+                gap: 18px;
+            }
+            .quote-roll-list .flyer {
+                flex: none;
+                width: calc(100% - 24px);
+            }
+            .quote-roll-nav {
+                display: flex;
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 1099px) {
+            .quote-roll-arrow { width: 36px; height: 36px; }
             .flyer__portrait { width: 56px; height: 56px; }
         }
 
@@ -372,10 +399,10 @@
         }
         .login-modal {
             background: white;
-            border-radius: 30px;
-            padding: 40px;
+            border-radius: 22px;
+            padding: clamp(20px, 5vw, 36px);
             max-width: 450px;
-            width: 90%;
+            width: min(450px, calc(100% - 24px));
             max-height: 90vh;
             overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
@@ -477,6 +504,7 @@
             margin-bottom: 10px;
             transition: color 0.9s ease, text-shadow 0.9s ease;
             --proverb-anim-duration: 4s;
+            padding: 0 8px;
         }
         .proverb-anim-glow { animation: proverbGlow var(--proverb-anim-duration) ease-in-out infinite; }
         .proverb-anim-float { animation: proverbFloat var(--proverb-anim-duration) ease-in-out infinite; }
@@ -724,10 +752,10 @@
             margin-top: 5px; text-align: center;
         }
         .search-box input {
-            width: 100%; padding: 10px 15px;
-            border-radius: 30px;
+            width: 100%; padding: 12px 16px;
+            border-radius: 14px;
             border: 2px solid #e0e0e0;
-            font-size: 0.9rem;
+            font-size: 1rem;
         }
         .no-results {
             text-align: center; padding: 50px;
@@ -749,70 +777,22 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- ===== LOGO (scrolls with page, upper-left) ===== -->
-        <div class="site-logo" id="siteLogo" aria-hidden="true">
-            <img src="logo.png" alt="TURABIMENYE logo">
-        </div>
-
-        <!-- User Status in Header -->
-        <!-- <div class="user-status" id="userStatus">
-            <span class="user-badge anonymous" id="userBadge">🕶️ Uwihitira</span>
-            <a href="numerology.html" class="numerology-nav-btn" id="numerologyNavBtn">🔢 Ibarurizo</a>
-            <button onclick="showLoginModal()" id="authButton">🔐 Injira</button>
-        </div> -->
-
-        <!-- ===== QUOTE SCROLL (parchment, fixed under user login pill) ===== -->
-        <aside class="quote-roll" id="quoteRoll" aria-label="Prominent figures quotes">
-            <div class="quote-roll-header">
-                <h3>💬 Imenyekaniro</h3>
-                <select id="quoteContinentSelect"
-        class="quote-continent-select"
-        aria-label="Hitamo itsinda"
-        onchange="onQuoteCategoryChange(this.value)">
-    <optgroup label="🌍 Afurika">
-        <option value="africa-indigenous">🏺 Abasangwabutaka</option>
-        <option value="africa-kings">👑 Abami</option>
-        <option value="africa-warriors">⚔️ Intwari</option>
-        <option value="africa-heroes">🦸 Abarwanyi</option>
-        <option value="africa-wisemen">📜 Abanyabwenge</option>
-    </optgroup>
-    <optgroup label="🌐 Isi Yose">
-        <option value="worldwide-famous" selected>⭐ Abazwi</option>
-        <option value="worldwide-continental">🗺️ Abo ku migabane</option>
-        <option value="worldwide-popular">🔥 Abakunzwe</option>
-        <option value="worldwide-unpopular">❄️ Abatarakundwa</option>
-        <option value="worldwide-trending">📈 Abari ku isonga</option>
-    </optgroup>
-</select>
+        <header class="site-brand">
+            <div class="site-logo" id="siteLogo" aria-hidden="true">
+                <img src="logo.png" alt="TURABIMENYE logo">
             </div>
-
-            <button type="button"
-                    class="quote-roll-arrow quote-roll-arrow--prev"
-                    id="quoteRollPrev"
-                    aria-label="Amagambo yabanjirije"
-                    onclick="quoteRollPrev()"></button>
-
-            <div class="quote-roll-list" id="quoteRollList"></div>
-
-            <button type="button"
-                    class="quote-roll-arrow quote-roll-arrow--next"
-                    id="quoteRollNext"
-                    aria-label="Amagambo akurikira"
-                    onclick="quoteRollNext()"></button>
-        </aside>
-
-        <header class="app-header">
-            <h1>TURABIMENYE!</h1>
-            <p>Shakisha Amateka ukoresheje utuzingo</p>
-
-            <div class="proverb-widget-wrap">
-                <div class="proverb-widget" id="proverbWidget">
-                    <div class="proverb-kinyarwanda" id="dailyProverb">
-                        <span class="loading-spinner"></span> Itegura...
-                    </div>
-                    <div class="proverb-actions">
-                        <button type="button" class="proverb-lang-btn" onclick="toggleProverbTranslations(event)">🌍 Soma mu zindi ndimi</button>
-                        <button type="button" class="proverb-refresh" onclick="refreshProverb(event)" title="Shaka undi mugani">🔄</button>
+            <div class="app-header">
+                <h1>TURABIMENYE!</h1>
+                <p>Shakisha Amateka ukoresheje utuzingo</p>
+                <div class="proverb-widget-wrap">
+                    <div class="proverb-widget" id="proverbWidget">
+                        <div class="proverb-kinyarwanda" id="dailyProverb">
+                            <span class="loading-spinner"></span> Itegura...
+                        </div>
+                        <div class="proverb-actions">
+                            <button type="button" class="proverb-lang-btn" onclick="toggleProverbTranslations(event)">🌍 Soma mu zindi ndimi</button>
+                            <button type="button" class="proverb-refresh" onclick="refreshProverb(event)" title="Shaka undi mugani">🔄</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -906,6 +886,8 @@
             </a>
         </div>
 
+        <div class="home-layout">
+        <div class="home-main">
         <!-- ===== GENERATOR TAB (first page) ===== -->
         <div id="generatorTab">
             <div class="file-upload-section">
@@ -1015,6 +997,49 @@ Urugero:
             <div id="activeFilters" style="display: none; margin-bottom: 15px;"></div>
 
             <div id="flyersGrid" class="flyers-grid"></div>
+        </div>
+        </div>
+
+        <aside class="quote-roll" id="quoteRoll" aria-label="Prominent figures quotes">
+            <div class="quote-roll-header">
+                <h3>💬 Imenyekaniro</h3>
+                <select id="quoteContinentSelect"
+        class="quote-continent-select"
+        aria-label="Hitamo itsinda"
+        onchange="onQuoteCategoryChange(this.value)">
+    <optgroup label="🌍 Afurika">
+        <option value="africa-indigenous">🏺 Abasangwabutaka</option>
+        <option value="africa-kings">👑 Abami</option>
+        <option value="africa-warriors">⚔️ Intwari</option>
+        <option value="africa-heroes">🦸 Abarwanyi</option>
+        <option value="africa-wisemen">📜 Abanyabwenge</option>
+    </optgroup>
+    <optgroup label="🌐 Isi Yose">
+        <option value="worldwide-famous" selected>⭐ Abazwi</option>
+        <option value="worldwide-continental">🗺️ Abo ku migabane</option>
+        <option value="worldwide-popular">🔥 Abakunzwe</option>
+        <option value="worldwide-unpopular">❄️ Abatarakundwa</option>
+        <option value="worldwide-trending">📈 Abari ku isonga</option>
+    </optgroup>
+</select>
+            </div>
+
+            <div class="quote-roll-nav">
+                <button type="button"
+                        class="quote-roll-arrow quote-roll-arrow--prev"
+                        id="quoteRollPrev"
+                        aria-label="Amagambo yabanjirije"
+                        onclick="quoteRollPrev()"></button>
+
+                <div class="quote-roll-list" id="quoteRollList"></div>
+
+                <button type="button"
+                        class="quote-roll-arrow quote-roll-arrow--next"
+                        id="quoteRollNext"
+                        aria-label="Amagambo akurikira"
+                        onclick="quoteRollNext()"></button>
+            </div>
+        </aside>
         </div>
     </div>
 
