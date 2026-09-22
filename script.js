@@ -22,6 +22,53 @@ let currentFilters = {
 // Global style from manager
 let globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
 
+// ==================== CLOUD STORAGE (SUPABASE) ====================
+const CLOUD_API = '/api/flyers';
+
+function currentUserId() {
+    return localStorage.getItem('wrzkk_user_id') || 'anonymous';
+}
+
+// Convert your camelCase flyer object to the Supabase snake_case row
+function flyerToRow(flyer) {
+    return {
+        user_id: currentUserId(),
+        title: flyer.title,
+        preview_description: flyer.previewDescription || '',
+        full_description: flyer.fullDescription || '',
+        image: flyer.image || '',
+        date: flyer.date || '',
+        likes: flyer.likes || 0,
+        comments: flyer.comments || [],
+        knew: flyer.knew || 0,
+        didnt_know: flyer.didntKnow || 0,
+        keywords: flyer.keywords || [],
+        continent: flyer.continent || 'worldwide',
+        category: flyer.category || 'worldwide',
+        region: flyer.region || ''
+    };
+}
+
+// Convert a Supabase row back to your camelCase flyer object
+function rowToFlyer(row) {
+    return {
+        id: row.id,
+        title: row.title,
+        previewDescription: row.preview_description,
+        fullDescription: row.full_description,
+        image: row.image,
+        date: row.date,
+        likes: row.likes,
+        comments: row.comments,
+        knew: row.knew,
+        didntKnow: row.didnt_know,
+        keywords: row.keywords,
+        continent: row.continent,
+        category: row.category,
+        region: row.region,
+        createdAt: row.created_at
+    };
+}
 function flyerIdKey(id) {
     return String(id);
 }
@@ -39,6 +86,7 @@ function normalizeFlyerImage(url, story) {
     }
     return trimmed.replace(/'/g, '%27');
 }
+
 
 // ==================== RAPIDAPI TRANSLATION ====================
 const RAPIDAPI_KEY = '1160bf36e3msh6729064f6829518p1e7b37jsne28423a56339';
@@ -220,32 +268,47 @@ async function translateLongText(text) {
 }
 
 // ==================== SYNC HELPER - Save to both storages ====================
-function saveFlyerToBothStorages(flyer) {
-    try {
-        let userFlyers = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
-        const existingUserIndex = userFlyers.findIndex(f => f.id == flyer.id);
-        if (existingUserIndex === -1) {
-            userFlyers.unshift(flyer);
-            localStorage.setItem('wrzkk_flyers', JSON.stringify(userFlyers));
-        } else {
-            userFlyers[existingUserIndex] = flyer;
-            localStorage.setItem('wrzkk_flyers', JSON.stringify(userFlyers));
-        }
-        
-        let managerFlyers = JSON.parse(localStorage.getItem('wrzkk_all_flyers')) || [];
-        const existingManagerIndex = managerFlyers.findIndex(f => f.id == flyer.id);
-        if (existingManagerIndex === -1) {
-            managerFlyers.unshift(flyer);
-            localStorage.setItem('wrzkk_all_flyers', JSON.stringify(managerFlyers));
-        } else {
-            managerFlyers[existingManagerIndex] = flyer;
-            localStorage.setItem('wrzkk_all_flyers', JSON.stringify(managerFlyers));
-        }
-        
-        console.log('✅ Flyer saved to both storages:', flyer.title);
+// ==================== CLOUD SAVE ====================
+async function saveFlyerToCloud(flyer) {
+    // Always update the local mirror first so the UI stays instant
+    let local = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
+    const idx = local.findIndex(f => f.id === flyer.id);
+    if (idx === -1) {
+        local.unshift(flyer);
+    } else {
+        local[idx] = flyer;
+    }
+    localStorage.setItem('wrzkk_flyers', JSON.stringify(local));
+
+    // Then push to cloud (only if we have a real user id)
+    if (!currentUserId() || currentUserId() === 'anonymous') {
+        console.log('ℹ️ Anonymous user — flyer kept local only');
         return true;
-    } catch (error) {
-        console.error('Error saving flyer to storages:', error);
+    }
+
+    try {
+        const response = await fetch(CLOUD_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(flyerToRow(flyer))
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const saved = await response.json();
+        console.log('✅ Cloud save:', saved.title);
+
+        // Swap the local placeholder id for the real cloud id
+        if (saved.id && saved.id !== flyer.id) {
+            flyer.id = saved.id;
+            const again = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
+            const i2 = again.findIndex(f => f.id === flyer.id || f.title === flyer.title);
+            if (i2 !== -1) {
+                again[i2].id = saved.id;
+                localStorage.setItem('wrzkk_flyers', JSON.stringify(again));
+            }
+        }
+        return true;
+    } catch (err) {
+        console.warn('⚠️ Cloud save failed, kept local:', err.message);
         return false;
     }
 }
@@ -473,100 +536,95 @@ function uploadFlyerPicture(event) {
 }
 
 // ==================== INITIALIZATION ====================
-function initializeCollection() {
-    globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
-    console.log('🎨 Global style from manager:', globalFlyerStyle);
-    
-    let loadedFlyers = [];
-    const userFlyers = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
-    const managerFlyers = JSON.parse(localStorage.getItem('wrzkk_all_flyers')) || [];
-    
-    if (userFlyers.length > 0 || managerFlyers.length > 0) {
-        const flyerMap = new Map();
-        
-        [...userFlyers, ...managerFlyers].forEach(flyer => {
-            if (!flyerMap.has(flyer.id)) {
-                if (!flyer.colorClass) flyer.colorClass = getRandomColorClass();
-                if (!flyer.style) flyer.style = globalFlyerStyle;
-                flyer.image = normalizeFlyerImage(flyer.image, flyer);
-                flyerMap.set(flyer.id, flyer);
-            }
-        });
-        
-        loadedFlyers = Array.from(flyerMap.values());
-        localStorage.setItem('wrzkk_flyers', JSON.stringify(loadedFlyers));
-        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(loadedFlyers));
-    }
-    
-    if (loadedFlyers.length === 0) {
-        loadedFlyers = [
-            {
-                id: 'flyer_1',
-                title: "Ndabaga - Umukobwa w'intwari",
-                previewDescription: "Umukobwa w'intwari wagiye ku rugamba",
-                fullDescription: "Mu bihe bya kera, hari umukobwa witwaga Ndabaga wari uzwi ku butwari bwe. Igihe intambara yaturutse mu gihugu cye, Ndabaga yahisemo kwitwara nk'umugabo kugira ngo abashe kurwanira igihugu cye...",
-                image: "https://images.unsplash.com/photo-1590523277543-a94c2e4eb44b?w=400",
-                date: "Igikorwa cy'ubutwari",
-                likes: 156,
-                comments: [{ author: "Umunyarwanda", text: "Ndabaga ni intwari yacu!", time: "2h ishize" }],
-                knew: 45,
-                didntKnow: 12,
-                keywords: ["Ubutwari", "Umukobwa", "Intambara"],
-                continent: "africa",
-                category: "continental",
-                region: "Afurika y'Iburasirazuba",
-                createdAt: new Date().toISOString(),
-                colorClass: getRandomColorClass(),
-                style: globalFlyerStyle,
-                userId: 'system',
-                userName: 'System',
-                userType: 'system'
-            },
-            {
-                id: 'flyer_2',
-                title: "Kugera ku Kwezi 1969",
-                previewDescription: "Intambwe ikomeye y'ikiremwa muntu",
-                fullDescription: "Ku wa 20 Nyakanga 1969, NASA yageze ku kwezi bwa mbere mu mateka. Abanyengabo Neil Armstrong na Buzz Aldrin bakoresheje amasaha abiri bakora ubushakashatsi ku kwezi...",
-                image: "https://images.unsplash.com/photo-1541873676-a18131494184?w=400",
-                date: "Nyakanga 20, 1969",
-                likes: 89,
-                comments: [{ author: "Umukunda w'Ikirere", text: "Iki ni ikintu gihambwe!", time: "1d ishize" }],
-                knew: 34,
-                didntKnow: 23,
-                keywords: ["Ikirere", "Kwezi", "NASA"],
-                continent: "cosmic",
-                category: "cosmic",
-                region: "Ikirere",
-                createdAt: new Date().toISOString(),
-                colorClass: getRandomColorClass(),
-                style: globalFlyerStyle,
-                userId: 'system',
-                userName: 'System',
-                userType: 'system'
-            }
-        ];
-        
-        localStorage.setItem('wrzkk_flyers', JSON.stringify(loadedFlyers));
-        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(loadedFlyers));
-    }
-    
-    flyersCollection = loadedFlyers;
 
-    let imagesUpdated = false;
-    flyersCollection.forEach(flyer => {
-        const normalized = normalizeFlyerImage(flyer.image, flyer);
-        if (normalized !== flyer.image) {
-            flyer.image = normalized;
-            imagesUpdated = true;
+async function loadFlyersFromCloud() {
+    const uid = currentUserId();
+    if (!uid || uid === 'anonymous') return [];
+
+    try {
+        const response = await fetch(`${CLOUD_API}?user_id=${encodeURIComponent(uid)}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const rows = await response.json();
+        console.log(`☁️ Loaded ${rows.length} flyers from cloud`);
+        return rows.map(rowToFlyer);
+    } catch (err) {
+        console.warn('⚠️ Cloud load failed:', err.message);
+        return [];
+    }
+}
+async function initializeCollection() {
+    globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
+    console.log('🎨 Global style:', globalFlyerStyle);
+
+    // 1. Try cloud first
+    const cloudFlyers = await loadFlyersFromCloud();
+
+    // 2. Merge with local mirror
+    const localFlyers = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
+
+    const map = new Map();
+    [...cloudFlyers, ...localFlyers].forEach(f => {
+        if (!f || !f.id) return;
+        if (!map.has(f.id)) {
+            if (!f.colorClass) f.colorClass = getRandomColorClass();
+            if (!f.style) f.style = globalFlyerStyle;
+            f.image = normalizeFlyerImage(f.image, f);
+            map.set(f.id, f);
         }
     });
-    if (imagesUpdated) {
-        localStorage.setItem('wrzkk_flyers', JSON.stringify(flyersCollection));
-        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(flyersCollection));
+
+    // 3. If everything is empty, seed the two sample flyers (only once)
+    if (map.size === 0) {
+        const seeded = makeSeedFlyers(globalFlyerStyle);
+        for (const f of seeded) {
+            map.set(f.id, f);
+            await saveFlyerToCloud(f);
+        }
     }
+
+    flyersCollection = Array.from(map.values());
+    localStorage.setItem('wrzkk_flyers', JSON.stringify(flyersCollection));
 
     updateCollectionCount();
     displayFlyers();
+}
+
+// Helper: sample flyers (extracted so initializeCollection stays clean)
+function makeSeedFlyers(style) {
+    return [
+        {
+            id: 'flyer_seed_1',
+            title: "Ndabaga - Umukobwa w'intwari",
+            previewDescription: "Umukobwa w'intwari wagiye ku rugamba",
+            fullDescription: "Mu bihe bya kera, hari umukobwa witwaga Ndabaga wari uzwi ku butwari bwe...",
+            image: "https://images.unsplash.com/photo-1590523277543-a94c2e4eb44b?w=400",
+            date: "Igikorwa cy'ubutwari",
+            likes: 0, comments: [], knew: 0, didntKnow: 0,
+            keywords: ["Ubutwari", "Umukobwa", "Intambara"],
+            continent: "africa", category: "continental",
+            region: "Afurika y'Iburasirazuba",
+            createdAt: new Date().toISOString(),
+            colorClass: getRandomColorClass(),
+            style,
+            userId: 'system', userName: 'System', userType: 'system'
+        },
+        {
+            id: 'flyer_seed_2',
+            title: "Kugera ku Kwezi 1969",
+            previewDescription: "Intambwe ikomeye y'ikiremwa muntu",
+            fullDescription: "Ku wa 20 Nyakanga 1969, NASA yageze ku kwezi bwa mbere mu mateka...",
+            image: "https://images.unsplash.com/photo-1541873676-a18131494184?w=400",
+            date: "Nyakanga 20, 1969",
+            likes: 0, comments: [], knew: 0, didntKnow: 0,
+            keywords: ["Ikirere", "Kwezi", "NASA"],
+            continent: "cosmic", category: "cosmic",
+            region: "Ikirere",
+            createdAt: new Date().toISOString(),
+            colorClass: getRandomColorClass(),
+            style,
+            userId: 'system', userName: 'System', userType: 'system'
+        }
+    ];
 }
 
 // ==================== FILE HANDLING ====================
@@ -787,7 +845,7 @@ function displayStoryPreviews(stories) {
 }
 
 // ==================== FLYER GENERATION ====================
-function generateFlyer(storyIndex) {
+asynch function generateFlyer(storyIndex) {
     syncStoryImageFromUrlInput(storyIndex);
     const story = extractedStories[storyIndex];
 
@@ -824,7 +882,7 @@ function generateFlyer(storyIndex) {
     };
 
     flyersCollection.unshift(newFlyer);
-    saveFlyerToBothStorages(newFlyer);
+   await saveFlyerToCloud(newFlyer);
     delete storyImageOverrides[storyIndex];
     
     updateCollectionCount();
@@ -920,7 +978,7 @@ function saveEditedStory() {
     };
     
     flyersCollection.unshift(editedStory);
-    saveFlyerToBothStorages(editedStory);
+    await saveFlyerToCloud(editedStory);;
     delete storyImageOverrides[currentEditingStory.index];
     updateCollectionCount();
     closeEditor();
