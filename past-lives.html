@@ -81,6 +81,7 @@
             font-style: italic;
         }
 
+
         /* Setup form (name + birthdate) */
         .pl-setup {
             background: #fff;
@@ -177,6 +178,85 @@
             border: 1px solid #e8e8e6;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
+
+        /* ===== Per-life color variants ===== */
+.pl-life-card {
+    color: #2b2b2b;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-top-width: 4px;
+    border-top-style: solid;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pl-life-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Priest — warm gold / pharaoh */
+.pl-life-card--priest {
+    background: linear-gradient(145deg, #fff8e1 0%, #ffecb3 100%);
+    border-top-color: #d4a017;
+}
+
+/* Knight — steel blue / medieval */
+.pl-life-card--knight {
+    background: linear-gradient(145deg, #eef3fb 0%, #cdd9ec 100%);
+    border-top-color: #3b6ea5;
+}
+
+/* Warrior — fire red / viking */
+.pl-life-card--warrior {
+    background: linear-gradient(145deg, #fdeeee 0%, #f8c6c6 100%);
+    border-top-color: #c0392b;
+}
+
+/* Diplomat — jade / asian dynasty */
+.pl-life-card--diplomat {
+    background: linear-gradient(145deg, #e8f7ef 0%, #c6e9d6 100%);
+    border-top-color: #16a085;
+}
+
+/* Healer — herbal green / tribal */
+.pl-life-card--healer {
+    background: linear-gradient(145deg, #eaf7e8 0%, #c9e8c4 100%);
+    border-top-color: #5a8f3d;
+}
+
+/* Inventor — copper / victorian */
+.pl-life-card--inventor {
+    background: linear-gradient(145deg, #f7efe6 0%, #e6cfb6 100%);
+    border-top-color: #a0522d;
+}
+
+/* Visionary — cosmic purple / future */
+.pl-life-card--visionary {
+    background: linear-gradient(145deg, #f1e9ff 0%, #d5c2ff 100%);
+    border-top-color: #6c47ff;
+}
+
+/* Artist — rose / renaissance */
+.pl-life-card--artist {
+    background: linear-gradient(145deg, #fdeaf2 0%, #f6c6dc 100%);
+    border-top-color: #c2185b;
+}
+
+/* Atlantean — ocean teal / atlantis */
+.pl-life-card--atlantean {
+    background: linear-gradient(145deg, #e4f7fa 0%, #b8e6ee 100%);
+    border-top-color: #0097a7;
+}
+
+/* Text colors so they stay readable on the pastel backgrounds */
+.pl-life-card h3 { color: #1a1a1a; }
+.pl-life-card .pl-life-era { color: #5a4318; }
+.pl-life-card .pl-life-year {
+    color: #4a3b8a;
+    font-size: 0.74rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+.pl-life-card .pl-life-desc { color: #333; }
 
         .pl-life-card .pl-life-emoji {
             font-size: 1.75rem;
@@ -570,5 +650,9 @@
 
     <script src="past-lives.js"></script>
     <script src="account-bar.js"></script>
+
+    <footer class="site-copyright">
+        © Mpangira Ltd., Kamonyi Research Center, Edvance Innovators (Ei), The Well-being Center (2026). Kigali, Rwanda.
+    </footer>
 </body>
 </html>

@@ -241,7 +241,7 @@ function renderLivesGrid() {
     const grid = document.getElementById('plLivesGrid');
     if (!grid) return;
     grid.innerHTML = PL_LIVES.map(l => `
-        <div class="pl-life-card">
+        <div class="pl-life-card pl-life-card--${l.key}">
             <span class="pl-life-emoji">${l.emoji}</span>
             <h3>${l.title}</h3>
             <div class="pl-life-era">${l.era}</div>

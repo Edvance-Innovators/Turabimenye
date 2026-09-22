@@ -1718,3 +1718,44 @@ img, svg, video {
     position: relative;
     z-index: 1;
 }
+/* ==================== SITE COPYRIGHT FOOTER ==================== */
+.site-copyright {
+    text-align: center;
+    padding: 24px 20px 32px;
+    font-size: 0.7rem;
+    line-height: 1.5;
+    color: rgba(205, 125, 205, 0.75);
+    letter-spacing: 0.02em;
+    font-weight: 400;
+    margin-top: 40px;
+}
+
+/* Slightly darker text on light-background pages (if any) */
+.site-copyright.on-light {
+    color: rgba(0, 0, 0, 0.55);
+}
+
+@media (max-width: 700px) {
+    .site-copyright {
+        font-size: 0.65rem;
+        padding: 18px 14px 26px;
+    }
+}
+
+/* Nav buttons must never underline */
+.nav-tab,
+.nav-tab:hover,
+.nav-tab:focus,
+.nav-tab:active,
+.nav-tab:visited,
+.nav-tabs .nav-tab,
+.num-shell .nav-tab,
+.pl-shell .nav-tab {
+    text-decoration: none !important;
+}
+
+/* Also cover the tab link wrapper and inner <i> icons */
+.nav-tab i,
+.nav-tab span {
+    text-decoration: none !important;
+}
