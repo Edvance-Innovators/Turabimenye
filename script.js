@@ -33,7 +33,8 @@ function currentUserId() {
 
 function flyerToRow(flyer) {
     return {
-        user_id: currentUserId(),
+         return {
+        user_id: flyer.userId === 'system' ? 'system' : currentUserId(),
         title: flyer.title,
         preview_description: flyer.previewDescription || '',
         full_description: flyer.fullDescription || '',
@@ -474,25 +475,29 @@ async function initializeCollection() {
     const localFlyers = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
     console.log(`💾 Local mirror: ${localFlyers.length} flyers`);
 
+    // Global read — returns ALL flyers from ALL users
     const cloudFlyers = await loadFlyersFromCloud();
 
     let source;
     if (cloudFlyers === null) {
-        // Cloud unreachable → show whatever we have locally
+        // Backend unreachable → show local only, don't touch cloud
         source = localFlyers;
         console.log('↩️ Cloud unavailable — using local');
     } else if (cloudFlyers.length === 0) {
-        // Cloud is truly empty → push local up (first-time seed)
-        source = localFlyers;
-        console.log('⬆️ Cloud empty — pushing local up');
-        for (const f of localFlyers) await saveFlyerToCloud(f);
+        // Table is truly empty → seed ONCE globally
+        console.log('🌱 Cloud empty — seeding global samples');
+        source = makeSeedFlyers(globalFlyerStyle);
+        for (const f of source) await saveFlyerToCloud(f);
     } else {
-        // Cloud has data → merge in case local has unsaved ones
+        // Cloud has data → use it as source of truth, merge local-only items
         const map = new Map();
         cloudFlyers.forEach(f => map.set(String(f.id), f));
-        localFlyers.forEach(f => { if (!map.has(String(f.id))) map.set(String(f.id), f); });
+        localFlyers.forEach(f => {
+            // only keep local flyers that don't yet exist in cloud
+            if (!map.has(String(f.id))) map.set(String(f.id), f);
+        });
         source = Array.from(map.values());
-        console.log(`🔀 Merged: ${source.length} flyers`);
+        console.log(`🔀 Merged: ${source.length} flyers (cloud=${cloudFlyers.length})`);
     }
 
     flyersCollection = source.map(f => {
