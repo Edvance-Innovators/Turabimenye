@@ -539,7 +539,7 @@ function uploadFlyerPicture(event) {
 
 async function loadFlyersFromCloud() {
     const uid = currentUserId();
-    if (!uid || uid === 'anonymous') return [];
+    if (!uid || uid === 'anonymous') return null;   // null = "cloud not applicable"
 
     try {
         const response = await fetch(`${CLOUD_API}?user_id=${encodeURIComponent(uid)}`);
@@ -548,42 +548,61 @@ async function loadFlyersFromCloud() {
         console.log(`☁️ Loaded ${rows.length} flyers from cloud`);
         return rows.map(rowToFlyer);
     } catch (err) {
-        console.warn('⚠️ Cloud load failed:', err.message);
-        return [];
+        console.warn('⚠️ Cloud load failed (will use local):', err.message);
+        return null;   // null = "cloud failed, don't touch local"
     }
 }
+
 async function initializeCollection() {
     globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
     console.log('🎨 Global style:', globalFlyerStyle);
 
-    // 1. Try cloud first
+    // 1. Read local mirror first — this is our source of truth if cloud fails
+    const localFlyers = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
+    console.log(`💾 Local mirror has ${localFlyers.length} flyers`);
+
+    // 2. Try to fetch from cloud (returns null if cloud is unreachable)
     const cloudFlyers = await loadFlyersFromCloud();
 
-    // 2. Merge with local mirror
-    const localFlyers = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
-
-    const map = new Map();
-    [...cloudFlyers, ...localFlyers].forEach(f => {
-        if (!f || !f.id) return;
-        if (!map.has(f.id)) {
-            if (!f.colorClass) f.colorClass = getRandomColorClass();
-            if (!f.style) f.style = globalFlyerStyle;
-            f.image = normalizeFlyerImage(f.image, f);
-            map.set(f.id, f);
+    // 3. Decide which set to use
+    let source;
+    if (cloudFlyers === null) {
+        // Cloud failed — use local only
+        source = localFlyers;
+        console.log('↩️ Using local mirror only');
+    } else if (cloudFlyers.length === 0 && localFlyers.length > 0) {
+        // Cloud returned empty but local has data — push local up, don't wipe
+        console.log('⬆️ Cloud empty, pushing local flyers up');
+        source = localFlyers;
+        for (const f of localFlyers) {
+            await saveFlyerToCloud(f);
         }
-    });
-
-    // 3. If everything is empty, seed the two sample flyers (only once)
-    if (map.size === 0) {
-        const seeded = makeSeedFlyers(globalFlyerStyle);
-        for (const f of seeded) {
-            map.set(f.id, f);
+    } else if (cloudFlyers.length > 0) {
+        // Cloud has data — merge with local (cloud wins on conflicts)
+        const map = new Map();
+        cloudFlyers.forEach(f => map.set(f.id, f));
+        localFlyers.forEach(f => { if (!map.has(f.id)) map.set(f.id, f); });
+        source = Array.from(map.values());
+        console.log(`🔀 Merged: ${source.length} total`);
+    } else {
+        // Both empty — seed the samples
+        source = makeSeedFlyers(globalFlyerStyle);
+        for (const f of source) {
             await saveFlyerToCloud(f);
         }
     }
 
-    flyersCollection = Array.from(map.values());
+    // 4. Normalize every flyer
+    flyersCollection = source.map(f => {
+        if (!f.colorClass) f.colorClass = getRandomColorClass();
+        if (!f.style) f.style = globalFlyerStyle;
+        f.image = normalizeFlyerImage(f.image, f);
+        return f;
+    });
+
+    // 5. Save the result back to local mirror so next refresh is fast
     localStorage.setItem('wrzkk_flyers', JSON.stringify(flyersCollection));
+    console.log(`✅ Collection ready: ${flyersCollection.length} flyers`);
 
     updateCollectionCount();
     displayFlyers();
@@ -2274,7 +2293,18 @@ async function toggleProverbTranslations(event) {
 }
 
 async function loadProverb() {
-    showProverbLoading();
+    // 1. Show cached proverb immediately (if we have one)
+    const cached = localStorage.getItem('wrzkk_proverb_cache');
+    if (cached) {
+        try {
+            const parsed = JSON.parse(cached);
+            displayProverb(parsed);
+        } catch {}
+    } else {
+        showProverbLoading();
+    }
+
+    // 2. Try to load a fresh one, but don't block the UI
     try {
         let proverb = null;
         if (USE_API) {
@@ -2284,9 +2314,13 @@ async function loadProverb() {
             proverb = getRandomLocalProverb();
         }
         displayProverb(proverb);
+        localStorage.setItem('wrzkk_proverb_cache', JSON.stringify(proverb));
     } catch (error) {
-        console.error('Unexpected error loading proverb:', error);
-        displayProverb(getRandomLocalProverb());
+        console.error('Proverb load error:', error);
+        // If we had no cache, fall back to a local one
+        if (!cached) {
+            displayProverb(getRandomLocalProverb());
+        }
     }
 }
 
@@ -2300,7 +2334,22 @@ async function refreshProverb(event) {
             refreshBtn.style.transform = '';
         }, 500);
     }
-    await loadProverb();
+
+    showProverbLoading();
+    try {
+        let proverb = null;
+        if (USE_API) {
+            proverb = await fetchProverbFromAPI();
+        }
+        if (!proverb) {
+            proverb = getRandomLocalProverb();
+        }
+        displayProverb(proverb);
+        localStorage.setItem('wrzkk_proverb_cache', JSON.stringify(proverb));
+    } catch (error) {
+        console.error('Proverb refresh error:', error);
+        displayProverb(getRandomLocalProverb());
+    }
 }
 
 // ==================== GLOBAL EXPORTS ====================
