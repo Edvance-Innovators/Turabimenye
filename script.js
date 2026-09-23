@@ -946,7 +946,7 @@ function closeEditor() {
     }
 }
 
-function saveEditedStory() {
+asynch function saveEditedStory() {
     if (!currentEditingStory) return;
     syncStoryImageFromUrlInput(currentEditingStory.index);
     
@@ -1082,7 +1082,7 @@ function toggleFlyerExpansion(id, e) {
     displayFlyers();
 }
 
-function handleLike(id, e) {
+asynch function handleLike(id, e) {
     e.stopPropagation();
     const idKey = flyerIdKey(id);
     if (sessionInteractions.liked.has(idKey)) return;
@@ -1090,12 +1090,12 @@ function handleLike(id, e) {
     if (flyer) {
         flyer.likes = (flyer.likes || 0) + 1;
         sessionInteractions.liked.add(idKey);
-        saveFlyerToBothStorages(flyer);
+        saveFlyerToCloud(flyer);
         displayFlyers();
     }
 }
 
-function handleKnew(id, e) {
+asynch function handleKnew(id, e) {
     e.stopPropagation();
     const idKey = flyerIdKey(id);
     if (sessionInteractions.knew.has(idKey)) return;
@@ -1103,12 +1103,12 @@ function handleKnew(id, e) {
     if (flyer) {
         flyer.knew = (flyer.knew || 0) + 1;
         sessionInteractions.knew.add(idKey);
-        saveFlyerToBothStorages(flyer);
+        saveFlyerToCloud(flyer);
         displayFlyers();
     }
 }
 
-function handleDidntKnow(id, e) {
+asynch function handleDidntKnow(id, e) {
     e.stopPropagation();
     const idKey = flyerIdKey(id);
     if (sessionInteractions.didntKnow.has(idKey)) return;
@@ -1116,7 +1116,7 @@ function handleDidntKnow(id, e) {
     if (flyer) {
         flyer.didntKnow = (flyer.didntKnow || 0) + 1;
         sessionInteractions.didntKnow.add(idKey);
-        saveFlyerToBothStorages(flyer);
+        saveFlyerToCloud(flyer);
         displayFlyers();
     }
 }
@@ -1147,7 +1147,7 @@ function addComment(id, e) {
                 time: new Date().toLocaleTimeString() 
             });
             input.value = '';
-            saveFlyerToBothStorages(flyer);
+            await saveFlyerToCloud(flyer);
             displayFlyers();
         } else {
             console.log('Flyer not found for id:', idStr);
@@ -1468,16 +1468,16 @@ function addColorRefreshButton() {
     filterSection.appendChild(refreshBtn);
 }
 
-function refreshAllColors() {
+asynch function refreshAllColors() {
     if (flyersCollection.length === 0) {
         alert('Nta flyer zo guhindura amabara!');
         return;
     }
     
-    flyersCollection.forEach(flyer => {
-        flyer.colorClass = getRandomColorClass();
-        saveFlyerToBothStorages(flyer);
-    });
+   for (const flyer of flyersCollection) {
+    flyer.colorClass = getRandomColorClass();
+    await saveFlyerToCloud(flyer);
+}
     
     displayFlyers();
     alert('✅ Amabara yahinduwe neza!');
