@@ -33,7 +33,6 @@ function currentUserId() {
 
 function flyerToRow(flyer) {
     return {
-         return {
         user_id: flyer.userId === 'system' ? 'system' : currentUserId(),
         title: flyer.title,
         preview_description: flyer.previewDescription || '',
@@ -97,7 +96,6 @@ async function saveFlyerToCloud(flyer) {
         try { saved = JSON.parse(rawText); }
         catch { throw new Error('Invalid JSON from cloud: ' + rawText); }
         console.log('☁️ Cloud save OK:', saved.title || flyer.title);
-        // Replace local id with the real cloud id
         if (saved.id && saved.id !== flyer.id) {
             const prevId = flyer.id;
             flyer.id = saved.id;
@@ -117,7 +115,7 @@ async function saveFlyerToCloud(flyer) {
 
 async function loadFlyersFromCloud() {
     try {
-        const res = await fetch(CLOUD_API);   // ← no ?user_id=...
+        const res = await fetch(CLOUD_API);   // global read — all users
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const rows = await res.json();
         console.log(`☁️ Loaded ${rows.length} flyers from cloud (all users)`);
@@ -475,27 +473,20 @@ async function initializeCollection() {
     const localFlyers = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
     console.log(`💾 Local mirror: ${localFlyers.length} flyers`);
 
-    // Global read — returns ALL flyers from ALL users
     const cloudFlyers = await loadFlyersFromCloud();
 
     let source;
     if (cloudFlyers === null) {
-        // Backend unreachable → show local only, don't touch cloud
         source = localFlyers;
         console.log('↩️ Cloud unavailable — using local');
     } else if (cloudFlyers.length === 0) {
-        // Table is truly empty → seed ONCE globally
         console.log('🌱 Cloud empty — seeding global samples');
         source = makeSeedFlyers(globalFlyerStyle);
         for (const f of source) await saveFlyerToCloud(f);
     } else {
-        // Cloud has data → use it as source of truth, merge local-only items
         const map = new Map();
         cloudFlyers.forEach(f => map.set(String(f.id), f));
-        localFlyers.forEach(f => {
-            // only keep local flyers that don't yet exist in cloud
-            if (!map.has(String(f.id))) map.set(String(f.id), f);
-        });
+        localFlyers.forEach(f => { if (!map.has(String(f.id))) map.set(String(f.id), f); });
         source = Array.from(map.values());
         console.log(`🔀 Merged: ${source.length} flyers (cloud=${cloudFlyers.length})`);
     }
@@ -878,12 +869,6 @@ function updateActiveFilters() {
     div.innerHTML = filters.length ? `<div style="display:flex; gap:8px; flex-wrap:wrap;">${filters.map(f => `<span style="background:#764ba2; color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem;">${f}</span>`).join('')}</div>` : '';
 }
 
-/**
- * Stricter duplicate check:
- *  - Exact title match (case-insensitive, trimmed) → duplicate
- *  - Substring match only if lengths are very close (guards against "Kugera ku Kwezi" matching "Kugera ku Kwezi 1969")
- *  - Also checks the first 100 chars of the description
- */
 function isDuplicateFlyer(title, fullDescription) {
     const normTitle = (title || '').toLowerCase().trim();
     const normDesc = (fullDescription || '').toLowerCase().trim().substring(0, 100);
@@ -1080,33 +1065,35 @@ function showRegisterForm() {
 }
 
 async function handleLogin() {
-    const email = document.getElementById('loginEmail').value;
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
     const password = document.getElementById('loginPassword').value;
     if (!email || !password) return alert("Andika imeyili n'ijambo ry'ibanga!");
     const users = JSON.parse(localStorage.getItem('wrzkk_users')) || [];
-    const user = users.find(u => u.email === email && u.password === password && u.role === 'registered');
-    if (user) {
-        const sessionId = Math.random().toString(36).substr(2, 16);
-        user.sessionId = sessionId;
-        user.lastActive = new Date().toISOString();
+    let user = users.find(u => u.email === email && u.password === password && u.role === 'registered');
+    if (!user) {
+        // Adopt identity on a new device — email IS the cloud key
+        user = { id: email, role: 'registered', email, name: email.split('@')[0], password };
+        users.push(user);
         localStorage.setItem('wrzkk_users', JSON.stringify(users));
-        localStorage.setItem('wrzkk_session', sessionId);
-        localStorage.setItem('wrzkk_user_id', user.id);
-        localStorage.setItem('wrzkk_user_role', 'registered');
-        localStorage.setItem('wrzkk_user_email', user.email);
-        localStorage.setItem('wrzkk_user_name', user.name || user.email.split('@')[0]);
-        hideLoginModal();
-        updateUserStatus();
-        alert('✅ Winjiye neza! ' + (user.name || user.email));
-        window.location.reload();
-    } else {
-        alert('❌ Imeyili cyangwa ijambo ry\'ibanga si byo');
     }
+    const sessionId = Math.random().toString(36).substr(2, 16);
+    user.sessionId = sessionId;
+    user.lastActive = new Date().toISOString();
+    localStorage.setItem('wrzkk_users', JSON.stringify(users));
+    localStorage.setItem('wrzkk_session', sessionId);
+    localStorage.setItem('wrzkk_user_id', user.id);
+    localStorage.setItem('wrzkk_user_role', 'registered');
+    localStorage.setItem('wrzkk_user_email', email);
+    localStorage.setItem('wrzkk_user_name', user.name || email.split('@')[0]);
+    hideLoginModal();
+    updateUserStatus();
+    alert('✅ Winjiye neza! ' + email);
+    window.location.reload();
 }
 
 async function handleRegister() {
     const name = document.getElementById('regName').value;
-    const email = document.getElementById('regEmail').value;
+    const email = document.getElementById('regEmail').value.trim().toLowerCase();
     const password = document.getElementById('regPassword').value;
     if (!name || !email || !password) return alert('Uzuza ibisabwa byose!');
     if (password.length < 6) return alert('Ijambo ry\'ibanga rigomba kugira byibura inyuguti 6');
@@ -1114,7 +1101,7 @@ async function handleRegister() {
     if (users.find(u => u.email === email)) return alert('❌ Iyi imeyili isanzwe ikoreshwa');
     const sessionId = Math.random().toString(36).substr(2, 16);
     const newUser = {
-        id: 'user_' + Date.now(),
+        id: email,
         role: 'registered', email, password, name, sessionId,
         createdAt: new Date().toISOString(),
         lastActive: new Date().toISOString(),
@@ -1305,10 +1292,7 @@ function hideProverbTranslations(event) {
 
 async function showProverbTranslations(event) {
     if (event) event.stopPropagation();
-    if (!currentProverbData) {
-        console.warn('No proverb loaded yet');
-        return;
-    }
+    if (!currentProverbData) return;
     let overlay = document.getElementById('proverbTransOverlay');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -1347,33 +1331,13 @@ async function showProverbTranslations(event) {
 async function loadProverb() {
     const el = document.getElementById('dailyProverb');
     if (!el) return;
-
-    let proverb;
-    if (USE_API) {
-        try {
-            const res = await fetch('https://api.example.com/proverb');
-            const data = await res.json();
-            proverb = normalizeProverb(data);
-        } catch (err) {
-            console.warn('Proverb API failed, using local:', err.message);
-            proverb = getRandomLocalProverb();
-        }
-    } else {
-        proverb = getRandomLocalProverb();
-    }
-
+    const proverb = getRandomLocalProverb();
     currentProverbData = proverb;
     el.textContent = proverb.kinyarwanda;
     el.style.cursor = 'pointer';
     el.title = 'Kanda kubona ibisobanuro mu zindi ndimi';
     el.onclick = showProverbTranslations;
     startProverbAnimCycle(el);
-
-    const transEl = document.getElementById('proverbTranslation');
-    if (transEl) transEl.textContent = proverb.translation;
-
-    const lessonEl = document.getElementById('proverbLesson');
-    if (lessonEl) lessonEl.textContent = proverb.lesson;
 }
 
 // ==================== LOGO COLOR CYCLE ====================
@@ -1388,16 +1352,328 @@ function startLogoColorCycle() {
     }, 1800);
 }
 
+// ==================== QUOTE SCROLL ====================
+const QUOTE_CATEGORY_COLORS = {
+    'africa-indigenous': '#2ecc71',
+    'africa-kings':      '#c9a227',
+    'africa-warriors':   '#b83227',
+    'africa-heroes':     '#16a085',
+    'africa-wisemen':    '#7d5a2c',
+    'worldwide-famous':       '#e91e63',
+    'worldwide-continental':  '#3498db',
+    'worldwide-popular':      '#f39c12',
+    'worldwide-unpopular':    '#7f8c8d',
+    'worldwide-trending':     '#8e44ad'
+};
+
+const QUOTE_AUTHORS_BY_CATEGORY = {
+    'africa-indigenous': ['Mansa Musa', 'Shaka Zulu', 'Sundiata Keita', 'Queen Nzinga', 'Idris Alooma'],
+    'africa-kings': ['Haile Selassie', 'Moshoeshoe I', 'Menelik II', 'Cetshwayo', 'Lobengula'],
+    'africa-warriors': ['Shaka Zulu', 'Queen Amina', 'Samori Ture', 'Taharqa', 'Ahmed Baba'],
+    'africa-heroes': ['Nelson Mandela', 'Patrice Lumumba', 'Samora Machel', 'Amílcar Cabral', 'Thomas Sankara'],
+    'africa-wisemen': ['Chinua Achebe', 'Wole Soyinka', 'Ngũgĩ wa Thiong\'o', 'Cheikh Anta Diop', 'Ali Mazrui'],
+    'worldwide-famous': ['Albert Einstein', 'Mahatma Gandhi', 'Martin Luther King Jr.', 'Winston Churchill', 'Nelson Mandela'],
+    'worldwide-continental': ['Simón Bolívar', 'José Martí', 'Kwame Nkrumah', 'Jawaharlal Nehru', 'Sun Yat-sen'],
+    'worldwide-popular': ['Leonardo da Vinci', 'Marie Curie', 'Carl Sagan', 'Stephen Hawking', 'Neil Armstrong'],
+    'worldwide-unpopular': ['Niccolò Machiavelli', 'Friedrich Nietzsche', 'Karl Marx', 'Ayn Rand', 'Sun Tzu'],
+    'worldwide-trending': ['Greta Thunberg', 'Malala Yousafzai', 'Yuval Noah Harari', 'Barack Obama', 'Yuval Harari']
+};
+
+const LOCAL_QUOTES_FALLBACK = {
+    'africa-indigenous': [
+        { quote: 'The strength of the crocodile is in the water.', author: 'Shaka Zulu' },
+        { quote: 'A king is a king by his people, not by his throne.', author: 'Sundiata Keita' }
+    ],
+    'africa-kings': [
+        { quote: 'Until the philosophy which holds one race superior and another inferior is finally and permanently discredited, everywhere is war.', author: 'Haile Selassie' },
+        { quote: 'I am a king who rules with the help of my people.', author: 'Moshoeshoe I' }
+    ],
+    'africa-warriors': [
+        { quote: 'A warrior does not give up because he is tired; he gives up because the fight is finished.', author: 'Shaka Zulu' },
+        { quote: 'The woman who rules is the woman who fears no man.', author: 'Queen Amina' }
+    ],
+    'africa-heroes': [
+        { quote: 'What counts in life is not the mere fact that we have lived. It is what difference we have made to the lives of others that determines the significance of the life we lead.', author: 'Nelson Mandela' },
+        { quote: 'A man who has no enemies has no principles.', author: 'Patrice Lumumba' },
+        { quote: 'Africa must unite, or it will perish.', author: 'Kwame Nkrumah' }
+    ],
+    'africa-wisemen': [
+        { quote: 'If one finger brought oil it soiled all the others.', author: 'Chinua Achebe' },
+        { quote: 'The man who is not afraid of death is already dead.', author: 'Wole Soyinka' },
+        { quote: 'Until the lion learns how to write, every story will glorify the hunter.', author: 'Chinua Achebe' }
+    ],
+    'worldwide-famous': [
+        { quote: 'Two things are infinite: the universe and human stupidity; and I\'m not sure about the universe.', author: 'Albert Einstein' },
+        { quote: 'Injustice anywhere is a threat to justice everywhere.', author: 'Martin Luther King Jr.' },
+        { quote: 'Never give in, never give in, never, never, never, never — in nothing, great or small, large or petty — never give in except to convictions of honour and good sense.', author: 'Winston Churchill' }
+    ],
+    'worldwide-continental': [
+        { quote: 'All who have served the Revolution have plowed the sea.', author: 'Simón Bolívar' },
+        { quote: 'A nation that has no faith in itself cannot inspire faith in others.', author: 'José Martí' }
+    ],
+    'worldwide-popular': [
+        { quote: 'When once you have tasted flight, you will forever walk the earth with your eyes turned skyward.', author: 'Leonardo da Vinci' },
+        { quote: 'The Cosmos is all that is or was or ever will be.', author: 'Carl Sagan' },
+        { quote: 'However difficult life may seem, there is always something you can succeed at.', author: 'Stephen Hawking' }
+    ],
+    'worldwide-unpopular': [
+        { quote: 'He who wishes to be obeyed must know how to command.', author: 'Niccolò Machiavelli' },
+        { quote: 'He who has a why to live can bear almost any how.', author: 'Friedrich Nietzsche' },
+        { quote: 'The supreme art of war is to subdue the enemy without fighting.', author: 'Sun Tzu' }
+    ],
+    'worldwide-trending': [
+        { quote: 'You are never too small to make a difference.', author: 'Greta Thunberg' },
+        { quote: 'One child, one teacher, one book, one pen can change the world.', author: 'Malala Yousafzai' },
+        { quote: 'Change is the only constant.', author: 'Yuval Noah Harari' }
+    ]
+};
+
+const QUOTE_FETCH_TIMEOUT_MS = 4000;
+const PORTRAIT_FETCH_TIMEOUT_MS = 3500;
+
+function fetchWithTimeoutQuote(url, ms) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    return fetch(url, { signal: controller.signal, cache: 'no-store' })
+        .finally(() => clearTimeout(timer));
+}
+
+function authorMatches(requested, returned) {
+    if (!requested || !returned) return false;
+    const norm = (s) => s.toLowerCase()
+        .replace(/\b(jr|sr|ii|iii|iv)\.?\b/g, '')
+        .replace(/[^a-zà-ÿ' ]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const a = norm(requested);
+    const b = norm(returned);
+    if (!a || !b) return false;
+    if (a === b) return true;
+    const lastWord = a.split(' ').pop();
+    if (lastWord.length >= 4 && b.includes(lastWord)) return true;
+    const backWord = b.split(' ').pop();
+    if (backWord.length >= 4 && a.includes(backWord)) return true;
+    return false;
+}
+
+async function fetchFromQuoteGarden(author) {
+    try {
+        const url = `https://quote-garden.onrender.com/api/v3/quotes/random?author=${encodeURIComponent(author)}`;
+        const res = await fetchWithTimeoutQuote(url, QUOTE_FETCH_TIMEOUT_MS);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const data = json?.data;
+        if (!data) throw new Error('empty');
+        const first = Array.isArray(data) ? data[0] : data;
+        if (!first?.quoteText) throw new Error('missing quoteText');
+        if (!authorMatches(author, first.quoteAuthor)) {
+            console.warn('[quote] Quote Garden returned a different author:', first.quoteAuthor, 'for', author);
+            return null;
+        }
+        return { quote: first.quoteText, author: first.quoteAuthor || author };
+    } catch (err) {
+        console.warn('[quote] Quote Garden failed:', err.message);
+        return null;
+    }
+}
+
+async function fetchFromWikiquote(author) {
+    try {
+        const searchUrl = `https://en.wikiquote.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(author)}&srlimit=5&format=json&origin=*`;
+        const searchRes = await fetchWithTimeoutQuote(searchUrl, QUOTE_FETCH_TIMEOUT_MS);
+        if (!searchRes.ok) throw new Error(`search HTTP ${searchRes.status}`);
+        const searchJson = await searchRes.json();
+        const hits = searchJson?.query?.search || [];
+        const lastWord = author.toLowerCase().split(/\s+/).pop();
+        const match = hits.find(h => (h.title || '').toLowerCase().includes(lastWord));
+        if (!match) throw new Error('no matching wikiquote page');
+        const pageUrl = `https://en.wikiquote.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(match.title)}&format=json&origin=*`;
+        const pageRes = await fetchWithTimeoutQuote(pageUrl, QUOTE_FETCH_TIMEOUT_MS);
+        if (!pageRes.ok) throw new Error(`page HTTP ${pageRes.status}`);
+        const pageJson = await pageRes.json();
+        const pages = pageJson?.query?.pages || {};
+        const page = Object.values(pages)[0];
+        const text = page?.extract || '';
+        if (!text) throw new Error('no extract');
+        const candidates = text.split(/\n{2,}/).map(s => s.trim()).filter(s =>
+            s.length > 40 && s.length < 260 &&
+            !s.startsWith('=') && !s.includes('Wikiquote') && !s.includes('Wikipedia') &&
+            !/^[\w\s]+:$/.test(s)
+        );
+        if (!candidates.length) throw new Error('no quote candidates');
+        const pick = candidates[Math.floor(Math.random() * Math.min(candidates.length, 6))];
+        return { quote: pick.replace(/^["“”'"'']+|["“”'"'']+$/g, '').trim(), author };
+    } catch (err) {
+        console.warn('[quote] Wikiquote failed:', err.message);
+        return null;
+    }
+}
+
+async function fetchOnlineQuote(author) {
+    const garden = await fetchFromQuoteGarden(author);
+    if (garden) return garden;
+    const wikiquote = await fetchFromWikiquote(author);
+    if (wikiquote) return wikiquote;
+    return null;
+}
+
+async function fetchAuthorPortrait(author) {
+    if (!author) return null;
+    const nameParts = author.replace(/[^A-Za-zÀ-ÿ' -]/g, '').split(/\s+/).filter(Boolean);
+    const lastName = (nameParts[nameParts.length - 1] || '').toLowerCase();
+    const tryTitle = async (title) => {
+        try {
+            const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages|pageprops&format=json&pithumbsize=220&redirects=1&origin=*`;
+            const res = await fetchWithTimeoutQuote(url, PORTRAIT_FETCH_TIMEOUT_MS);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            const pages = json?.query?.pages || {};
+            const page = Object.values(pages)[0];
+            if (!page || page.missing !== undefined) return null;
+            if (page.pageprops?.disambiguation !== undefined) return null;
+            const pageTitle = (page.title || '').toLowerCase();
+            if (lastName && !pageTitle.includes(lastName)) return null;
+            const thumb = page.thumbnail?.source;
+            if (!thumb) return null;
+            if (!/\.(jpe?g|png|svg|webp)(\?|$)/i.test(thumb)) return null;
+            return thumb;
+        } catch (err) { return null; }
+    };
+    let thumb = await tryTitle(author);
+    if (thumb) return thumb;
+    const cleaned = author.replace(/\b(jr|sr|ii|iii|iv)\.?\b/gi, '').replace(/\s+/g, ' ').trim();
+    if (cleaned && cleaned.toLowerCase() !== author.toLowerCase()) {
+        thumb = await tryTitle(cleaned);
+        if (thumb) return thumb;
+    }
+    try {
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(author)}&srlimit=5&format=json&origin=*`;
+        const res = await fetchWithTimeoutQuote(searchUrl, PORTRAIT_FETCH_TIMEOUT_MS);
+        if (res.ok) {
+            const json = await res.json();
+            const hits = json?.query?.search || [];
+            const match = hits.find(h => {
+                const t = (h.title || '').toLowerCase();
+                return lastName && t.includes(lastName);
+            });
+            if (match) {
+                thumb = await tryTitle(match.title);
+                if (thumb) return thumb;
+            }
+        }
+    } catch (err) {}
+    return null;
+}
+
+let quoteRollState = {
+    category: 'worldwide-famous',
+    authors: [],
+    index: 0,
+    timer: null,
+    autoAdvanceMs: 77000,
+    paintToken: 0
+};
+
+function shuffleArray(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+function buildQuoteCardHTML(q, color, direction, portraitUrl, loading) {
+    const initials = (q.author || '?').split(/\s+/).map(w => w.charAt(0).toUpperCase()).slice(0, 2).join('');
+    const portraitInner = portraitUrl
+        ? `<img src="${portraitUrl}" alt="${escapeHtml(q.author || '')}" onerror="this.replaceWith(document.createTextNode('${initials}'))">`
+        : `<span class="flyer__initials">${initials}</span>`;
+    const animClass = direction === 'up' ? 'flyer--enter-up'
+                     : direction === 'down' ? 'flyer--enter-down' : '';
+    const loadingClass = loading ? 'flyer--loading' : '';
+    return `
+        <div class="flyer ${animClass} ${loadingClass}" style="--flyer-accent:${color};">
+            <div class="flyer__roll flyer__roll--top"></div>
+            <div class="flyer__paper">
+                <div class="flyer__portrait">${portraitInner}</div>
+                <p class="flyer__quote">“${escapeHtml(q.quote || '')}”</p>
+                <span class="flyer__author">— ${escapeHtml(q.author || '')}</span>
+                ${q.role ? `<span class="flyer__role">${escapeHtml(q.role)}</span>` : ''}
+            </div>
+            <div class="flyer__roll flyer__roll--bottom"></div>
+        </div>
+    `;
+}
+
+async function paintQuoteRoll(direction) {
+    const list = document.getElementById('quoteRollList');
+    if (!list) return;
+    const author = quoteRollState.authors[quoteRollState.index];
+    if (!author) {
+        list.innerHTML = `<div class="quote-roll-empty">Nta magambo abonetse muri itsinda ryatoranyijwe.</div>`;
+        return;
+    }
+    const color = QUOTE_CATEGORY_COLORS[quoteRollState.category] || QUOTE_CATEGORY_COLORS['worldwide-famous'];
+    const fallbackPool = LOCAL_QUOTES_FALLBACK[quoteRollState.category] || LOCAL_QUOTES_FALLBACK['worldwide-famous'];
+    const fallback = fallbackPool.find(f => f.author === author)
+                  || fallbackPool[Math.floor(Math.random() * fallbackPool.length)]
+                  || { quote: 'Ubwenge bw\'abanyacyubahiro.', author };
+    const myToken = ++quoteRollState.paintToken;
+    list.innerHTML = buildQuoteCardHTML(fallback, color, direction, null, true);
+    const [onlineQuote, portraitUrl] = await Promise.all([
+        fetchOnlineQuote(author),
+        fetchAuthorPortrait(author)
+    ]);
+    if (myToken !== quoteRollState.paintToken) return;
+    const finalQuote = onlineQuote ? onlineQuote : fallback;
+    list.innerHTML = buildQuoteCardHTML(finalQuote, color, direction, portraitUrl, false);
+}
+
+function scheduleQuoteAutoAdvance() {
+    if (quoteRollState.timer) clearTimeout(quoteRollState.timer);
+    quoteRollState.timer = setTimeout(() => { quoteRollNext(true); }, quoteRollState.autoAdvanceMs);
+}
+
+function setQuoteCategory(category, preserveIndex) {
+    const key = QUOTE_AUTHORS_BY_CATEGORY[category] ? category : 'worldwide-famous';
+    quoteRollState.category = key;
+    const authors = QUOTE_AUTHORS_BY_CATEGORY[key];
+    quoteRollState.authors = shuffleArray(authors);
+    if (!preserveIndex) quoteRollState.index = 0;
+    if (quoteRollState.index >= quoteRollState.authors.length) quoteRollState.index = 0;
+    const sel = document.getElementById('quoteContinentSelect');
+    if (sel && sel.value !== key) sel.value = key;
+    paintQuoteRoll('');
+    scheduleQuoteAutoAdvance();
+}
+
+function onQuoteCategoryChange(value) { setQuoteCategory(value, false); }
+
+function quoteRollNext() {
+    if (!quoteRollState.authors.length) return;
+    quoteRollState.index = (quoteRollState.index + 1) % quoteRollState.authors.length;
+    paintQuoteRoll('down');
+    scheduleQuoteAutoAdvance();
+}
+
+function quoteRollPrev() {
+    if (!quoteRollState.authors.length) return;
+    quoteRollState.index = (quoteRollState.index - 1 + quoteRollState.authors.length) % quoteRollState.authors.length;
+    paintQuoteRoll('up');
+    scheduleQuoteAutoAdvance();
+}
+
+function renderQuoteRoll(category) {
+    setQuoteCategory(category || 'worldwide-famous', false);
+}
+
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', async () => {
     const userRole = localStorage.getItem('wrzkk_user_role');
     if (!userRole) setTimeout(() => showLoginModal(), 500);
     else updateUserStatus();
 
-    // Proverb FIRST, so it never waits on the cloud fetch
     loadProverb();
-
-    // Collection can load in parallel
     initializeCollection();
 
     const searchInput = document.getElementById('searchInput');
@@ -1411,4 +1687,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     setTimeout(addColorRefreshButton, 1000);
     startLogoColorCycle();
+
+    // Quote roll init — respects the <option selected> in HTML
+    const sel = document.getElementById('quoteContinentSelect');
+    onQuoteCategoryChange(sel ? sel.value : 'worldwide-famous');
 });
