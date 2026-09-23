@@ -115,13 +115,11 @@ async function saveFlyerToCloud(flyer) {
 }
 
 async function loadFlyersFromCloud() {
-    const uid = currentUserId();
-    if (!uid || uid === 'anonymous') return null;
     try {
-        const res = await fetch(`${CLOUD_API}?user_id=${encodeURIComponent(uid)}`);
+        const res = await fetch(CLOUD_API);   // ← no ?user_id=...
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const rows = await res.json();
-        console.log(`☁️ Loaded ${rows.length} flyers from cloud`);
+        console.log(`☁️ Loaded ${rows.length} flyers from cloud (all users)`);
         return rows.map(rowToFlyer);
     } catch (err) {
         console.warn('⚠️ Cloud load failed:', err.message);
@@ -472,6 +470,7 @@ function makeSeedFlyers(style) {
 
 async function initializeCollection() {
     globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
+
     const localFlyers = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
     console.log(`💾 Local mirror: ${localFlyers.length} flyers`);
 
@@ -479,22 +478,21 @@ async function initializeCollection() {
 
     let source;
     if (cloudFlyers === null) {
+        // Cloud unreachable → show whatever we have locally
         source = localFlyers;
         console.log('↩️ Cloud unavailable — using local');
-    } else if (cloudFlyers.length === 0 && localFlyers.length > 0) {
+    } else if (cloudFlyers.length === 0) {
+        // Cloud is truly empty → push local up (first-time seed)
         source = localFlyers;
         console.log('⬆️ Cloud empty — pushing local up');
         for (const f of localFlyers) await saveFlyerToCloud(f);
-    } else if (cloudFlyers.length > 0) {
+    } else {
+        // Cloud has data → merge in case local has unsaved ones
         const map = new Map();
         cloudFlyers.forEach(f => map.set(String(f.id), f));
         localFlyers.forEach(f => { if (!map.has(String(f.id))) map.set(String(f.id), f); });
         source = Array.from(map.values());
         console.log(`🔀 Merged: ${source.length} flyers`);
-    } else {
-        source = makeSeedFlyers(globalFlyerStyle);
-        console.log('🌱 Seeding samples');
-        for (const f of source) await saveFlyerToCloud(f);
     }
 
     flyersCollection = source.map(f => {
