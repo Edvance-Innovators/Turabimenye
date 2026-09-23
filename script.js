@@ -23,6 +23,11 @@ let globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
 const CLOUD_API = '/api/flyers';
 
 function currentUserId() {
+    const role = localStorage.getItem('wrzkk_user_role');
+    const email = localStorage.getItem('wrzkk_user_email');
+    if (role === 'registered' && email) {
+        return email.toLowerCase().trim();
+    }
     return localStorage.getItem('wrzkk_user_id') || 'anonymous';
 }
 
@@ -1154,8 +1159,10 @@ function getCurrentUser() {
     const id = localStorage.getItem('wrzkk_user_id');
     const email = localStorage.getItem('wrzkk_user_email');
     const name = localStorage.getItem('wrzkk_user_name');
-    if (role === 'registered' && id) return { id, role:'registered', email, name };
-    return { id: id || 'anonymous_' + Date.now(), role:'anonymous', name:'Uwihitira' };
+    if (role === 'registered' && email) {
+        return { id: email.toLowerCase().trim(), role: 'registered', email, name };
+    }
+    return { id: id || 'anonymous_' + Date.now(), role: 'anonymous', name: 'Uwihitira' };
 }
 
 function updateUserStatus() {
