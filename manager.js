@@ -6,6 +6,117 @@ let messages = [];
 let settings = {};
 let globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
 
+// ==================== FLYER CLOUD SYNC ====================
+const FLYERS_API = '/api/flyers';
+
+function flyerToRow(flyer) {
+    return {
+        user_id: flyer.userId || 'system',
+        title: flyer.title || '',
+        preview_description: flyer.previewDescription || '',
+        full_description: flyer.fullDescription || '',
+        image: flyer.image || '',
+        date: flyer.date || '',
+        likes: Number(flyer.likes || 0),
+        comments: flyer.comments || [],
+        knew: Number(flyer.knew || 0),
+        didnt_know: Number(flyer.didntKnow || 0),
+        keywords: flyer.keywords || [],
+        continent: flyer.continent || 'worldwide',
+        category: flyer.category || 'worldwide',
+        region: flyer.region || ''
+    };
+}
+
+function rowToFlyer(row) {
+    return {
+        id: row.id,
+        userId: row.user_id,
+        title: row.title,
+        previewDescription: row.preview_description,
+        fullDescription: row.full_description,
+        image: row.image,
+        date: row.date,
+        likes: row.likes || 0,
+        comments: row.comments || [],
+        knew: row.knew || 0,
+        didntKnow: row.didnt_know || 0,
+        keywords: row.keywords || [],
+        continent: row.continent || 'worldwide',
+        category: row.category || 'worldwide',
+        region: row.region || '',
+        style: row.style || globalFlyerStyle,
+        createdAt: row.created_at
+    };
+}
+
+async function loadFlyersFromCloud() {
+    try {
+        const res = await fetch(FLYERS_API);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const rows = await res.json();
+        console.log(`☁️ Manager: loaded ${rows.length} flyers from cloud`);
+        return rows.map(rowToFlyer);
+    } catch (err) {
+        console.warn('⚠️ Manager cloud load failed:', err.message);
+        return null;
+    }
+}
+
+async function saveFlyerToCloud(flyer) {
+    try {
+        const res = await fetch(FLYERS_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(flyerToRow(flyer))
+        });
+        const text = await res.text();
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
+        let saved;
+        try { saved = JSON.parse(text); } catch { throw new Error('Invalid JSON'); }
+        console.log('☁️ Manager: flyer saved', saved.title || flyer.title);
+        // Adopt real cloud id
+        if (saved.id && saved.id !== flyer.id) flyer.id = saved.id;
+        return saved;
+    } catch (err) {
+        console.warn('⚠️ Manager cloud save failed:', err.message);
+        return null;
+    }
+}
+
+async function updateFlyerInCloud(flyer) {
+    try {
+        const res = await fetch(FLYERS_API, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: flyer.id, ...flyerToRow(flyer) })
+        });
+        const text = await res.text();
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${text}`);
+        let updated;
+        try { updated = JSON.parse(text); } catch { throw new Error('Invalid JSON'); }
+        console.log('☁️ Manager: flyer updated', updated.title || flyer.title);
+        return updated;
+    } catch (err) {
+        console.warn('⚠️ Manager cloud update failed:', err.message);
+        return null;
+    }
+}
+
+async function deleteFlyerFromCloud(id) {
+    try {
+        const res = await fetch(`${FLYERS_API}?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        console.log('☁️ Manager: flyer deleted', id);
+        return true;
+    } catch (err) {
+        console.warn('⚠️ Manager cloud delete failed:', err.message);
+        return false;
+    }
+}
+
 // ==================== MANAGER CLOUD (SUPABASE) ====================
 const MANAGERS_API = '/api/managers';
 const SUPER_ADMIN_EMAIL = 'innovatorsedvance@gmail.com';
@@ -248,10 +359,20 @@ function managerClearFlyerImage() {
 // ==================== DATA LOAD ====================
 async function loadData() {
     users = JSON.parse(localStorage.getItem('wrzkk_users')) || [];
-    allFlyers = JSON.parse(localStorage.getItem('wrzkk_all_flyers')) || [];
     messages = JSON.parse(localStorage.getItem('wrzkk_messages')) || [];
     settings = JSON.parse(localStorage.getItem('wrzkk_settings')) || { autoApprove: true, notifyOnReport: false };
     globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
+
+    // Flyers now come from the cloud
+    const cloudFlyers = await loadFlyersFromCloud();
+    if (cloudFlyers === null) {
+        // Fallback for offline / API down
+        allFlyers = JSON.parse(localStorage.getItem('wrzkk_all_flyers')) || [];
+    } else {
+        allFlyers = cloudFlyers;
+        // Keep localStorage in sync for offline access
+        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
+    }
 
     await fetchManagersFromCloud();
 
@@ -364,40 +485,43 @@ function setGlobalFlyerStyle(style) {
     alert(`✅ Imisusire yahinduwe! Uru rugero: ${styleNames[style]}`);
 }
 
-function applyStyleToAllFlyers() {
+async function applyStyleToAllFlyers() {
     if (allFlyers.length === 0) {
         alert('Nta tuzingo two guhindura imisusire!');
         return;
     }
 
+    // Update local array
     allFlyers.forEach(flyer => { flyer.style = globalFlyerStyle; });
+
+    // Push each one to the cloud
+    let success = 0;
+    for (const flyer of allFlyers) {
+        const ok = await updateFlyerInCloud(flyer);
+        if (ok) success++;
+    }
 
     localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
     localStorage.setItem('wrzkk_flyers', JSON.stringify(allFlyers));
+    localStorage.setItem('wrzkk_global_style', globalFlyerStyle);
 
     loadFlyersGrid();
     updateStats();
 
     const styleNames = { classic: 'Classic', modern: 'Modern', elegant: 'Elegant' };
-    alert(`✅ Imisusire ${styleNames[globalFlyerStyle]} yashyizwe kuri utuzingo ${allFlyers.length} twose!`);
-
-    syncFlyersWithUsers();
+    alert(`✅ Imisusire ${styleNames[globalFlyerStyle]} yashyizwe kuri utuzingo ${success}/${allFlyers.length} kuri seriveri!`);
 }
 
 // ==================== DATA SYNC ====================
-function refreshAllData() {
-    console.log('🔄 Refreshing all data...');
+async function refreshAllData() {
+    console.log('🔄 Refreshing all data from cloud...');
 
     users = JSON.parse(localStorage.getItem('wrzkk_users')) || [];
-    allFlyers = JSON.parse(localStorage.getItem('wrzkk_all_flyers')) || [];
     messages = JSON.parse(localStorage.getItem('wrzkk_messages')) || [];
 
-    const userFlyers = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
-    if (userFlyers.length > 0) {
-        const flyerMap = new Map();
-        allFlyers.forEach(f => flyerMap.set(f.id, f));
-        userFlyers.forEach(f => { if (!flyerMap.has(f.id)) flyerMap.set(f.id, f); });
-        allFlyers = Array.from(flyerMap.values());
+    const cloudFlyers = await loadFlyersFromCloud();
+    if (cloudFlyers !== null) {
+        allFlyers = cloudFlyers;
         localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
     }
 
@@ -415,23 +539,17 @@ function refreshAllData() {
 }
 
 function syncFlyersWithUsers() {
-    console.log('🔄 Syncing flyer counts with users...');
-
     const flyerCounts = {};
     allFlyers.forEach(flyer => { flyerCounts[flyer.userId] = (flyerCounts[flyer.userId] || 0) + 1; });
-
     users.forEach(user => { user.flyerCount = flyerCounts[user.id] || 0; });
     localStorage.setItem('wrzkk_users', JSON.stringify(users));
-
-    localStorage.setItem('wrzkk_flyers', JSON.stringify(allFlyers));
-    localStorage.setItem('wrzkk_global_style', globalFlyerStyle);
 
     loadUsersTable();
     loadFlyersGrid();
 
     const statusEl = document.getElementById('syncStatus');
     if (statusEl) {
-        statusEl.innerHTML = `✅ Amahinduka yahunganyijwe! Utuzingo ${allFlyers.length}`;
+        statusEl.innerHTML = `✅ Iringanisha ryakozwe! Utuzingo ${allFlyers.length}`;
         setTimeout(() => { statusEl.innerHTML = '✅ Iringanisha rirakora'; }, 3000);
     }
 }
@@ -514,7 +632,7 @@ async function checkManagerAuth() {
 
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('dashboardSection').style.display = 'block';
-            refreshAllData();
+            await refreshAllData();
             console.log('✅ Manager session adopted from site login:', siteEmail);
             return true;
         }
@@ -656,25 +774,27 @@ function previewFlyer(flyerId) {
     alert(`📌 ${flyer.title}\n👤 ${user?.email || 'Ingaruki'}\n📅 ${flyer.date || 'Tariki izwi'}\n📍 ${flyer.region || 'Ntaho'}\n🎨 Imisusire: ${flyer.style || 'classic'}\n\n📖 ${flyer.fullDescription || flyer.previewDescription}\n\n❤️ ${flyer.likes || 0} | ✅ ${flyer.knew || 0} | ❓ ${flyer.didntKnow || 0} | 💬 ${flyer.comments?.length || 0}`);
 }
 
-function approveFlyer(flyerId) {
-    const flyer = allFlyers.find(f => f.id === flyerId);
-    if (flyer) {
-        flyer.status = 'approved';
-        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
-        loadFlyersGrid();
-        updateStats();
-        alert('✅ Akazingo kemejwe!');
-    }
+async function approveFlyer(flyerId) {
+    const flyer = allFlyers.find(f => String(f.id) === String(flyerId));
+    if (!flyer) return;
+    flyer.status = 'approved';
+    const ok = await updateFlyerInCloud(flyer);
+    if (!ok) return alert('⚠️ Ntibyakunze kwemeza kuri seriveri');
+    loadFlyersGrid();
+    updateStats();
+    alert('✅ Akazingo kemejwe!');
 }
 
-function deleteFlyer(flyerId) {
-    if (confirm('Wibyare ko ushaka gusiba iri flyer?')) {
-        allFlyers = allFlyers.filter(f => f.id !== flyerId);
-        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
-        localStorage.setItem('wrzkk_flyers', JSON.stringify(allFlyers));
-        loadFlyersGrid();
-        updateStats();
-        alert('✅ Utuzingo twasibwe neza!');
+async function deleteFlyer(flyerId) {
+    if (!confirm('Wibyare ko ushaka gusiba iri flyer?')) return;
+    const ok = await deleteFlyerFromCloud(flyerId);
+    if (!ok) return alert('⚠️ Ntibyakunze gusiba kuri seriveri');
+    allFlyers = allFlyers.filter(f => String(f.id) !== String(flyerId));
+    localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
+    loadFlyersGrid();
+    updateStats();
+    alert('✅ Akazingo kasibwe kuri seriveri no mu bubiko bwa hafi!');
+}
     }
 }
 
@@ -771,17 +891,18 @@ function openEditFlyerModal(flyerId) {
 
 function closeEditFlyerModal() { document.getElementById('editFlyerModal').style.display = 'none'; }
 
-function saveFlyerChanges() {
+async function saveFlyerChanges() {
     const flyerId = document.getElementById('editFlyerModal').dataset.flyerId;
-    const flyer = allFlyers.find(f => f.id === flyerId);
+    const flyer = allFlyers.find(f => String(f.id) === String(flyerId));
     if (!flyer) { alert('Flyer ntibonetse!'); return; }
+
     flyer.title = document.getElementById('editFlyerTitle').value.trim() || 'Nta mutwe';
     const rawImage = document.getElementById('editFlyerImage').value.trim() || '';
     flyer.image = managerIsDataImageUrl(rawImage) ? rawImage : (managerOptimizeRemoteFlyerUrl(rawImage) || '');
     flyer.date = document.getElementById('editFlyerDate').value.trim() || 'Tariki izwi';
     flyer.region = document.getElementById('editFlyerRegion').value.trim() || 'Ntaho';
-    flyer.continent = document.getElementById('editFlyerContinent').value || flyer.continent || 'worldwide';
-    flyer.category = document.getElementById('editFlyerCategory').value || flyer.category || 'worldwide';
+    flyer.continent = document.getElementById('editFlyerContinent').value || 'worldwide';
+    flyer.category = document.getElementById('editFlyerCategory').value || 'worldwide';
     flyer.keywords = document.getElementById('editFlyerKeywords').value.split(',').map(k => k.trim()).filter(Boolean);
     flyer.likes = Math.max(0, Number(document.getElementById('editFlyerLikes').value || 0));
     flyer.knew = Math.max(0, Number(document.getElementById('editFlyerKnew').value || 0));
@@ -790,12 +911,18 @@ function saveFlyerChanges() {
     flyer.fullDescription = document.getElementById('editFlyerFull').value.trim() || flyer.previewDescription;
     flyer.style = document.getElementById('editFlyerStyle').value;
     flyer.lastModified = new Date().toISOString();
+
+    const updated = await updateFlyerInCloud(flyer);
+    if (!updated) {
+        alert('⚠️ Ntibyakunze kubika kuri seriveri');
+        return;
+    }
+
     localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
-    localStorage.setItem('wrzkk_flyers', JSON.stringify(allFlyers));
     closeEditFlyerModal();
     loadFlyersGrid();
     updateStats();
-    alert('✅ Amahinduka yabitswe!');
+    alert('✅ Amahinduka yabitswe kuri seriveri!');
 }
 
 function switchManagerTab(tabName, evt) {
