@@ -6,37 +6,128 @@ let messages = [];
 let settings = {};
 let globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
 
-// ==================== MANAGER EMAIL WHITELIST ====================
-// Super-admin: the ONE email that can never be removed
+// ==================== MANAGER CLOUD (SUPABASE) ====================
+const MANAGERS_API = '/api/managers';
 const SUPER_ADMIN_EMAIL = 'innovatorsedvance@gmail.com';
-const MANAGER_EMAILS_KEY = 'wrzkk_manager_emails';
 
-/**
- * Get the current list of allowed manager emails.
- * Always includes SUPER_ADMIN_EMAIL even if storage was wiped.
- */
-function getAllowedManagerEmails() {
-    let list = [];
-    try {
-        list = JSON.parse(localStorage.getItem(MANAGER_EMAILS_KEY)) || [];
-    } catch { list = []; }
-    list = list.map(e => String(e).toLowerCase().trim()).filter(Boolean);
-    if (!list.includes(SUPER_ADMIN_EMAIL)) list.unshift(SUPER_ADMIN_EMAIL);
-    return list;
-}
+// In-memory mirror of the server-side manager list
+let managerList = [];
 
-function saveAllowedManagerEmails(list) {
-    const normalized = Array.from(new Set(
-        list.map(e => String(e).toLowerCase().trim()).filter(Boolean)
-    ));
-    if (!normalized.includes(SUPER_ADMIN_EMAIL)) normalized.unshift(SUPER_ADMIN_EMAIL);
-    localStorage.setItem(MANAGER_EMAILS_KEY, JSON.stringify(normalized));
-    return normalized;
+function normalizeEmail(e) {
+    return String(e || '').toLowerCase().trim();
 }
 
 function isEmailAllowedAsManager(email) {
-    if (!email) return false;
-    return getAllowedManagerEmails().includes(String(email).toLowerCase().trim());
+    const target = normalizeEmail(email);
+    if (!target) return false;
+    return managerList.some(m => normalizeEmail(m.email) === target && m.is_active !== false);
+}
+
+function isSuperAdminEmail(email) {
+    return normalizeEmail(email) === SUPER_ADMIN_EMAIL;
+}
+
+async function fetchManagersFromCloud() {
+    try {
+        const res = await fetch(MANAGERS_API);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const rows = await res.json();
+        managerList = Array.isArray(rows) ? rows : [];
+        console.log(`☁️ Loaded ${managerList.length} managers from cloud`);
+        return managerList;
+    } catch (err) {
+        console.warn('⚠️ Manager cloud load failed, using local fallback:', err.message);
+        // Local fallback so the app still works if backend is down
+        managerList = [{
+            id: 'local_super',
+            email: SUPER_ADMIN_EMAIL,
+            name: 'Super Administrator',
+            role: 'super_admin',
+            is_active: true
+        }];
+        return managerList;
+    }
+}
+
+async function addManagerToCloud(email, name, password, role = 'manager') {
+    const body = {
+        email: normalizeEmail(email),
+        name: name || email.split('@')[0],
+        password,
+        role,
+        is_active: true
+    };
+    const res = await fetch(MANAGERS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    const text = await res.text();
+    if (!res.ok) {
+        let msg = text;
+        try { msg = JSON.parse(text).error || text; } catch {}
+        throw new Error(msg);
+    }
+    let saved;
+    try { saved = JSON.parse(text); } catch { throw new Error('Invalid JSON from cloud'); }
+    // Refresh mirror
+    await fetchManagersFromCloud();
+    return saved;
+}
+
+async function removeManagerFromCloud(email) {
+    const target = normalizeEmail(email);
+    if (isSuperAdminEmail(target)) throw new Error('Cannot remove super admin');
+    const res = await fetch(`${MANAGERS_API}?email=${encodeURIComponent(target)}`, {
+        method: 'DELETE'
+    });
+    const text = await res.text();
+    if (!res.ok) {
+        let msg = text;
+        try { msg = JSON.parse(text).error || text; } catch {}
+        throw new Error(msg);
+    }
+    await fetchManagersFromCloud();
+    return true;
+}
+
+async function updateManagerInCloud(id, updates) {
+    const res = await fetch(MANAGERS_API, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...updates })
+    });
+    const text = await res.text();
+    if (!res.ok) {
+        let msg = text;
+        try { msg = JSON.parse(text).error || text; } catch {}
+        throw new Error(msg);
+    }
+    let saved;
+    try { saved = JSON.parse(text); } catch { throw new Error('Invalid JSON from cloud'); }
+    await fetchManagersFromCloud();
+    return saved;
+}
+
+/**
+ * Login check: fetch the manager row for this email and compare passwords.
+ * Returns the manager row (without exposing it elsewhere) or null.
+ */
+async function verifyManagerCredentials(email, password) {
+    const target = normalizeEmail(email);
+    try {
+        const res = await fetch(`${MANAGERS_API}?email=${encodeURIComponent(target)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const rows = await res.json();
+        const found = Array.isArray(rows) && rows[0];
+        if (!found) return null;
+        if (found.is_active === false) return { inactive: true };
+        if (found.password !== password) return null;
+        return found;
+    } catch (err) {
+        console.warn('verifyManagerCredentials error:', err.message);
+        return null;
+    }
 }
 
 // ==================== IMAGE HELPERS (manager) ====================
@@ -155,20 +246,19 @@ function managerClearFlyerImage() {
 }
 
 // ==================== DATA LOAD ====================
-function loadData() {
+async function loadData() {
     users = JSON.parse(localStorage.getItem('wrzkk_users')) || [];
     allFlyers = JSON.parse(localStorage.getItem('wrzkk_all_flyers')) || [];
     messages = JSON.parse(localStorage.getItem('wrzkk_messages')) || [];
     settings = JSON.parse(localStorage.getItem('wrzkk_settings')) || { autoApprove: true, notifyOnReport: false };
     globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
 
-    // Ensure the email whitelist exists and contains the super-admin
-    saveAllowedManagerEmails(getAllowedManagerEmails());
+    await fetchManagersFromCloud();
 
     console.log('📊 Manager Data Loaded:', {
         users: users.length,
         flyers: allFlyers.length,
-        allowedManagerEmails: getAllowedManagerEmails()
+        managers: managerList.length
     });
 }
 
@@ -176,48 +266,87 @@ function loadData() {
 function renderManagerEmailsList() {
     const tbody = document.getElementById('managerEmailsTableBody');
     if (!tbody) return;
-    const list = getAllowedManagerEmails();
 
-    tbody.innerHTML = list.map((email, idx) => {
-        const isSuper = email === SUPER_ADMIN_EMAIL;
-        const user = users.find(u => (u.email || '').toLowerCase() === email);
-        const status = user ? (user.lastActive ? `✅ Yagarutse ${new Date(user.lastActive).toLocaleDateString()}` : '✅ Yanditse') : '⏳ Ntabwo yanditse';
+    if (!managerList.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">Loading…</td></tr>`;
+        fetchManagersFromCloud().then(renderManagerEmailsList);
+        return;
+    }
+
+    tbody.innerHTML = managerList.map((m, idx) => {
+        const isSuper = m.role === 'super_admin' || isSuperAdminEmail(m.email);
+        const status = m.last_active
+            ? `✅ ${new Date(m.last_active).toLocaleString()}`
+            : '⏳ Ntabwo yinjiye';
+        const active = m.is_active !== false;
         return `<tr>
             <td>${idx + 1}</td>
-            <td>${email} ${isSuper ? '👑' : ''}</td>
+            <td>${m.email} ${isSuper ? '👑' : ''}</td>
             <td>${isSuper ? '<strong>Super Admin</strong>' : 'Manager'}</td>
-            <td style="font-size:0.85rem;color:#666;">${status}</td>
+            <td style="font-size:0.85rem;color:#666;">
+                ${status}<br>
+                <span style="color:${active ? '#2ecc71' : '#e74c3c'};">
+                    ${active ? '● Irakora' : '● Yahagaritswe'}
+                </span>
+            </td>
             <td>
                 ${isSuper
                     ? '<span style="color:#999;font-size:0.85rem;">Ntushobora kuyikuraho</span>'
-                    : `<button class="action-btn delete" onclick="removeManagerEmail('${email}')"><i>🗑️</i> Kuraho</button>`}
+                    : `
+                        <button class="action-btn" style="background:#f39c12;" onclick="toggleManagerActive('${m.id}', ${!active})">
+                            <i>${active ? '⏸️' : '▶️'}</i> ${active ? 'Hagarika' : 'Ongera ukoreshe'}
+                        </button>
+                        <button class="action-btn delete" onclick="removeManagerEmail('${m.email}')">
+                            <i>🗑️</i> Kuraho
+                        </button>`
+                }
             </td>
         </tr>`;
     }).join('');
 }
 
-function addManagerEmailFromInput() {
+async function addManagerEmailFromInput() {
     const input = document.getElementById('newManagerEmail');
-    const email = (input?.value || '').toLowerCase().trim();
+    const email = normalizeEmail(input?.value);
     if (!email) return alert('Andika imeyili');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert('Imeyili itemewe');
-    const list = getAllowedManagerEmails();
-    if (list.includes(email)) return alert('Iyi imeyili isanzwe iri mu bafite uburenganzira');
-    list.push(email);
-    saveAllowedManagerEmails(list);
-    if (input) input.value = '';
-    renderManagerEmailsList();
-    alert(`✅ ${email} yongewe ku bafite uburenganzira bwa manager`);
+    if (isEmailAllowedAsManager(email)) return alert('Iyi imeyili isanzwe iri mu bafite uburenganzira');
+
+    const tempPassword = prompt('Shyiramo ijambo ry\'ibanga ry\'agateganyo kuri uyu manager:', 'manager123');
+    if (tempPassword === null) return;
+    if (!tempPassword || tempPassword.length < 4) return alert('Ijambo ry\'ibanga rigomba kugira nibura inyuguti 4');
+
+    try {
+        await addManagerToCloud(email, email.split('@')[0], tempPassword, 'manager');
+        if (input) input.value = '';
+        renderManagerEmailsList();
+        alert(`✅ ${email} yongewe ku bafite uburenganzira bwa manager.\n\nIjambo ry'ibanga ry'agateganyo: ${tempPassword}\n\nBwira uyu muntu kurihindura nyuma yo kwinjira.`);
+    } catch (err) {
+        alert(`⚠️ Ntibyakunze: ${err.message}`);
+    }
 }
 
-function removeManagerEmail(email) {
-    const target = String(email).toLowerCase().trim();
-    if (target === SUPER_ADMIN_EMAIL) return alert('Ntushobora gukuraho super admin');
+async function removeManagerEmail(email) {
+    const target = normalizeEmail(email);
+    if (isSuperAdminEmail(target)) return alert('Ntushobora gukuraho super admin');
     if (!confirm(`Kuraho ${target} mu bafite uburenganzira?`)) return;
-    const list = getAllowedManagerEmails().filter(e => e !== target);
-    saveAllowedManagerEmails(list);
-    renderManagerEmailsList();
-    alert(`✅ ${target} yakuweho`);
+    try {
+        await removeManagerFromCloud(target);
+        renderManagerEmailsList();
+        alert(`✅ ${target} yakuweho`);
+    } catch (err) {
+        alert(`⚠️ Ntibyakunze: ${err.message}`);
+    }
+}
+
+async function toggleManagerActive(id, makeActive) {
+    try {
+        await updateManagerInCloud(id, { is_active: makeActive });
+        renderManagerEmailsList();
+        alert(makeActive ? '✅ Konti yongeye gukora' : '✅ Konti yahagaritswe');
+    } catch (err) {
+        alert(`⚠️ Ntibyakunze: ${err.message}`);
+    }
 }
 
 // ==================== STYLE MANAGEMENT ====================
@@ -308,48 +437,47 @@ function syncFlyersWithUsers() {
 }
 
 // ==================== MANAGER LOGIN ====================
-function managerLogin() {
-    const email = (document.getElementById('managerEmail').value || '').toLowerCase().trim();
+async function managerLogin() {
+    const email = normalizeEmail(document.getElementById('managerEmail').value);
     const password = document.getElementById('managerPassword').value;
 
-    if (!isEmailAllowedAsManager(email)) {
-        alert('❌ Iyi imeyili ntiyemewe nka manager.\n\nSura "Abafite Uburenganzira" kuri super admin kugira wongere.'.replace('"Abafite Uburenganzira"', '"Managers"'));
+    if (!email || !password) {
+        alert('Andika imeyili n\'ijambo ry\'ibanga');
         return;
     }
 
-    // Find or create the manager user record
-    let manager = users.find(u => u.role === 'manager' && (u.email || '').toLowerCase() === email);
-
-    if (!manager) {
-        // First-time login as manager — create record with the entered password
-        if (password.length < 4) {
-            alert('Ijambo ry\'ibanga rigomba kugira nibura inyuguti 4');
-            return;
-        }
-        manager = {
-            id: 'manager_' + email.replace(/[^a-z0-9]/g, '_'),
-            role: 'manager',
-            email,
-            password,
-            name: email === SUPER_ADMIN_EMAIL ? 'Super Administrator' : email.split('@')[0],
-            createdAt: new Date().toISOString(),
-            lastActive: new Date().toISOString()
-        };
-        users.push(manager);
-        localStorage.setItem('wrzkk_users', JSON.stringify(users));
-    } else {
-        // Existing manager — check password
-        if (manager.password !== password) {
-            alert('❌ Ijambo ry\'ibanga si ryo');
-            return;
-        }
+    // Whitelist gate (from cloud) — super admin always allowed even if mirror is stale
+    if (!isEmailAllowedAsManager(email) && !isSuperAdminEmail(email)) {
+        alert('❌ Iyi imeyili ntiyemewe nka manager.');
+        return;
     }
 
-    currentManager = manager;
-    manager.lastActive = new Date().toISOString();
-    localStorage.setItem('wrzkk_manager', JSON.stringify(manager));
+    const found = await verifyManagerCredentials(email, password);
+
+    if (!found) {
+        alert('❌ Imeyili cyangwa ijambo ry\'ibanga si byo');
+        return;
+    }
+    if (found.inactive) {
+        alert('❌ Konti yawe yahagaritswe n\'umuyobozi mukuru');
+        return;
+    }
+
+    currentManager = {
+        id: found.id,
+        email: found.email,
+        name: found.name || found.email.split('@')[0],
+        role: found.role,
+        password: found.password,
+        lastActive: new Date().toISOString()
+    };
+
+    // Sync last_active back to the cloud (best-effort)
+    updateManagerInCloud(found.id, { last_active: currentManager.lastActive })
+        .catch(err => console.warn('Could not update last_active:', err.message));
+
+    localStorage.setItem('wrzkk_manager', JSON.stringify(currentManager));
     localStorage.setItem('wrzkk_manager_session', 'active');
-    localStorage.setItem('wrzkk_users', JSON.stringify(users));
 
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('dashboardSection').style.display = 'block';
@@ -362,31 +490,29 @@ function managerLogin() {
     refreshAllData();
 }
 
-function checkManagerAuth() {
+async function checkManagerAuth() {
     const session = localStorage.getItem('wrzkk_manager_session');
     const saved = localStorage.getItem('wrzkk_manager');
-    if (session && saved) {
-        try {
-            const m = JSON.parse(saved);
-            // Verify the stored manager is still in the whitelist
-            if (!isEmailAllowedAsManager(m.email)) {
-                // Revoked — force logout
-                localStorage.removeItem('wrzkk_manager');
-                localStorage.removeItem('wrzkk_manager_session');
-                return false;
-            }
-            currentManager = m;
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('dashboardSection').style.display = 'block';
-            refreshAllData();
-            return true;
-        } catch {
-            localStorage.removeItem('wrzkk_manager');
-            localStorage.removeItem('wrzkk_manager_session');
-            return false;
-        }
+    if (!session || !saved) return false;
+
+    let m;
+    try { m = JSON.parse(saved); } catch { return false; }
+
+    // Make sure the mirror is fresh
+    if (!managerList.length) await fetchManagersFromCloud();
+
+    // If they were removed from the cloud whitelist → kick out
+    if (!isEmailAllowedAsManager(m.email) && !isSuperAdminEmail(m.email)) {
+        localStorage.removeItem('wrzkk_manager');
+        localStorage.removeItem('wrzkk_manager_session');
+        return false;
     }
-    return false;
+
+    currentManager = m;
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('dashboardSection').style.display = 'block';
+    refreshAllData();
+    return true;
 }
 
 function managerLogout() {
@@ -644,15 +770,18 @@ function saveFlyerChanges() {
     alert('✅ Amahinduka yabitswe!');
 }
 
-function switchManagerTab(tabName) {
-    document.querySelectorAll('.manager-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.manager-tab-content').forEach(c => c.classList.remove('active'));
-    // Use currentTarget so the correct button is selected even when clicking child icons
-    if (window.event && window.event.currentTarget && window.event.currentTarget.classList) {
-        window.event.currentTarget.classList.add('active');
-    } else if (window.event && window.event.target) {
-        window.event.target.closest('.manager-tab')?.classList.add('active');
-    }
+function switchManagerTab(tabName, evt) {
+    const tabs = document.querySelectorAll('.manager-tab');
+    const contents = document.querySelectorAll('.manager-tab-content');
+    tabs.forEach(t => t.classList.remove('active'));
+    contents.forEach(c => c.classList.remove('active'));
+
+    // Use the passed event, or fallback to window.event
+    const e = evt || window.event;
+    const clicked = e?.currentTarget?.closest?.('.manager-tab')
+                 || e?.target?.closest?.('.manager-tab');
+    if (clicked) clicked.classList.add('active');
+
     document.getElementById(tabName + 'Tab')?.classList.add('active');
     if (tabName === 'managers') renderManagerEmailsList();
 }
@@ -661,7 +790,7 @@ function searchUsers() { loadUsersTable(document.getElementById('userSearch').va
 function filterFlyers() { loadFlyersGrid(document.getElementById('flyerFilter').value, document.getElementById('flyerSearch').value); }
 function searchFlyers() { filterFlyers(); }
 
-function changeManagerPassword() {
+async function changeManagerPassword() {
     const current = document.getElementById('currentPassword').value;
     const newPass = document.getElementById('newPassword').value;
     const confirm = document.getElementById('confirmPassword').value;
@@ -669,12 +798,15 @@ function changeManagerPassword() {
     if (current !== currentManager.password) { alert('Ijambo ry\'ibanga risanzwe si ryo'); return; }
     if (newPass !== confirm) { alert('Ijambo ry\'ibanga rishya ntirihuye'); return; }
     if (newPass.length < 6) { alert('Ijambo ry\'ibanga rigomba kugira byibura inyuguti 6'); return; }
-    currentManager.password = newPass;
-    const managerIndex = users.findIndex(u => u.id === currentManager.id);
-    if (managerIndex !== -1) users[managerIndex].password = newPass;
-    localStorage.setItem('wrzkk_manager', JSON.stringify(currentManager));
-    localStorage.setItem('wrzkk_users', JSON.stringify(users));
-    alert('✅ Ijambo ry\'ibanga ryahinduwe!');
+
+    try {
+        await updateManagerInCloud(currentManager.id, { password: newPass });
+        currentManager.password = newPass;
+        localStorage.setItem('wrzkk_manager', JSON.stringify(currentManager));
+        alert('✅ Ijambo ry\'ibanga ryahinduwe (muri cloud no kuri iyi device)');
+    } catch (err) {
+        alert(`⚠️ Ntibyakunze: ${err.message}`);
+    }
 }
 
 function saveSettings() {
@@ -723,3 +855,4 @@ window.setGlobalFlyerStyle = setGlobalFlyerStyle;
 window.applyStyleToAllFlyers = applyStyleToAllFlyers;
 window.addManagerEmailFromInput = addManagerEmailFromInput;
 window.removeManagerEmail = removeManagerEmail;
+window.toggleManagerActive = toggleManagerActive;
