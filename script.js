@@ -19,6 +19,72 @@ let currentFilters = {
 
 let globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
 
+// ==================== SUPABASE REALTIME ====================
+const SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
+let realtimeChannel = null;
+
+function startFlyerRealtime() {
+    if (realtimeChannel) return;   // already started
+    if (typeof supabase === 'undefined') {
+        console.warn('Supabase SDK not loaded — realtime disabled');
+        return;
+    }
+    try {
+        const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        realtimeChannel = client
+            .channel('flyers-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'flyers' },
+                (payload) => {
+                    console.log('🔔 Realtime change:', payload.eventType, payload.new?.title || payload.old?.title);
+                    handleRealtimeChange(payload);
+                }
+            )
+            .subscribe((status) => {
+                console.log('Realtime status:', status);
+            });
+    } catch (err) {
+        console.warn('Realtime setup failed:', err.message);
+    }
+}
+
+function handleRealtimeChange(payload) {
+    const { eventType, new: newRow, old: oldRow } = payload;
+
+    if (eventType === 'INSERT' && newRow) {
+        // New flyer created elsewhere
+        const exists = flyersCollection.some(f => String(f.id) === String(newRow.id));
+        if (!exists) {
+            const newFlyer = rowToFlyer(newRow);
+            flyersCollection.unshift(newFlyer);
+            console.log('🆕 Flyer added:', newFlyer.title);
+        }
+    } else if (eventType === 'UPDATE' && newRow) {
+        // Flyer edited elsewhere
+        const idx = flyersCollection.findIndex(f => String(f.id) === String(newRow.id));
+        if (idx !== -1) {
+            // Preserve local mirror of the row
+            flyersCollection[idx] = { ...flyersCollection[idx], ...rowToFlyer(newRow) };
+            console.log('✏️ Flyer updated:', newRow.title);
+        } else {
+            flyersCollection.push(rowToFlyer(newRow));
+        }
+    } else if (eventType === 'DELETE' && oldRow) {
+        // Flyer deleted elsewhere
+        flyersCollection = flyersCollection.filter(f => String(f.id) !== String(oldRow.id));
+        console.log('🗑️ Flyer deleted:', oldRow.id);
+    }
+
+    updateCollectionCount();
+    displayFlyers();
+    // Keep localStorage mirror in sync
+    try {
+        localStorage.setItem('wrzkk_flyers', JSON.stringify(flyersCollection));
+    } catch {}
+}
+
 // ==================== CLOUD STORAGE (SUPABASE) ====================
 const CLOUD_API = '/api/flyers';
 
