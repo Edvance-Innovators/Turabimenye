@@ -2107,11 +2107,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateActiveFilters();
         });
     }
-
     setTimeout(addColorRefreshButton, 1000);
     startLogoColorCycle();
 
     // Quote roll init — respects the <option selected> in HTML
     const sel = document.getElementById('quoteContinentSelect');
     if (sel) onQuoteCategoryChange(sel.value);
+
+    // Hide manager link unless current user is an approved manager
+(function() {
+    try {
+        const managerLink = document.getElementById('tabManager');
+        if (!managerLink) return;
+        const allowed = JSON.parse(localStorage.getItem('wrzkk_manager_emails')) || [];
+        const superAdmin = 'innovatorsedvance@gmail.com';
+        if (!allowed.includes(superAdmin)) allowed.unshift(superAdmin);
+        const myEmail = (localStorage.getItem('wrzkk_user_email') || '').toLowerCase();
+        if (!allowed.includes(myEmail)) {
+            managerLink.style.display = 'none';
+        }
+    } catch (e) { /* noop */ }
+})();
+    
+    
 });
