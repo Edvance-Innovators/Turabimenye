@@ -7,8 +7,8 @@ let settings = {};
 let globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
 
 // ==================== SUPABASE REALTIME CONFIG ====================
-const SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';   // ← FILL IN
-const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';                     // ← FILL IN
+const SUPABASE_URL = 'https://yfqmkbzvsxikopbysrep.supabase.co/rest/v1/';   // ← FILL IN
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmcW1rYnp2c3hpa29wYnlzcmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNjg1ODMsImV4cCI6MjEwNTY0NDU4M30.2egjfNM0UpGjcn5kOFAWBIigTK85bW3icb_thoh0J5Y';                     // ← FILL IN
 let realtimeChannel = null;
 
 // ==================== FLYER CLOUD SYNC ====================
