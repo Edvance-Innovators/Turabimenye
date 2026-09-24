@@ -491,17 +491,45 @@ async function managerLogin() {
 }
 
 async function checkManagerAuth() {
+    // 1. Prefer an existing site session if the email is an approved manager
+    const siteRole  = localStorage.getItem('wrzkk_user_role');
+    const siteEmail = (localStorage.getItem('wrzkk_user_email') || '').toLowerCase().trim();
+
+    if (siteRole === 'registered' && siteEmail) {
+        // Refresh the managers list from cloud so we have fresh approval data
+        if (!managerList.length) await fetchManagersFromCloud();
+
+        if (isEmailAllowedAsManager(siteEmail) || isSuperAdminEmail(siteEmail)) {
+            // Adopt the site session as a manager session
+            currentManager = {
+                id: 'from_site_' + siteEmail,
+                email: siteEmail,
+                name: localStorage.getItem('wrzkk_user_name') || siteEmail.split('@')[0],
+                role: isSuperAdminEmail(siteEmail) ? 'super_admin' : 'manager',
+                password: '(from_site_session)',
+                lastActive: new Date().toISOString()
+            };
+            localStorage.setItem('wrzkk_manager', JSON.stringify(currentManager));
+            localStorage.setItem('wrzkk_manager_session', 'active');
+
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('dashboardSection').style.display = 'block';
+            refreshAllData();
+            console.log('✅ Manager session adopted from site login:', siteEmail);
+            return true;
+        }
+    }
+
+    // 2. Fall back to a stored manager session
     const session = localStorage.getItem('wrzkk_manager_session');
-    const saved = localStorage.getItem('wrzkk_manager');
+    const saved   = localStorage.getItem('wrzkk_manager');
     if (!session || !saved) return false;
 
     let m;
     try { m = JSON.parse(saved); } catch { return false; }
 
-    // Make sure the mirror is fresh
     if (!managerList.length) await fetchManagersFromCloud();
 
-    // If they were removed from the cloud whitelist → kick out
     if (!isEmailAllowedAsManager(m.email) && !isSuperAdminEmail(m.email)) {
         localStorage.removeItem('wrzkk_manager');
         localStorage.removeItem('wrzkk_manager_session');
