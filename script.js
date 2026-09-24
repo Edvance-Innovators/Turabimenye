@@ -170,21 +170,21 @@ const FLYER_PHOTO_LABEL = 'Ifoto ya Flyer';
 const FLYER_PHOTO_PICK = 'Hitamo ifoto';
 const FLYER_PHOTO_URL_PLACEHOLDER = 'https://...ifoto.jpg';
 const FLYER_PHOTO_APPLY = 'Shyira link';
-const FLYER_PHOTO_HINT = 'Hitamo ifoto 16:9 cyangwa link.';
-const FLYER_PHOTO_TOO_LARGE = 'Ifoto irarenze 5MB.';
+const FLYER_PHOTO_HINT = 'Hitamo ifoto 16:9 (urugero 800×450) cyangwa link — izafata ubuso bwose ku flyer.';
+const FLYER_PHOTO_TOO_LARGE = 'Ifoto irarenze 5MB. Hitamo indi.';
 const FLYER_PHOTO_INVALID = 'Dosiye si ifoto.';
 const FLYER_PHOTO_SAVED = 'Ifoto yateguwe neza!';
-const FLYER_PHOTO_URL_INVALID = 'Shyiramo link yemewe.';
-const FLYER_PHOTO_URL_FAILED = 'Ntitwabashije gufata iyo link.';
+const FLYER_PHOTO_URL_INVALID = 'Shyiramo link yemewe (http:// cyangwa https://).';
+const FLYER_PHOTO_URL_FAILED = 'Ntitwabashije gufata iyo link. Reba ko iyo ifoto iboneka.';
 const ALREADY_EXISTS = 'Iriho';
 const DUPLICATE_WARNING = 'Inkuru imeze ityo iriho';
 const NO_RESULTS = 'Nta flyer zihuje. Kora zimwe muri generator!';
-const NO_STORIES = 'Nta nkuru ziboneka.';
+const NO_STORIES = 'Nta nkuru ziboneka. Gerageza kwandika inkuru ndende.';
 const LOADING = 'Irahindura...';
 const TRANSLATION_SUCCESS = 'zahinduwe mu Kinyarwanda!';
-const TRANSLATION_FAILED = 'Kutahindura byanze.';
-const SAVED_TO_COLLECTION = 'Flyer yabitswe!';
-const FLYER_CREATED = 'Flyer nshya yakozwe!';
+const TRANSLATION_FAILED = 'Kutahindura byanze. Ongera ugerageze.';
+const SAVED_TO_COLLECTION = 'Flyer yahinduwe neza! Reba muri collection.';
+const FLYER_CREATED = 'Flyer nshya yakozwe neza! Yabitswe mu bubiko. Reba muri collection.';
 
 // ==================== TRANSLATION ====================
 async function translateWithRapidAPILang(text, from = 'en', to = 'rw') {
@@ -1212,144 +1212,464 @@ async function refreshAllColors() {
     alert('✅ Amabara yahinduwe neza!');
 }
 
-// ==================== PROVERBS ====================
+// ==================== PROVERBS (full set from local version + Bantu-first language pool) ====================
 const rwandanProverbs = [
-    { "kinyarwanda":"Ababiri bagiye inama baruta umunani barasana.", "translation":"Two who consult are better than eight who clash.", "lesson":"Consultation leads to harmony." },
-    { "kinyarwanda":"Ababiri bakika umwe.", "translation":"Two break one.", "lesson":"Unity can overcome a single force." },
-    { "kinyarwanda":"Ababiri bateranya abeza.", "translation":"Two gather the good ones.", "lesson":"Collaboration helps select what is valuable." },
-    { "kinyarwanda":"Ababiri bica umwe.", "translation":"Two kill one.", "lesson":"Collective action can overpower an individual." },
-    { "kinyarwanda":"Ababiri ntibacibwa inka.", "translation":"Two are not deprived of a cow.", "lesson":"Unity prevents dispossession." }
+    { kinyarwanda: "Ababiri bagiye inama baruta umunani barasana.", translation: "Two who consult are better than eight who clash.", lesson: "Consultation leads to harmony; lack of it leads to conflict." },
+    { kinyarwanda: "Ababiri bakika umwe.", translation: "Two break one.", lesson: "Unity or combined effort can overcome a single force." },
+    { kinyarwanda: "Ababiri bateranya abeza.", translation: "Two gather the good ones.", lesson: "Collaboration helps select what is valuable." },
+    { kinyarwanda: "Ababiri bica umwe.", translation: "Two kill one.", lesson: "Collective action can overpower an individual." },
+    { kinyarwanda: "Ababiri ntibacibwa inka.", translation: "Two are not deprived of a cow.", lesson: "Unity prevents dispossession." },
+    { kinyarwanda: "Abacuranye ubusa basangira ubundi.", translation: "Those who trade in vain share another (trade).", lesson: "Losses in one venture can be compensated by sharing in another." },
+    { kinyarwanda: "Abadapfuye ntibabura kubonana.", translation: "The living never fail to meet again.", lesson: "Life brings people together repeatedly." },
+    { kinyarwanda: "Abagabanye imbisi ntibagabana umufa.", translation: "Those who share raw meat do not share the broth.", lesson: "Sharing the primary gain does not guarantee sharing the secondary benefits." },
+    { kinyarwanda: "Abagabo babiri ntibabana mu nzu imwe.", translation: "Two men do not live in one house.", lesson: "Too much male authority in one household breeds conflict." },
+    { kinyarwanda: "Abagabo bararya imbwa zikishyura (zikaryora).", translation: "Men eat dogs that lick themselves.", lesson: "People benefit from those who serve or flatter them." },
+    { kinyarwanda: "Abagira amenyo baraseka.", translation: "Those who have teeth laugh.", lesson: "Those with means or power enjoy life." },
+    { kinyarwanda: "Abagira impingo ibigega biragwa.", translation: "Those who have backbones, their granaries fall.", lesson: "The strong or proud may still face ruin." },
+    { kinyarwanda: "Abagira inyonjo bagira ibirori.", translation: "Those who have cleanliness have feasts.", lesson: "Cleanliness attracts abundance and celebration." },
+    { kinyarwanda: "Abagiye inama Imana irabasanga.", translation: "Those who go to counsel, God finds them.", lesson: "God blesses those who seek advice." },
+    { kinyarwanda: "Abahiga ubugabo baratabarana.", translation: "Those who hunt for manhood help each other.", lesson: "Those striving for maturity or courage support one another." },
+    { kinyarwanda: "Abahigi benshi bayobya imbwa uburari.", translation: "Many hunters mislead the dog into the thicket.", lesson: "Too many leaders cause confusion." },
+    { kinyarwanda: "Abahiniye hamwe bahima (bahenda) abari hanze.", translation: "Those who bend together drive away outsiders.", lesson: "United insiders exclude outsiders." },
+    { kinyarwanda: "Abahizi babiri ntibanyura inzira imwe.", translation: "Two adulterers do not pass the same road.", lesson: "Accomplices in wrongdoing avoid being seen together." },
+    { kinyarwanda: "Abajyanama babiri bishe umujyanama umwe.", translation: "Two advisors killed one advisor.", lesson: "A divided council can destroy a leader." },
+    { kinyarwanda: "Abajyanama bacishije ukubiri ibyabo ntibishyika.", translation: "Advisors who hide their double intentions do not succeed.", lesson: "Duplicity in counsel leads to failure." },
+    { kinyarwanda: "Abajyanama bishe imbwa y'umwami irahera.", translation: "Advisors killed the king's dog, it rots.", lesson: "Destroying a loyal servant of authority brings decay." },
+    { kinyarwanda: "Abajya inama ari babiri banyaga inka z'abarasa munani.", translation: "Two who go to counsel stole the cows of eight strong men.", lesson: "Wise planning can overcome greater numbers." },
+    { kinyarwanda: "Abajya impaka ari babiri umwe aba yigiza nkana.", translation: "Two who go to dispute, one becomes stubborn.", lesson: "In arguments, one party often becomes obstinate." },
+    { kinyarwanda: "Abakingiranye inyegamo ntibakingirana ingabo.", translation: "Those who shield each other with a branch do not shield each other with shields.", lesson: "Small gestures of help do not equal full protection." },
+    { kinyarwanda: "Abakiranye ntibahishana ibibuno.", translation: "Those who have reconciled do not hide their buttocks from each other.", lesson: "True reconciliation brings complete openness." },
+    { kinyarwanda: "Abakobwa ni nyampinga.", translation: "Girls are beauties.", lesson: "Daughters are precious and valued." },
+    { kinyarwanda: "Abakundanye barajyana.", translation: "Lovers accompany each other.", lesson: "Love fosters companionship." },
+    { kinyarwanda: "Abakundanye ni bo bangana.", translation: "Those who love each other are equals.", lesson: "True love creates equality." },
+    { kinyarwanda: "Abakunzi baza bishize.", translation: "Lovers come when it is late.", lesson: "Lovers arrive after the fact or belatedly." },
+    { kinyarwanda: "Abakwe ni aba mbere; ibya nyuma bica amazuru.", translation: "Suitors come first; later events cut the noses.", lesson: "Early advantages may later become liabilities." },
+    { kinyarwanda: "Abana ba Samusure bavukana isunzu.", translation: "Children of Samusure are born with a lock of hair.", lesson: "Some characteristics are inborn." },
+    { kinyarwanda: "Abana basangira ibere ntibasangira umugisha.", translation: "Children who share the breast do not share the blessing.", lesson: "Early shared resources do not guarantee later shared blessings." },
+    { kinyarwanda: "Abana ni babiri: Gahanwa na Gahannyi.", translation: "Children are two: the condemned and the condemner.", lesson: "In every situation there is the accused and the accuser." },
+    { kinyarwanda: "Abana ni batatu: Uwibwira, Ubwirwa na Tereriyo.", translation: "Children are three: the thinker, the told, and Tereriyo.", lesson: "People have different roles: advisor, advised, and the listener." },
+    { kinyarwanda: "Abahanga babiri ntibotsa igihaha.", translation: "Two experts do not brew sour beer.", lesson: "Too many experts spoil the task." },
+    { kinyarwanda: "Abangana ubwenge basa ntibabana.", translation: "Those equal in intelligence do not live together.", lesson: "Equals in cleverness clash in close quarters." },
+    { kinyarwanda: "Abantu n'ibintu ni magirirane.", translation: "People and things are mutual.", lesson: "People and possessions interact and affect each other." },
+    { kinyarwanda: "Abaryi b'imigongo baribwire.", translation: "Eaters of backs should eat alone.", lesson: "Those who exploit others should not expect company." },
+    { kinyarwanda: "Abasangira bashonje ntawe usigariza undi.", translation: "Those who share when hungry, none leaves for another.", lesson: "In real need, sharing is immediate and complete." },
+    { kinyarwanda: "Abasangiye basigana imbyiro.", translation: "Those who shared leave each other the leftovers.", lesson: "Past sharing creates obligations for the future." },
+    { kinyarwanda: "Abasangira ubusa bitana ibisambo.", translation: "Those who share emptiness call each other names.", lesson: "Sharing poverty leads to insults." },
+    { kinyarwanda: "Abasangiye imfizi ntibasekana amahembe magufi.", translation: "Those who shared a bull do not laugh at short horns.", lesson: "Those who shared a resource do not mock its minor defects." },
+    { kinyarwanda: "Abasa barasangira.", translation: "The similar share.", lesson: "Like attracts like and shares together." },
+    { kinyarwanda: "Abaswa ntiberekwa imishinga.", translation: "The termite-ridden are not shown spears.", lesson: "Don't tempt those already vulnerable." },
+    { kinyarwanda: "Abatanye badatata barasubirana.", translation: "Those who separated without fighting reconcile.", lesson: "Peaceful separation allows for later reunion." },
+    { kinyarwanda: "Abateranye imigeri ntibahisha n'amabya.", translation: "Those who share a riverbank do not hide even the small stones.", lesson: "Close neighbors share everything openly." },
+    { kinyarwanda: "Abaturanye babyarana abana basa.", translation: "Neighbors beget similar children.", lesson: "Neighbors influence each other's offspring." },
+    { kinyarwanda: "Abatutira batongana batura ukubiri.", translation: "Those who insult each other and then reconcile become twice as close.", lesson: "Reconciliation after conflict strengthens bonds." },
+    { kinyarwanda: "Abavandimwe iyo bavumbitse akarenge uvumburamo akawe.", translation: "When siblings dig up a foot, you dig up yours.", lesson: "Family members share both labor and discovery." },
+    { kinyarwanda: "Abegereye uruganda ntibabura urwavumba.", translation: "Those near the forge lack no coal.", lesson: "Proximity to a resource ensures supply." },
+    { kinyarwanda: "Aberekeranye ntibabura kwendana.", translation: "Those who show each other the way never fail to love each other.", lesson: "Mutual guidance fosters affection." },
+    { kinyarwanda: "Abeza ba ruguru baseka ibimuga bishinyikiye mu kabande.", translation: "The good from above laugh at the cripples stuck in the ditch.", lesson: "The fortunate mock those trapped in misfortune." },
+    { kinyarwanda: "Abibeshya b'i Mukarange bagira ngo Nyiraguheka ni nyirasenge.", translation: "The deceivers of Mukarange say Nyiraguheka is the paternal aunt.", lesson: "Lies create false kinship claims." },
+    { kinyarwanda: "Abishunga b'i Mukarange bagira ngo Nyiraguheka ni nyinawabo.", translation: "Those who hide at Mukarange say Nyiraguheka is their sister.", lesson: "Refuge-seekers claim false kinship." },
+    { kinyarwanda: "Ab'imbwa bifuza ko budacya.", translation: "Dog owners wish it would not dawn.", lesson: "Those with shameful secrets wish darkness would last." },
+    { kinyarwanda: "Aboro babiri ntibasangira umwerera.", translation: "Two paupers do not share a single gown.", lesson: "The extremely poor cannot share even minimal resources." },
+    { kinyarwanda: "Aboro basera guhanya.", translation: "Paupers laugh at division.", lesson: "The destitute mock even the idea of sharing." },
+    { kinyarwanda: "Abo ntekera impengeri ni bo bantera amabuye.", translation: "Those for whom I weave a basket are the ones who throw stones at me.", lesson: "Those you help may turn against you." },
+    { kinyarwanda: "Abonye isha itamba ata n'urwo yari yambaye.", translation: "He who found a louse without a head had nothing on.", lesson: "Finding a worthless thing shows one's own poverty." },
+    { kinyarwanda: "Abotanye kera ntibahishanya amabya.", translation: "Those who interwove long ago do not hide pebbles from each other.", lesson: "Old friends share everything, even small things." },
+    { kinyarwanda: "Abo umwami yahaye amata ni bo bamwimye amatwi.", translation: "Those to whom the king gave milk are the ones who refused him ears.", lesson: "Those you favor may later ignore you." },
+    { kinyarwanda: "Abwirwa benshi akumva bene yo.", translation: "Many who are told, only one of them hears.", lesson: "Advice is given to many but heeded by few." },
+    { kinyarwanda: "Acuritse inkanda ntacuritse umutima.", translation: "He who plaited a headpad did not plait the heart.", lesson: "Appearances do not reflect inner feelings." },
+    { kinyarwanda: "Agaca amakungu ni ukwima uwarugendagamo.", translation: "Cutting the rope is to miss the one who walked with it.", lesson: "Breaking a bond leaves you longing for the missing partner." },
+    { kinyarwanda: "Agaciro gake karuta akamaro gacye.", translation: "Small value is better than small usefulness.", lesson: "Intrinsic worth outweighs minor utility." },
+    { kinyarwanda: "Agacumu gahabwa agahari, naho agahararutswe gahabwa agahini.", translation: "A spear is given to the present, but the one passed over is given to the bent-over.", lesson: "Rewards depend on position and posture." },
+    { kinyarwanda: "Agacumu kazaguhorera (kazahorera umugabo) ntumenya uwagacuze.", translation: "The spear that will kill you – you don't know who forged it.", lesson: "The cause of your downfall may be unknown." },
+    { kinyarwanda: "Agahana imbwa ni agashirira.", translation: "The one who feeds dogs is the one who calms them.", lesson: "He who provides controls." },
+    { kinyarwanda: "Agahanga k'umugabo gahangurwa n'uwakaremye.", translation: "A man's destiny is awakened by his creator.", lesson: "God alone determines one's fate." },
+    { kinyarwanda: "Agahanga k'umugabo gahuma katavuze.", translation: "A man's destiny becomes silent without speaking.", lesson: "Fate works silently." },
+    { kinyarwanda: "Agahango gato karuta umugenderano.", translation: "A small promise is better than a long association.", lesson: "A kept small promise outweighs a prolonged but unreliable relationship." },
+    { kinyarwanda: "Agahararo ntikabuza agahararuko.", translation: "A crowd does not lack a shout.", lesson: "Where there are many people, noise follows." },
+    { kinyarwanda: "Agaharawe gahabwa agahari, naho agahararutswe gahabwa agahini.", translation: "The one given to is given to the present, the passed over is given to the bent.", lesson: "Rewards go to those present, not to the absent." },
+    { kinyarwanda: "Agahimbaza umusyi kaba munsi y'ingasire.", translation: "The one who pleases the father-in-law sits under the granary.", lesson: "Honoring elders brings protection and provision." },
+    { kinyarwanda: "Agahinda gahima indyarya kaba mu rutare kwa Rwirebe.", translation: "Sorrow divides the hypocrite and sits on the rock of Rwirebe.", lesson: "Hypocrites are split by grief." },
+    { kinyarwanda: "Agahinda gashira akandi kari itumba.", translation: "One sorrow ends, another waits in the dark.", lesson: "Troubles follow one another." },
+    { kinyarwanda: "Agahinda gashira bake.", translation: "Sorrow ends for few.", lesson: "Few people escape grief." },
+    { kinyarwanda: "Agahinda k'inkoko kamenya inkike yatoyemo.", translation: "A hen's sorrow is known by the chick that was inside it.", lesson: "A mother's loss is felt by the child she carried." },
+    { kinyarwanda: "Agahinda k'inkono kamenywa n'uwayiharuye.", translation: "A pot's sorrow is known by the one who scraped it.", lesson: "Only the user knows the wear and tear of a tool." },
+    { kinyarwanda: "Agahinda ntigashira; gashira nyirako yapfuye.", translation: "Sorrow does not end; it ends when its owner dies.", lesson: "Grief lasts a lifetime." },
+    { kinyarwanda: "Agahinda ntikajya ahabona.", translation: "Sorrow does not go where it can be seen.", lesson: "People hide their grief." },
+    { kinyarwanda: "Agahinda ntikica kagira mubi.", translation: "Sorrow does not kill, it makes one evil.", lesson: "Prolonged grief can corrupt character." },
+    { kinyarwanda: "Agahinda ni ukubura uwo ukunda.", translation: "Sorrow is lacking the one you love.", lesson: "Grief stems from the absence of a loved one." },
+    { kinyarwanda: "Agahinda si uguhora urira.", translation: "Sorrow is not crying constantly.", lesson: "Grief is internal, not always visible." },
+    { kinyarwanda: "Agahini gahima indyarya kaba mu rutare rwa Kirebe.", translation: "The bent one divides the hypocrite and sits on Kirebe's rock.", lesson: "Humility exposes hypocrisy." },
+    { kinyarwanda: "Agahugu Imana yagusasiye ntukarenga.", translation: "The boundary God drew for you, do not cross.", lesson: "Respect divine limits." },
+    { kinyarwanda: "Agahugu k'abagore ntikabura amazimwe.", translation: "Women's boundary never lacks tears.", lesson: "Women's lives are marked by sorrow." },
+    { kinyarwanda: "Agahugu karimo indushyi, abapfu ntibabura amazu.", translation: "The boundary has graves, the dead never lack houses.", lesson: "Death claims everyone eventually." },
+    { kinyarwanda: "Agahuru gakomeye kiyima umupfu.", translation: "A big granary denies itself flour.", lesson: "Great abundance can lead to waste or denial." },
+    { kinyarwanda: "Agahuru gasabye umuntu inyama ntakarenga.", translation: "A granary that asks a person for meat does not exceed.", lesson: "Resources that demand more than they give are limited." },
+    { kinyarwanda: "Agahuru kagusabye amaraso ntukarenga.", translation: "A granary that asks you for blood, do not exceed.", lesson: "Don't give more than you can afford to a demanding system." },
+    { kinyarwanda: "Agahuru gahinyuza inkumi.", translation: "The granary humiliates the unmarried girl.", lesson: "Poverty or dependence shames the young." },
+    { kinyarwanda: "Agahwa kari ku wundi karahandurika.", translation: "A thorn on another can be removed.", lesson: "It's easier to solve others' problems than your own." },
+    { kinyarwanda: "Agakambye ugatega u Rwanda (ugatega iminsi).", translation: "The small frog that listens to Rwanda (listens to days).", lesson: "Timing and place are crucial for survival." },
+    { kinyarwanda: "Agakara gasiga imbwa ntigasiga akako.", translation: "An old hand leaves a dog but does not leave a small hoe.", lesson: "One abandons what is less useful but keeps essential tools." },
+    { kinyarwanda: "Agakecuru gakize ntikabura abuzukuru.", translation: "A rich old person does not lack grandchildren.", lesson: "Wealth attracts descendants and helpers." },
+    { kinyarwanda: "Agakecuru gatanze akandi gushoka kagira ngo dore ubwo butama bwako.", translation: "An old person gave another and then said, 'Look at your sheep.'", lesson: "Gifts may come with strings attached." },
+    { kinyarwanda: "Agakecuru karitse ntikabura abuzukuru.", translation: "An old person who eats alone does not lack grandchildren.", lesson: "Selfish elders still attract heirs due to their wealth." }
 ];
 
-function cleanProverbText(t) {
-    return (t || '')
-        .replace(/\s*\([^)]*\)/g,'')
-        .replace(/\s*\[[^\]]*\]/g,'')
-        .replace(/\s{2,}/g,' ')
+function cleanProverbText(text) {
+    if (!text || typeof text !== 'string') return text || '';
+    return text
+        .replace(/\s*\([^)]*\)/g, '')
+        .replace(/\s*\[[^\]]*\]/g, '')
+        .replace(/\s{2,}/g, ' ')
         .trim();
 }
-function normalizeProverb(p) {
-    if (!p) return p;
+
+function normalizeProverb(proverb) {
+    if (!proverb) return proverb;
     return {
-        ...p,
-        kinyarwanda: cleanProverbText(p.kinyarwanda),
-        translation: cleanProverbText(p.translation),
-        lesson: cleanProverbText(p.lesson)
+        ...proverb,
+        kinyarwanda: cleanProverbText(proverb.kinyarwanda),
+        translation: cleanProverbText(proverb.translation),
+        lesson: cleanProverbText(proverb.lesson)
     };
 }
+
 function getRandomLocalProverb() {
-    return normalizeProverb({ ...rwandanProverbs[Math.floor(Math.random() * rwandanProverbs.length)] });
+    const randomIndex = Math.floor(Math.random() * rwandanProverbs.length);
+    return normalizeProverb({ ...rwandanProverbs[randomIndex] });
 }
+
+function getProverbOfTheDay() {
+    const today = new Date();
+    const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
+    const index = dayOfYear % rwandanProverbs.length;
+    return { ...rwandanProverbs[index] };
+}
+
+// ==================== API CONFIGURATION (kept but disabled) ====================
+const AFRICAN_PROVERBS_API = 'https://africanproverbs.vercel.app/api/getproverb';
+const QUOTEVERSE_API = 'https://quoteverse-api.com/proverbs/african';
 const USE_API = false;
+const API_TIMEOUT = 5000;
+
+function fetchWithTimeoutProverb(url, timeout = API_TIMEOUT) {
+    return Promise.race([
+        fetch(url),
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('API request timeout')), timeout)
+        )
+    ]);
+}
+
+async function fetchFromAfricanProverbsAPI() {
+    try {
+        const response = await fetchWithTimeoutProverb(AFRICAN_PROVERBS_API);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data && data.proverb) {
+            return {
+                kinyarwanda: data.proverb || data.quote || "Ubugeni bw'abanyarwanda",
+                translation: data.meaning || data.english || "Wisdom from Africa",
+                lesson: data.interpretation || data.lesson || `💡 ${data.meaning || "Amabwiriza y'ubugeni"}`,
+                source: 'api'
+            };
+        }
+        throw new Error('Invalid API response format');
+    } catch (error) {
+        console.warn('African Proverbs API failed:', error.message);
+        return null;
+    }
+}
+
+async function fetchFromQuoteVerseAPI() {
+    try {
+        const response = await fetchWithTimeoutProverb(QUOTEVERSE_API);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data && data.quote) {
+            return {
+                kinyarwanda: data.quote,
+                translation: data.quote,
+                lesson: `💡 ${data.author || 'African wisdom'} | ${data.tags?.join(', ') || ''}`,
+                source: 'quoteverse'
+            };
+        }
+        throw new Error('Invalid QuoteVerse response');
+    } catch (error) {
+        console.warn('QuoteVerse API failed:', error.message);
+        return null;
+    }
+}
+
+async function fetchProverbFromAPI() {
+    if (!USE_API) return null;
+    const primaryResult = await fetchFromAfricanProverbsAPI();
+    if (primaryResult) return primaryResult;
+    const secondaryResult = await fetchFromQuoteVerseAPI();
+    if (secondaryResult) return secondaryResult;
+    return null;
+}
+
+// ==================== DISPLAY FUNCTIONS ====================
 let currentProverbData = null;
 let proverbAnimTimer = null;
-const PROVERB_ANIM_CLASSES = ['proverb-anim-glow','proverb-anim-float','proverb-anim-pulse','proverb-anim-breathe','proverb-anim-wave','proverb-anim-drift','proverb-anim-shimmer'];
-const PROVERB_COLORS = ['#FFE8A3','#A8F0D8','#FFB4C4','#B8E4FF','#FFD966','#E8CCFF','#FF9EC4','#9EF5C8','#FFC98A','#D4F1FF','#F5A962','#C5F6FA','#F9E79F','#D7BDE2','#AED6F1'];
 
-function pickRandomProverbItem(list) { return list[Math.floor(Math.random() * list.length)]; }
-function clearProverbAnimTimer() { if (proverbAnimTimer) { clearTimeout(proverbAnimTimer); proverbAnimTimer = null; } }
+const PROVERB_ANIM_CLASSES = [
+    'proverb-anim-glow',
+    'proverb-anim-float',
+    'proverb-anim-pulse',
+    'proverb-anim-breathe',
+    'proverb-anim-wave',
+    'proverb-anim-drift',
+    'proverb-anim-shimmer'
+];
+
+const PROVERB_COLORS = [
+    '#FFE8A3', '#A8F0D8', '#FFB4C4', '#B8E4FF', '#FFD966',
+    '#E8CCFF', '#FF9EC4', '#9EF5C8', '#FFC98A', '#D4F1FF',
+    '#F5A962', '#C5F6FA', '#F9E79F', '#D7BDE2', '#AED6F1',
+    '#FAD7A0', '#A9DFBF', '#F5B7B1', '#D6EAF8', '#F9E79F'
+];
+
+function pickRandomProverbItem(list) {
+    return list[Math.floor(Math.random() * list.length)];
+}
+
+function clearProverbAnimTimer() {
+    if (proverbAnimTimer) {
+        clearTimeout(proverbAnimTimer);
+        proverbAnimTimer = null;
+    }
+}
+
 function applyProverbVisualStyle(el) {
     if (!el) return;
-    PROVERB_ANIM_CLASSES.forEach(c => el.classList.remove(c));
+    PROVERB_ANIM_CLASSES.forEach((cls) => el.classList.remove(cls));
     void el.offsetWidth;
-    const cls = pickRandomProverbItem(PROVERB_ANIM_CLASSES);
+    const animClass = pickRandomProverbItem(PROVERB_ANIM_CLASSES);
     const color = pickRandomProverbItem(PROVERB_COLORS);
-    const dur = (2.5 + Math.random() * 5.5).toFixed(2);
-    el.classList.add(cls);
-    el.style.setProperty('--proverb-anim-duration', `${dur}s`);
+    const duration = (2.5 + Math.random() * 5.5).toFixed(2);
+    el.classList.add(animClass);
+    el.style.setProperty('--proverb-anim-duration', `${duration}s`);
     el.style.color = color;
     el.style.textShadow = `0 1px 5px rgba(0,0,0,0.45), 0 0 14px ${color}55`;
 }
+
 function scheduleNextProverbAnim(el) {
+    const delay = 3500 + Math.random() * 5500;
     proverbAnimTimer = setTimeout(() => {
-        if (!document.getElementById('dailyProverb')) { clearProverbAnimTimer(); return; }
+        if (!document.getElementById('dailyProverb')) {
+            clearProverbAnimTimer();
+            return;
+        }
         applyProverbVisualStyle(el);
         scheduleNextProverbAnim(el);
-    }, 3500 + Math.random() * 5500);
+    }, delay);
 }
-function startProverbAnimCycle(el) { clearProverbAnimTimer(); applyProverbVisualStyle(el); scheduleNextProverbAnim(el); }
-function stopProverbAnimCycle(el) { clearProverbAnimTimer(); if (el) PROVERB_ANIM_CLASSES.forEach(c => el.classList.remove(c)); }
 
+function startProverbAnimCycle(el) {
+    clearProverbAnimTimer();
+    applyProverbVisualStyle(el);
+    scheduleNextProverbAnim(el);
+}
+
+function stopProverbAnimCycle(el) {
+    clearProverbAnimTimer();
+    if (el) {
+        PROVERB_ANIM_CLASSES.forEach((cls) => el.classList.remove(cls));
+    }
+}
+
+// ============ LANGUAGE POOL — BANTU FIRST, THEN WIDER AFRICA, THEN WORLD ============
 const PROVERB_LANG_POOL = [
-    { code:'en', label:'English' },{ code:'fr', label:'Français' },{ code:'es', label:'Español' },
-    { code:'de', label:'Deutsch' },{ code:'it', label:'Italiano' },{ code:'pt', label:'Português' },
-    { code:'ar', label:'العربية' },{ code:'zh', label:'中文' },{ code:'ja', label:'日本語' },
-    { code:'ko', label:'한국어' },{ code:'hi', label:'हिन्दी' },{ code:'sw', label:'Kiswahili' }
+    // --- Bantu languages (prioritised, guaranteed in each batch) ---
+    { code: 'rw', label: 'Kinyarwanda' },
+    { code: 'rn', label: 'Kirundi' },
+    { code: 'sw', label: 'Kiswahili' },
+    { code: 'lg', label: 'Luganda' },
+    { code: 'ln', label: 'Lingala' },
+    { code: 'ny', label: 'Chichewa' },
+    { code: 'sn', label: 'Shona' },
+    { code: 'zu', label: 'Zulu' },
+    { code: 'xh', label: 'Xhosa' },
+    { code: 'st', label: 'Sesotho' },
+    { code: 'tn', label: 'Setswana' },
+    { code: 'ts', label: 'Xitsonga' },
+    // --- Other African languages ---
+    { code: 'om', label: 'Oromo' },
+    { code: 'so', label: 'Somali' },
+    { code: 'am', label: 'Amharic' },
+    { code: 'ha', label: 'Hausa' },
+    { code: 'yo', label: 'Yoruba' },
+    { code: 'ig', label: 'Igbo' },
+    // --- Wider world ---
+    { code: 'en', label: 'English' },
+    { code: 'fr', label: 'Français' },
+    { code: 'pt', label: 'Português' },
+    { code: 'es', label: 'Español' },
+    { code: 'de', label: 'Deutsch' },
+    { code: 'it', label: 'Italiano' },
+    { code: 'ar', label: 'العربية' },
+    { code: 'zh', label: '中文' },
+    { code: 'ja', label: '日本語' },
+    { code: 'hi', label: 'हिन्दी' }
 ];
-function pickRandomProverbLangs(count = 6) {
-    return [...PROVERB_LANG_POOL].sort(() => Math.random() - 0.5).slice(0, count);
+
+/**
+ * Always include 5 Bantu languages + 3 others (African or world).
+ * Bantu guaranteed: at least 5 of the 8 picked.
+ */
+function pickRandomProverbLangs(count = 8) {
+    const bantu = PROVERB_LANG_POOL.slice(0, 12);
+    const african = PROVERB_LANG_POOL.slice(12, 18);
+    const world = PROVERB_LANG_POOL.slice(18);
+
+    const shuffledBantu = [...bantu].sort(() => Math.random() - 0.5);
+    const rest = [...african, ...world].sort(() => Math.random() - 0.5);
+
+    const bantuCount = Math.min(5, bantu.length);
+    const restCount = Math.max(count - bantuCount, 0);
+
+    return [
+        ...shuffledBantu.slice(0, bantuCount),
+        ...rest.slice(0, restCount)
+    ];
 }
 
 function hideProverbTranslations(event) {
     if (event) event.stopPropagation();
     const overlay = document.getElementById('proverbTransOverlay');
-    if (overlay) {
-        overlay.classList.remove('active');
-        overlay.style.display = 'none';
-        overlay.innerHTML = '';
+    const panel = document.getElementById('proverbTranslations');
+    if (overlay) overlay.style.display = 'none';
+    if (panel) panel.innerHTML = '';
+}
+
+function showProverbLoading() {
+    const kinyarwandaEl = document.getElementById('dailyProverb');
+    if (kinyarwandaEl) {
+        stopProverbAnimCycle(kinyarwandaEl);
+        kinyarwandaEl.innerHTML = '<span class="loading-spinner"></span> Itegura...';
+        kinyarwandaEl.classList.remove('proverb-error');
+        kinyarwandaEl.style.color = 'rgba(255, 255, 255, 0.9)';
     }
 }
 
-async function showProverbTranslations(event) {
+function displayProverb(proverb) {
+    const kinyarwandaEl = document.getElementById('dailyProverb');
+    if (!kinyarwandaEl || !proverb?.kinyarwanda) return;
+
+    currentProverbData = normalizeProverb(proverb);
+    hideProverbTranslations();
+
+    kinyarwandaEl.style.opacity = '0';
+    setTimeout(() => {
+        kinyarwandaEl.innerHTML = `“${currentProverbData.kinyarwanda}”`;
+        kinyarwandaEl.classList.remove('proverb-error');
+        kinyarwandaEl.style.opacity = '1';
+        startProverbAnimCycle(kinyarwandaEl);
+    }, 120);
+}
+
+// Works whether HTML calls toggleProverbTranslations or showProverbTranslations
+async function toggleProverbTranslations(event) {
     if (event) event.stopPropagation();
-    if (!currentProverbData) return;
-    let overlay = document.getElementById('proverbTransOverlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'proverbTransOverlay';
-        overlay.addEventListener('click', hideProverbTranslations);
-        document.body.appendChild(overlay);
+    const overlay = document.getElementById('proverbTransOverlay');
+    const panel = document.getElementById('proverbTranslations');
+    if (!overlay || !panel || !currentProverbData) return;
+
+    if (overlay.style.display === 'flex') {
+        hideProverbTranslations();
+        return;
     }
-    overlay.classList.add('active');
+
     overlay.style.display = 'flex';
-    overlay.innerHTML = `
-        <div class="proverb-trans-modal" onclick="event.stopPropagation()">
-            <h3>🌍 Translations</h3>
-            <p class="proverb-original"><strong>Kinyarwanda:</strong> ${currentProverbData.kinyarwanda}</p>
-            <div class="proverb-trans-list" id="proverbTransList">
-                <p style="opacity:0.7;">Loading translations…</p>
-            </div>
-            <button class="proverb-trans-close" onclick="hideProverbTranslations(event)">Funga</button>
-        </div>
-    `;
-    const list = document.getElementById('proverbTransList');
-    const langs = pickRandomProverbLangs(6);
-    const results = await Promise.all(langs.map(async (l) => {
-        try {
-            const translated = await translateProverbLang(currentProverbData.translation, 'en', l.code);
-            return { label: l.label, text: translated || '—' };
-        } catch {
-            return { label: l.label, text: '—' };
+    panel.innerHTML = '<div class="proverb-trans-loading"><span class="loading-spinner"></span> Birahindurwa...</div>';
+
+    const baseEn = currentProverbData.translation
+        || await translateProverbLang(currentProverbData.kinyarwanda, 'rw', 'en')
+        || currentProverbData.kinyarwanda;
+
+    const randomLangs = pickRandomProverbLangs(8);
+
+    const lines = await Promise.all(randomLangs.map(async (lang) => {
+        if (lang.code === 'rw') {
+            return { label: lang.label, text: currentProverbData.kinyarwanda };
         }
+        const text = lang.code === 'en'
+            ? baseEn
+            : (await translateProverbLang(baseEn, 'en', lang.code) || baseEn);
+        return { label: lang.label, text: cleanProverbText(text) };
     }));
-    if (!list) return;
-    list.innerHTML = results.map(r =>
-        `<div class="proverb-trans-row"><span class="proverb-lang">${r.label}</span><span class="proverb-text">${r.text}</span></div>`
-    ).join('');
+
+    panel.innerHTML = lines.map((item) => `
+        <div class="proverb-lang-line">
+            <span class="proverb-lang-name">${item.label}</span>
+            <span class="proverb-lang-text">“${escapeHtml(item.text)}”</span>
+        </div>
+    `).join('');
 }
 
 async function loadProverb() {
-    const el = document.getElementById('dailyProverb');
-    if (!el) return;
-    const proverb = getRandomLocalProverb();
-    currentProverbData = proverb;
-    el.textContent = proverb.kinyarwanda;
-    el.style.cursor = 'pointer';
-    el.title = 'Kanda kubona ibisobanuro mu zindi ndimi';
-    el.onclick = showProverbTranslations;
-    startProverbAnimCycle(el);
+    showProverbLoading();
+    try {
+        let proverb = null;
+        if (USE_API) {
+            proverb = await fetchProverbFromAPI();
+        }
+        if (!proverb) {
+            proverb = getRandomLocalProverb();
+        }
+        displayProverb(proverb);
+    } catch (error) {
+        console.error('Unexpected error loading proverb:', error);
+        displayProverb(getRandomLocalProverb());
+    }
+}
+
+async function refreshProverb(event) {
+    if (event) event.stopPropagation();
+    hideProverbTranslations();
+    const refreshBtn = document.querySelector('.proverb-refresh');
+    if (refreshBtn) {
+        refreshBtn.style.transform = 'rotate(180deg)';
+        setTimeout(() => {
+            refreshBtn.style.transform = '';
+        }, 500);
+    }
+    await loadProverb();
 }
 
 // ==================== LOGO COLOR CYCLE ====================
+const LOGO_COLOR_PALETTES = [
+    { stroke: 'rgba(255, 255, 255, 0.95)', fill: '#5B7A9D', bandStroke: '#1e2d3d' },
+    { stroke: '#FFE8A3', fill: '#4ECDC4', bandStroke: '#1a4a44' },
+    { stroke: '#FFD966', fill: '#B19CD9', bandStroke: '#3d2a5c' },
+    { stroke: '#A8F0D8', fill: '#FF8B94', bandStroke: '#5c2a32' },
+    { stroke: '#B8E4FF', fill: '#96CEB4', bandStroke: '#2a4a38' },
+    { stroke: '#F5A962', fill: '#45B7D1', bandStroke: '#1e4a5c' },
+    { stroke: '#E8CCFF', fill: '#FFB347', bandStroke: '#5c3d12' },
+    { stroke: '#D4F1FF', fill: '#B83B5E', bandStroke: '#4a1528' }
+];
+
+let logoColorTimer = null;
+
+function applyLogoPalette(palette) {
+    const logo = document.getElementById('siteLogo');
+    if (!logo || !palette) return;
+    logo.style.setProperty('--logo-stroke', palette.stroke);
+    logo.style.setProperty('--logo-band-fill', palette.fill);
+    logo.style.setProperty('--logo-band-stroke', palette.bandStroke);
+}
+
 function startLogoColorCycle() {
-    const logo = document.querySelector('.logo, .site-logo, #logo');
+    const logo = document.getElementById('siteLogo');
     if (!logo) return;
-    let i = 0;
-    setInterval(() => {
-        i = (i + 1) % COLOR_CLASSES.length;
-        COLOR_CLASSES.forEach(c => logo.classList.remove(c));
-        logo.classList.add(COLOR_CLASSES[i]);
-    }, 1800);
+    if (logoColorTimer) clearInterval(logoColorTimer);
+    let paletteIndex = 0;
+    applyLogoPalette(LOGO_COLOR_PALETTES[paletteIndex]);
+    logoColorTimer = setInterval(() => {
+        paletteIndex = (paletteIndex + 1) % LOGO_COLOR_PALETTES.length;
+        applyLogoPalette(LOGO_COLOR_PALETTES[paletteIndex]);
+    }, 4200);
 }
 
 // ==================== QUOTE SCROLL ====================
@@ -1440,7 +1760,8 @@ function fetchWithTimeoutQuote(url, ms) {
 
 function authorMatches(requested, returned) {
     if (!requested || !returned) return false;
-    const norm = (s) => s.toLowerCase()
+    const norm = (s) => s
+        .toLowerCase()
         .replace(/\b(jr|sr|ii|iii|iv)\.?\b/g, '')
         .replace(/[^a-zà-ÿ' ]/g, ' ')
         .replace(/\s+/g, ' ')
@@ -1467,7 +1788,8 @@ async function fetchFromQuoteGarden(author) {
         const first = Array.isArray(data) ? data[0] : data;
         if (!first?.quoteText) throw new Error('missing quoteText');
         if (!authorMatches(author, first.quoteAuthor)) {
-            console.warn('[quote] Quote Garden returned a different author:', first.quoteAuthor, 'for', author);
+            console.warn('[quote] Quote Garden returned a different author:',
+                first.quoteAuthor, 'for request', author);
             return null;
         }
         return { quote: first.quoteText, author: first.quoteAuthor || author };
@@ -1484,9 +1806,11 @@ async function fetchFromWikiquote(author) {
         if (!searchRes.ok) throw new Error(`search HTTP ${searchRes.status}`);
         const searchJson = await searchRes.json();
         const hits = searchJson?.query?.search || [];
+
         const lastWord = author.toLowerCase().split(/\s+/).pop();
         const match = hits.find(h => (h.title || '').toLowerCase().includes(lastWord));
         if (!match) throw new Error('no matching wikiquote page');
+
         const pageUrl = `https://en.wikiquote.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(match.title)}&format=json&origin=*`;
         const pageRes = await fetchWithTimeoutQuote(pageUrl, QUOTE_FETCH_TIMEOUT_MS);
         if (!pageRes.ok) throw new Error(`page HTTP ${pageRes.status}`);
@@ -1495,14 +1819,26 @@ async function fetchFromWikiquote(author) {
         const page = Object.values(pages)[0];
         const text = page?.extract || '';
         if (!text) throw new Error('no extract');
-        const candidates = text.split(/\n{2,}/).map(s => s.trim()).filter(s =>
-            s.length > 40 && s.length < 260 &&
-            !s.startsWith('=') && !s.includes('Wikiquote') && !s.includes('Wikipedia') &&
-            !/^[\w\s]+:$/.test(s)
-        );
+
+        const candidates = text
+            .split(/\n{2,}/)
+            .map(s => s.trim())
+            .filter(s =>
+                s.length > 40 &&
+                s.length < 260 &&
+                !s.startsWith('=') &&
+                !s.includes('Wikiquote') &&
+                !s.includes('Wikipedia') &&
+                !/^[\w\s]+:$/.test(s)
+            );
+
         if (!candidates.length) throw new Error('no quote candidates');
+
         const pick = candidates[Math.floor(Math.random() * Math.min(candidates.length, 6))];
-        return { quote: pick.replace(/^["“”'"'']+|["“”'"'']+$/g, '').trim(), author };
+        return {
+            quote: pick.replace(/^["“”'"'']+|["“”'"'']+$/g, '').trim(),
+            author
+        };
     } catch (err) {
         console.warn('[quote] Wikiquote failed:', err.message);
         return null;
@@ -1519,8 +1855,12 @@ async function fetchOnlineQuote(author) {
 
 async function fetchAuthorPortrait(author) {
     if (!author) return null;
-    const nameParts = author.replace(/[^A-Za-zÀ-ÿ' -]/g, '').split(/\s+/).filter(Boolean);
+    const nameParts = author
+        .replace(/[^A-Za-zÀ-ÿ' -]/g, '')
+        .split(/\s+/)
+        .filter(Boolean);
     const lastName = (nameParts[nameParts.length - 1] || '').toLowerCase();
+
     const tryTitle = async (title) => {
         try {
             const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages|pageprops&format=json&pithumbsize=220&redirects=1&origin=*`;
@@ -1537,15 +1877,24 @@ async function fetchAuthorPortrait(author) {
             if (!thumb) return null;
             if (!/\.(jpe?g|png|svg|webp)(\?|$)/i.test(thumb)) return null;
             return thumb;
-        } catch (err) { return null; }
+        } catch (err) {
+            console.warn('[portrait] lookup failed for', title, err.message);
+            return null;
+        }
     };
+
     let thumb = await tryTitle(author);
     if (thumb) return thumb;
-    const cleaned = author.replace(/\b(jr|sr|ii|iii|iv)\.?\b/gi, '').replace(/\s+/g, ' ').trim();
+
+    const cleaned = author
+        .replace(/\b(jr|sr|ii|iii|iv)\.?\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
     if (cleaned && cleaned.toLowerCase() !== author.toLowerCase()) {
         thumb = await tryTitle(cleaned);
         if (thumb) return thumb;
     }
+
     try {
         const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(author)}&srlimit=5&format=json&origin=*`;
         const res = await fetchWithTimeoutQuote(searchUrl, PORTRAIT_FETCH_TIMEOUT_MS);
@@ -1561,7 +1910,10 @@ async function fetchAuthorPortrait(author) {
                 if (thumb) return thumb;
             }
         }
-    } catch (err) {}
+    } catch (err) {
+        console.warn('[portrait] search failed for', author, err.message);
+    }
+
     return null;
 }
 
@@ -1584,13 +1936,21 @@ function shuffleArray(arr) {
 }
 
 function buildQuoteCardHTML(q, color, direction, portraitUrl, loading) {
-    const initials = (q.author || '?').split(/\s+/).map(w => w.charAt(0).toUpperCase()).slice(0, 2).join('');
+    const initials = (q.author || '?')
+        .split(/\s+/)
+        .map(w => w.charAt(0).toUpperCase())
+        .slice(0, 2)
+        .join('');
+
     const portraitInner = portraitUrl
         ? `<img src="${portraitUrl}" alt="${escapeHtml(q.author || '')}" onerror="this.replaceWith(document.createTextNode('${initials}'))">`
         : `<span class="flyer__initials">${initials}</span>`;
+
     const animClass = direction === 'up' ? 'flyer--enter-up'
-                     : direction === 'down' ? 'flyer--enter-down' : '';
+                     : direction === 'down' ? 'flyer--enter-down'
+                     : '';
     const loadingClass = loading ? 'flyer--loading' : '';
+
     return `
         <div class="flyer ${animClass} ${loadingClass}" style="--flyer-accent:${color};">
             <div class="flyer__roll flyer__roll--top"></div>
@@ -1608,46 +1968,64 @@ function buildQuoteCardHTML(q, color, direction, portraitUrl, loading) {
 async function paintQuoteRoll(direction) {
     const list = document.getElementById('quoteRollList');
     if (!list) return;
+
     const author = quoteRollState.authors[quoteRollState.index];
     if (!author) {
         list.innerHTML = `<div class="quote-roll-empty">Nta magambo abonetse muri itsinda ryatoranyijwe.</div>`;
         return;
     }
-    const color = QUOTE_CATEGORY_COLORS[quoteRollState.category] || QUOTE_CATEGORY_COLORS['worldwide-famous'];
-    const fallbackPool = LOCAL_QUOTES_FALLBACK[quoteRollState.category] || LOCAL_QUOTES_FALLBACK['worldwide-famous'];
+
+    const color = QUOTE_CATEGORY_COLORS[quoteRollState.category]
+               || QUOTE_CATEGORY_COLORS['worldwide-famous'];
+
+    const fallbackPool = LOCAL_QUOTES_FALLBACK[quoteRollState.category]
+                      || LOCAL_QUOTES_FALLBACK['worldwide-famous'];
     const fallback = fallbackPool.find(f => f.author === author)
                   || fallbackPool[Math.floor(Math.random() * fallbackPool.length)]
                   || { quote: 'Ubwenge bw\'abanyacyubahiro.', author };
+
     const myToken = ++quoteRollState.paintToken;
     list.innerHTML = buildQuoteCardHTML(fallback, color, direction, null, true);
+
     const [onlineQuote, portraitUrl] = await Promise.all([
         fetchOnlineQuote(author),
         fetchAuthorPortrait(author)
     ]);
+
     if (myToken !== quoteRollState.paintToken) return;
+
     const finalQuote = onlineQuote ? onlineQuote : fallback;
     list.innerHTML = buildQuoteCardHTML(finalQuote, color, direction, portraitUrl, false);
 }
 
 function scheduleQuoteAutoAdvance() {
     if (quoteRollState.timer) clearTimeout(quoteRollState.timer);
-    quoteRollState.timer = setTimeout(() => { quoteRollNext(true); }, quoteRollState.autoAdvanceMs);
+    quoteRollState.timer = setTimeout(() => {
+        quoteRollNext(true);
+    }, quoteRollState.autoAdvanceMs);
 }
 
 function setQuoteCategory(category, preserveIndex) {
-    const key = QUOTE_AUTHORS_BY_CATEGORY[category] ? category : 'worldwide-famous';
+    const key = QUOTE_AUTHORS_BY_CATEGORY[category]
+        ? category
+        : 'worldwide-famous';
     quoteRollState.category = key;
+
     const authors = QUOTE_AUTHORS_BY_CATEGORY[key];
     quoteRollState.authors = shuffleArray(authors);
     if (!preserveIndex) quoteRollState.index = 0;
     if (quoteRollState.index >= quoteRollState.authors.length) quoteRollState.index = 0;
+
     const sel = document.getElementById('quoteContinentSelect');
     if (sel && sel.value !== key) sel.value = key;
+
     paintQuoteRoll('');
     scheduleQuoteAutoAdvance();
 }
 
-function onQuoteCategoryChange(value) { setQuoteCategory(value, false); }
+function onQuoteCategoryChange(value) {
+    setQuoteCategory(value, false);
+}
 
 function quoteRollNext() {
     if (!quoteRollState.authors.length) return;
@@ -1667,13 +2045,58 @@ function renderQuoteRoll(category) {
     setQuoteCategory(category || 'worldwide-famous', false);
 }
 
+// ==================== GLOBAL EXPORTS ====================
+window.showTab = showTab;
+window.handleFileUpload = handleFileUpload;
+window.extractStories = extractStories;
+window.generateFlyer = generateFlyer;
+window.openEditor = openEditor;
+window.closeEditor = closeEditor;
+window.saveEditedStory = saveEditedStory;
+window.toggleFlyerExpansion = toggleFlyerExpansion;
+window.handleLike = handleLike;
+window.handleKnew = handleKnew;
+window.handleDidntKnow = handleDidntKnow;
+window.toggleComments = toggleComments;
+window.addComment = addComment;
+window.filterByContinent = filterByContinent;
+window.filterByCategory = filterByCategory;
+window.sortBy = sortBy;
+window.clearAllFilters = clearAllFilters;
+window.showLoginModal = showLoginModal;
+window.hideLoginModal = hideLoginModal;
+window.showLoginForm = showLoginForm;
+window.showRegisterForm = showRegisterForm;
+window.handleLogin = handleLogin;
+window.handleRegister = handleRegister;
+window.continueAsAnonymous = continueAsAnonymous;
+window.updateUserStatus = updateUserStatus;
+window.showUserAccount = showUserAccount;
+window.getCurrentUser = getCurrentUser;
+window.uploadFlyerPicture = uploadFlyerPicture;
+window.uploadFlyerPictureForStory = uploadFlyerPictureForStory;
+window.applyFlyerImageUrl = applyFlyerImageUrl;
+window.refreshAllColors = refreshAllColors;
+window.refreshProverb = refreshProverb;
+window.toggleProverbTranslations = toggleProverbTranslations;
+window.showProverbTranslations = toggleProverbTranslations; // alias
+window.hideProverbTranslations = hideProverbTranslations;
+window.loadProverb = loadProverb;
+window.quoteRollNext = quoteRollNext;
+window.quoteRollPrev = quoteRollPrev;
+window.onQuoteCategoryChange = onQuoteCategoryChange;
+window.renderQuoteRoll = renderQuoteRoll;
+
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', async () => {
     const userRole = localStorage.getItem('wrzkk_user_role');
     if (!userRole) setTimeout(() => showLoginModal(), 500);
     else updateUserStatus();
 
+    // Proverb FIRST, so it never waits on the cloud fetch
     loadProverb();
+
+    // Collection can load in parallel
     initializeCollection();
 
     const searchInput = document.getElementById('searchInput');
@@ -1690,5 +2113,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Quote roll init — respects the <option selected> in HTML
     const sel = document.getElementById('quoteContinentSelect');
-    onQuoteCategoryChange(sel ? sel.value : 'worldwide-famous');
+    if (sel) onQuoteCategoryChange(sel.value);
 });
