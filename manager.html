@@ -558,16 +558,16 @@
                 <h2><i>🔐</i> Kwinjira mu Igenzuriro</h2>
                 <div class="form-group">
                     <label>Imeyili:</label>
-                    <input type="email" id="managerEmail" placeholder="manager@example.com" value="admin@wrzkk.com">
+                    <input type="email" id="managerEmail" placeholder="imeyili@urugero.com">
                 </div>
                 <div class="form-group">
                     <label>Ijambo ry'ibanga:</label>
-                    <input type="password" id="managerPassword" placeholder="••••••••" value="admin123">
+                   <input type="password" id="managerPassword" placeholder="••••••••">
                 </div>
                 <button onclick="managerLogin()" class="manager-btn primary" style="width: 100%;">
                     <i>🔑</i> Injira
                 </button>
-                <p class="hint">Mburabuzi: admin@wrzkk.com / admin123</p>
+                <p class="hint">Injira n'imeyili yemewe nka manager (urugero: innovatorsedvance@gmail.com).</p>
             </div>
         </div>
 
@@ -596,6 +596,7 @@
                 <button class="manager-tab" onclick="switchManagerTab('flyers')"><i>📄</i> Utuzingo</button>
                 <button class="manager-tab" onclick="switchManagerTab('styles')"><i>🎨</i> Imiterere y' akazingo</button>
                 <button class="manager-tab" onclick="switchManagerTab('messages')"><i>💬</i> Ubutumwa</button>
+                <button class="manager-tab" onclick="switchManagerTab('managers')"><i>👑</i> Managers</button>
                 <button class="manager-tab" onclick="switchManagerTab('settings')"><i>⚙️</i> Igenamiterere</button>
                 <button class="manager-tab logout" onclick="managerLogout()"><i>🚪</i> Sohoka</button>
             </div>
@@ -682,7 +683,38 @@
                     <button onclick="saveSettings()" class="manager-btn primary"><i>💾</i> Kubika Igenamiterere</button>
                 </div>
             </div>
+            <!-- Managers Tab -->
+<div id="managersTab" class="manager-tab-content">
+    <div class="settings-card">
+        <h3><i>👑</i> Abafite uburenganzira bwa Manager</h3>
+        <p style="margin-bottom: 15px; color:#666;">
+            Ni iyi mimeyili gusa ishobora kwinjira mu Igenzuriro.
+            <strong>innovatorsedvance@gmail.com</strong> ni Super Admin — ntushobora kuyikuraho.
+        </p>
+
+        <div class="filter-bar" style="margin-bottom: 20px;">
+            <input type="email" id="newManagerEmail" placeholder="Ongeraho imeyili nshya ya manager...">
+            <button onclick="addManagerEmailFromInput()"><i>➕</i> Yongeraho</button>
         </div>
+
+        <div class="table-container">
+            <table id="managerEmailsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Imeyili</th>
+                        <th>Uruhare</th>
+                        <th>Imimerere</th>
+                        <th>Ibikorwa</th>
+                    </tr>
+                </thead>
+                <tbody id="managerEmailsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+        </div>
+        
     </div>
 
     <!-- Message Modal -->
