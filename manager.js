@@ -75,7 +75,6 @@ async function saveFlyerToCloud(flyer) {
         let saved;
         try { saved = JSON.parse(text); } catch { throw new Error('Invalid JSON'); }
         console.log('☁️ Manager: flyer saved', saved.title || flyer.title);
-        // Adopt real cloud id
         if (saved.id && saved.id !== flyer.id) flyer.id = saved.id;
         return saved;
     } catch (err) {
@@ -121,7 +120,6 @@ async function deleteFlyerFromCloud(id) {
 const MANAGERS_API = '/api/managers';
 const SUPER_ADMIN_EMAIL = 'innovatorsedvance@gmail.com';
 
-// In-memory mirror of the server-side manager list
 let managerList = [];
 
 function normalizeEmail(e) {
@@ -148,7 +146,6 @@ async function fetchManagersFromCloud() {
         return managerList;
     } catch (err) {
         console.warn('⚠️ Manager cloud load failed, using local fallback:', err.message);
-        // Local fallback so the app still works if backend is down
         managerList = [{
             id: 'local_super',
             email: SUPER_ADMIN_EMAIL,
@@ -181,7 +178,6 @@ async function addManagerToCloud(email, name, password, role = 'manager') {
     }
     let saved;
     try { saved = JSON.parse(text); } catch { throw new Error('Invalid JSON from cloud'); }
-    // Refresh mirror
     await fetchManagersFromCloud();
     return saved;
 }
@@ -220,10 +216,6 @@ async function updateManagerInCloud(id, updates) {
     return saved;
 }
 
-/**
- * Login check: fetch the manager row for this email and compare passwords.
- * Returns the manager row (without exposing it elsewhere) or null.
- */
 async function verifyManagerCredentials(email, password) {
     const target = normalizeEmail(email);
     try {
@@ -363,14 +355,11 @@ async function loadData() {
     settings = JSON.parse(localStorage.getItem('wrzkk_settings')) || { autoApprove: true, notifyOnReport: false };
     globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
 
-    // Flyers now come from the cloud
     const cloudFlyers = await loadFlyersFromCloud();
     if (cloudFlyers === null) {
-        // Fallback for offline / API down
         allFlyers = JSON.parse(localStorage.getItem('wrzkk_all_flyers')) || [];
     } else {
         allFlyers = cloudFlyers;
-        // Keep localStorage in sync for offline access
         localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
     }
 
@@ -491,10 +480,8 @@ async function applyStyleToAllFlyers() {
         return;
     }
 
-    // Update local array
     allFlyers.forEach(flyer => { flyer.style = globalFlyerStyle; });
 
-    // Push each one to the cloud
     let success = 0;
     for (const flyer of allFlyers) {
         const ok = await updateFlyerInCloud(flyer);
@@ -564,7 +551,6 @@ async function managerLogin() {
         return;
     }
 
-    // Whitelist gate (from cloud) — super admin always allowed even if mirror is stale
     if (!isEmailAllowedAsManager(email) && !isSuperAdminEmail(email)) {
         alert('❌ Iyi imeyili ntiyemewe nka manager.');
         return;
@@ -590,7 +576,6 @@ async function managerLogin() {
         lastActive: new Date().toISOString()
     };
 
-    // Sync last_active back to the cloud (best-effort)
     updateManagerInCloud(found.id, { last_active: currentManager.lastActive })
         .catch(err => console.warn('Could not update last_active:', err.message));
 
@@ -609,16 +594,13 @@ async function managerLogin() {
 }
 
 async function checkManagerAuth() {
-    // 1. Prefer an existing site session if the email is an approved manager
     const siteRole  = localStorage.getItem('wrzkk_user_role');
     const siteEmail = (localStorage.getItem('wrzkk_user_email') || '').toLowerCase().trim();
 
     if (siteRole === 'registered' && siteEmail) {
-        // Refresh the managers list from cloud so we have fresh approval data
         if (!managerList.length) await fetchManagersFromCloud();
 
         if (isEmailAllowedAsManager(siteEmail) || isSuperAdminEmail(siteEmail)) {
-            // Adopt the site session as a manager session
             currentManager = {
                 id: 'from_site_' + siteEmail,
                 email: siteEmail,
@@ -638,7 +620,6 @@ async function checkManagerAuth() {
         }
     }
 
-    // 2. Fall back to a stored manager session
     const session = localStorage.getItem('wrzkk_manager_session');
     const saved   = localStorage.getItem('wrzkk_manager');
     if (!session || !saved) return false;
@@ -795,8 +776,6 @@ async function deleteFlyer(flyerId) {
     updateStats();
     alert('✅ Akazingo kasibwe kuri seriveri no mu bubiko bwa hafi!');
 }
-    }
-}
 
 function deleteUser(userId) {
     if (confirm('Ibi bizasiba umukoresha N\'UTUZINGO TWE TWOSE. Emeza?')) {
@@ -931,7 +910,6 @@ function switchManagerTab(tabName, evt) {
     tabs.forEach(t => t.classList.remove('active'));
     contents.forEach(c => c.classList.remove('active'));
 
-    // Use the passed event, or fallback to window.event
     const e = evt || window.event;
     const clicked = e?.currentTarget?.closest?.('.manager-tab')
                  || e?.target?.closest?.('.manager-tab');
@@ -972,9 +950,10 @@ function saveSettings() {
 }
 
 // ==================== INIT ====================
-document.addEventListener('DOMContentLoaded', () => {
-    loadData();
-    if (!checkManagerAuth()) {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadData();
+    const authed = await checkManagerAuth();
+    if (!authed) {
         document.getElementById('loginSection').style.display = 'block';
         document.getElementById('dashboardSection').style.display = 'none';
     }
