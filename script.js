@@ -1601,6 +1601,106 @@ function pickRandomProverbLangs(count = 8) {
     ];
 }
 
+// ==================== MANAGER LINK INJECTION ====================
+async function injectManagerLink() {
+    // Don't double-add
+    if (document.getElementById('tabManager')) return;
+
+    const navTabs = document.querySelector('.nav-tabs');
+    if (!navTabs) return;
+
+    // Check if the current user is an approved manager (from cloud)
+    let allowed = false;
+    try {
+        const myEmail = (localStorage.getItem('wrzkk_user_email') || '').toLowerCase().trim();
+        const SUPER_ADMIN_EMAIL = 'innovatorsedvance@gmail.com';
+
+        // Super admin always sees it
+        if (myEmail === SUPER_ADMIN_EMAIL) {
+            allowed = true;
+        } else if (myEmail) {
+            const res = await fetch('/api/managers');
+            if (res.ok) {
+                const list = await res.json();
+                allowed = list.some(m =>
+                    (m.email || '').toLowerCase() === myEmail && m.is_active !== false
+                );
+            }
+        }
+    } catch { /* network down → don't show */ }
+
+    if (!allowed) return;
+
+    const a = document.createElement('a');
+    a.className = 'nav-tab nav-tab-link';
+    a.href = 'manager.html';
+    a.id = 'tabManager';
+    a.style.background = '#f39c12';
+    a.style.color = 'white';
+    a.innerHTML = '<i>👑</i> Igenzuriro';
+    navTabs.appendChild(a);
+}
+
+// ==================== SUPABASE REALTIME ====================
+const SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';   // ← fill in
+const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';                     // ← fill in
+let realtimeChannel = null;
+
+function startFlyerRealtime() {
+    if (realtimeChannel) return;
+    if (typeof supabase === 'undefined') {
+        console.warn('Supabase SDK not loaded — realtime disabled');
+        return;
+    }
+    try {
+        const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        realtimeChannel = client
+            .channel('flyers-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'flyers' },
+                (payload) => {
+                    console.log('🔔 Realtime change:', payload.eventType, payload.new?.title || payload.old?.id);
+                    handleRealtimeChange(payload);
+                }
+            )
+            .subscribe((status) => {
+                console.log('Realtime status:', status);
+            });
+    } catch (err) {
+        console.warn('Realtime setup failed:', err.message);
+    }
+}
+
+function handleRealtimeChange(payload) {
+    const { eventType, new: newRow, old: oldRow } = payload;
+
+    if (eventType === 'INSERT' && newRow) {
+        const exists = flyersCollection.some(f => String(f.id) === String(newRow.id));
+        if (!exists) {
+            flyersCollection.unshift(rowToFlyer(newRow));
+            console.log('🆕 Flyer added:', newRow.title);
+        }
+    } else if (eventType === 'UPDATE' && newRow) {
+        const idx = flyersCollection.findIndex(f => String(f.id) === String(newRow.id));
+        if (idx !== -1) {
+            flyersCollection[idx] = { ...flyersCollection[idx], ...rowToFlyer(newRow) };
+            console.log('✏️ Flyer updated:', newRow.title);
+        } else {
+            flyersCollection.push(rowToFlyer(newRow));
+        }
+    } else if (eventType === 'DELETE' && oldRow) {
+        flyersCollection = flyersCollection.filter(f => String(f.id) !== String(oldRow.id));
+        console.log('🗑️ Flyer deleted:', oldRow.id);
+    }
+
+    updateCollectionCount();
+    displayFlyers();
+    try {
+        localStorage.setItem('wrzkk_flyers', JSON.stringify(flyersCollection));
+    } catch {}
+}
+
 function hideProverbTranslations(event) {
     if (event) event.stopPropagation();
     const overlay = document.getElementById('proverbTransOverlay');
@@ -2173,6 +2273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateActiveFilters();
         });
     }
+
     setTimeout(addColorRefreshButton, 1000);
     startLogoColorCycle();
 
@@ -2180,20 +2281,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sel = document.getElementById('quoteContinentSelect');
     if (sel) onQuoteCategoryChange(sel.value);
 
-    // Hide manager link unless current user is an approved manager
-(function() {
-    try {
-        const managerLink = document.getElementById('tabManager');
-        if (!managerLink) return;
-        const allowed = JSON.parse(localStorage.getItem('wrzkk_manager_emails')) || [];
-        const superAdmin = 'innovatorsedvance@gmail.com';
-        if (!allowed.includes(superAdmin)) allowed.unshift(superAdmin);
-        const myEmail = (localStorage.getItem('wrzkk_user_email') || '').toLowerCase();
-        if (!allowed.includes(myEmail)) {
-            managerLink.style.display = 'none';
-        }
-    } catch (e) { /* noop */ }
-})();
-    
-    
+    // Real-time sync with Supabase
+    startFlyerRealtime();
+
+    // Manager link: only shown to approved managers (checked from cloud)
+    // Runs after account-bar.js has finished rebuilding the nav.
+    setTimeout(injectManagerLink, 300);
 });
