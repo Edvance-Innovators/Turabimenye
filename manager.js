@@ -6,6 +6,11 @@ let messages = [];
 let settings = {};
 let globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
 
+// ==================== SUPABASE REALTIME CONFIG ====================
+const SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';   // ← FILL IN
+const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';                     // ← FILL IN
+let realtimeChannel = null;
+
 // ==================== FLYER CLOUD SYNC ====================
 const FLYERS_API = '/api/flyers';
 
@@ -231,6 +236,63 @@ async function verifyManagerCredentials(email, password) {
         console.warn('verifyManagerCredentials error:', err.message);
         return null;
     }
+}
+
+// ==================== SUPABASE REALTIME ====================
+function startFlyerRealtime() {
+    if (realtimeChannel) return;   // already started
+    if (typeof supabase === 'undefined') {
+        console.warn('Supabase SDK not loaded — realtime disabled');
+        return;
+    }
+    try {
+        const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        realtimeChannel = client
+            .channel('manager-flyers-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'flyers' },
+                (payload) => {
+                    console.log('🔔 Manager realtime:', payload.eventType,
+                        payload.new?.title || payload.old?.id);
+                    handleManagerRealtime(payload);
+                }
+            )
+            .subscribe((status) => {
+                console.log('Manager realtime status:', status);
+            });
+    } catch (err) {
+        console.warn('Realtime setup failed:', err.message);
+    }
+}
+
+function handleManagerRealtime(payload) {
+    const { eventType, new: newRow, old: oldRow } = payload;
+
+    if (eventType === 'INSERT' && newRow) {
+        const exists = allFlyers.some(f => String(f.id) === String(newRow.id));
+        if (!exists) {
+            allFlyers.unshift(rowToFlyer(newRow));
+            console.log('🆕 Manager: flyer added', newRow.title);
+        }
+    } else if (eventType === 'UPDATE' && newRow) {
+        const idx = allFlyers.findIndex(f => String(f.id) === String(newRow.id));
+        if (idx !== -1) {
+            allFlyers[idx] = { ...allFlyers[idx], ...rowToFlyer(newRow) };
+            console.log('✏️ Manager: flyer updated', newRow.title);
+        } else {
+            allFlyers.push(rowToFlyer(newRow));
+        }
+    } else if (eventType === 'DELETE' && oldRow) {
+        allFlyers = allFlyers.filter(f => String(f.id) !== String(oldRow.id));
+        console.log('🗑️ Manager: flyer deleted', oldRow.id);
+    }
+
+    updateStats();
+    loadFlyersGrid();
+    try {
+        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
+    } catch {}
 }
 
 // ==================== IMAGE HELPERS (manager) ====================
@@ -957,6 +1019,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('loginSection').style.display = 'block';
         document.getElementById('dashboardSection').style.display = 'none';
     }
+    // Start real-time sync
+    startFlyerRealtime();
 });
 
 // ==================== GLOBAL EXPORTS ====================
