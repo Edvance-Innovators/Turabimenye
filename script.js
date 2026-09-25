@@ -2153,88 +2153,251 @@ function renderQuoteRoll(category) {
     setQuoteCategory(category || 'worldwide-famous', false);
 }
 
-// ==================== EXTERNAL REFERENCES (Wikipedia) ====================
-const REFERENCES_CACHE = new Map();       // title -> array of references
+// ==================== EXTERNAL REFERENCES (multi-source) ====================
+const REFERENCES_CACHE = new Map();       // cache key (title) -> array of references
+
+const REFERENCE_SOURCES = [
+    { key: 'wikipedia',  label: 'Wikipedia',       color: '#3498db' },
+    { key: 'wikidata',   label: 'Wikidata',        color: '#9b59b6' },
+    { key: 'wikivoyage', label: 'Wikivoyage',      color: '#27ae60' },
+    { key: 'openlibrary', label: 'Open Library',   color: '#e67e22' },
+    { key: 'archive',    label: 'Internet Archive', color: '#16a085' }
+];
 
 /**
- * Query Wikipedia for a given title. Falls back to keyword extraction
- * if the full title returns nothing.
+ * Detect whether the string looks like Kinyarwanda (or a similar Bantu language).
+ * Very lightweight heuristic — counts common Bantu prefixes/suffixes.
+ */
+function looksLikeKinyarwanda(text) {
+    if (!text) return false;
+    const s = String(text).toLowerCase();
+    // Common Kinyarwanda syllable patterns and prefixes
+    const markers = [
+        ' umu', ' aba', ' uku', ' iki', ' icy', ' uru', ' inz', ' ing',
+        ' wa ', ' ya ', ' cya ', ' rya ', ' mu ', ' ku ', ' ni ', ' ku ',
+        'nyarwanda', 'nkuru', 'nziza', 'cyane', 'mbere', 'nyuma'
+    ];
+    const hits = markers.filter(m => s.includes(m)).length;
+    // Also check for typical word endings
+    const ends = ['ye', 'we', 'ba', 'ra', 'ka', 'ma', 'na'].some(e => s.trim().endsWith(e));
+    return hits >= 2 || (hits >= 1 && ends);
+}
+
+/**
+ * Translate a title to English if it looks non-English.
+ * Uses the existing RapidAPI + MyMemory chain.
+ */
+async function translateTitleForSearch(title) {
+    if (!title) return '';
+    if (!looksLikeKinyarwanda(title)) return title;
+    try {
+        const rapid = await translateWithRapidAPILang(title, 'rw', 'en');
+        if (rapid && rapid !== title) return rapid;
+        const mm = await translateWithMyMemoryLang(title, 'rw', 'en');
+        if (mm && mm !== title) return mm;
+    } catch (err) {
+        console.warn('[refs] translation failed:', err.message);
+    }
+    return title;
+}
+
+/**
+ * Extract the most "searchable" words from a title.
+ * Prefers capitalized words, numbers, and 5+ char tokens.
+ */
+function extractSearchKeywords(title) {
+    if (!title) return [];
+    const tokens = String(title)
+        .replace(/[^\p{L}\p{N}\s'-]/gu, ' ')
+        .split(/\s+/)
+        .filter(w => w.length >= 4 && !/^\d+$/.test(w));
+    // Dedupe, preserve case, prefer longer tokens
+    const seen = new Set();
+    return tokens
+        .filter(w => {
+            const k = w.toLowerCase();
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+        })
+        .sort((a, b) => b.length - a.length)
+        .slice(0, 5);
+}
+
+// ---------- SOURCE: Wikipedia (top 3 hits) ----------
+async function fetchFromWikipedia(query) {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=3&format=json&origin=*`;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const hits = data?.query?.search || [];
+        return hits.map(h => ({
+            source: 'wikipedia',
+            title: h.title,
+            url: `https://en.wikipedia.org/wiki/${encodeURIComponent(h.title.replace(/ /g, '_'))}`,
+            snippet: (h.snippet || '').replace(/<[^>]+>/g, '').slice(0, 150)
+        }));
+    } catch (err) {
+        console.warn('[refs] wikipedia failed:', err.message);
+        return [];
+    }
+}
+
+// ---------- SOURCE: Wikivoyage (travel guides, places) ----------
+async function fetchFromWikivoyage(query) {
+    const url = `https://en.wikivoyage.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=2&format=json&origin=*`;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const hits = data?.query?.search || [];
+        return hits.map(h => ({
+            source: 'wikivoyage',
+            title: h.title,
+            url: `https://en.wikivoyage.org/wiki/${encodeURIComponent(h.title.replace(/ /g, '_'))}`,
+            snippet: (h.snippet || '').replace(/<[^>]+>/g, '').slice(0, 150)
+        }));
+    } catch (err) {
+        console.warn('[refs] wikivoyage failed:', err.message);
+        return [];
+    }
+}
+
+// ---------- SOURCE: Wikidata (structured entities) ----------
+async function fetchFromWikidata(query) {
+    const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=en&limit=2&format=json&origin=*`;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const hits = data?.search || [];
+        return hits.map(h => ({
+            source: 'wikidata',
+            title: h.label || h.id,
+            url: h.concepturi || `https://www.wikidata.org/wiki/${h.id}`,
+            snippet: (h.description || '').slice(0, 150)
+        }));
+    } catch (err) {
+        console.warn('[refs] wikidata failed:', err.message);
+        return [];
+    }
+}
+
+// ---------- SOURCE: Open Library (books) ----------
+async function fetchFromOpenLibrary(query) {
+    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=2`;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const docs = data?.docs || [];
+        return docs.map(d => ({
+            source: 'openlibrary',
+            title: d.title + (d.author_name ? ` — ${d.author_name[0]}` : ''),
+            url: d.key ? `https://openlibrary.org${d.key}` : 'https://openlibrary.org',
+            snippet: d.first_publish_year ? `First published ${d.first_publish_year}` : (d.subject ? d.subject.slice(0, 3).join(', ') : '')
+        }));
+    } catch (err) {
+        console.warn('[refs] openlibrary failed:', err.message);
+        return [];
+    }
+}
+
+// ---------- SOURCE: Internet Archive (historical documents) ----------
+async function fetchFromInternetArchive(query) {
+    const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}&fl[]=identifier&fl[]=title&fl[]=year&rows=2&output=json`;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const docs = data?.response?.docs || [];
+        return docs.map(d => ({
+            source: 'archive',
+            title: d.title || d.identifier,
+            url: `https://archive.org/details/${d.identifier}`,
+            snippet: d.year ? `Year: ${d.year}` : ''
+        }));
+    } catch (err) {
+        console.warn('[refs] internet archive failed:', err.message);
+        return [];
+    }
+}
+
+/**
+ * Master fetcher: translate, extract keywords, query all sources in parallel,
+ * dedupe, and cap results.
  */
 async function fetchReferences(title, extraKeywords) {
     if (!title || typeof title !== 'string') return [];
 
-    // 1. Clean the title
+    // Clean title
     const cleanTitle = title
         .replace(/\s*\([^)]*\)/g, '')
         .replace(/["""'']/g, '')
         .replace(/\s*[-—:•].*$/g, '')
-        .replace(/\s*\.{2,}$/g, '')      // trailing dots
+        .replace(/\s*\.{2,}$/g, '')
         .trim()
-        .slice(0, 80);
+        .slice(0, 120);
 
-    // 2. Build a list of search attempts in priority order
-    const attempts = [];
-    if (cleanTitle) attempts.push(cleanTitle);
+    if (!cleanTitle) return [];
 
-    // From the title itself: pull out Latin/proper-noun-ish tokens
-    const latinTokens = cleanTitle
-        .split(/[\s,;:.]+/)
-        .filter(w => /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'\-]{2,}$/.test(w))
-        .filter(w => w.length >= 4);
+    // Cache key includes the original title so translations stay cached
+    const cacheKey = cleanTitle.toLowerCase();
+    if (REFERENCES_CACHE.has(cacheKey)) return REFERENCES_CACHE.get(cacheKey);
 
-    if (latinTokens.length >= 2) {
-        // Use the longest 3 tokens as a fallback search
-        const topTokens = [...new Set(latinTokens)]
-            .sort((a, b) => b.length - a.length)
-            .slice(0, 3);
-        attempts.push(topTokens.join(' '));
+    // 1. Translate the title if it looks Kinyarwanda
+    let searchTitle = cleanTitle;
+    if (looksLikeKinyarwanda(cleanTitle)) {
+        searchTitle = await translateTitleForSearch(cleanTitle);
+        console.log(`[refs] translated "${cleanTitle}" → "${searchTitle}"`);
     }
 
-    // From the flyer's own keywords (if any)
+    // 2. Build query list
+    const queries = [searchTitle];
+
+    // Add individual keywords (each gets its own parallel search)
+    const keywords = extractSearchKeywords(searchTitle).slice(0, 2);
+    keywords.forEach(k => queries.push(k));
+
+    // Add explicit keywords from the flyer (usually English)
     if (Array.isArray(extraKeywords)) {
-        const cleaned = extraKeywords
-            .filter(k => typeof k === 'string')
-            .filter(k => /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'\- ]{2,}$/.test(k))
-            .slice(0, 3);
-        if (cleaned.length) attempts.push(cleaned.join(' '));
+        extraKeywords
+            .filter(k => typeof k === 'string' && k.trim().length >= 3)
+            .slice(0, 2)
+            .forEach(k => queries.push(k.trim()));
     }
 
-    // 3. Try each attempt, cache the first non-empty result
-    for (const attempt of attempts) {
-        const key = attempt.toLowerCase();
-        if (REFERENCES_CACHE.has(key)) {
-            const cached = REFERENCES_CACHE.get(key);
-            if (cached.length) return cached;
-            continue;   // cached empty → try next
-        }
+    // 3. Fire all queries × all sources in parallel
+    const allFetches = [];
+    queries.forEach(q => {
+        allFetches.push(fetchFromWikipedia(q));
+        allFetches.push(fetchFromWikivoyage(q));
+        allFetches.push(fetchFromWikidata(q));
+        allFetches.push(fetchFromOpenLibrary(q));
+        allFetches.push(fetchFromInternetArchive(q));
+    });
 
-        const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(attempt)}&srlimit=3&format=json&origin=*`;
+    const results = await Promise.all(allFetches);
 
-        try {
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            const hits = data?.query?.search || [];
-
-            if (hits.length) {
-                const refs = hits.map(h => ({
-                    source: 'Wikipedia',
-                    title: h.title,
-                    url: `https://en.wikipedia.org/wiki/${encodeURIComponent(h.title.replace(/ /g, '_'))}`,
-                    snippet: (h.snippet || '').replace(/<[^>]+>/g, '').slice(0, 160)
-                }));
-                REFERENCES_CACHE.set(key, refs);
-                return refs;
-            }
-
-            REFERENCES_CACHE.set(key, []);   // cache the miss
-        } catch (err) {
-            console.warn('[references] fetch failed for', attempt, err.message);
-            REFERENCES_CACHE.set(key, []);
+    // 4. Flatten and dedupe by URL
+    const seen = new Set();
+    const merged = [];
+    for (const batch of results) {
+        for (const r of batch) {
+            if (seen.has(r.url)) continue;
+            seen.add(r.url);
+            merged.push(r);
         }
     }
 
-    return [];
+    // 5. Cap at 6 results, prefer Wikipedia/Wikivoyage first
+    const priority = { wikipedia: 0, wikivoyage: 1, wikidata: 2, openlibrary: 3, archive: 4 };
+    merged.sort((a, b) => (priority[a.source] ?? 9) - (priority[b.source] ?? 9));
+    const final = merged.slice(0, 6);
+
+    REFERENCES_CACHE.set(cacheKey, final);
+    return final;
 }
 
 /**
@@ -2246,30 +2409,29 @@ function renderReferencesListHTML(refs) {
     }
     return `
         <ul class="flyer-references-list">
-            ${refs.map(r => `
-                <li>
-                    <a href="${r.url}" target="_blank" rel="noopener noreferrer">
-                        <strong>${escapeHtml(r.source)}</strong> · ${escapeHtml(r.title)}
-                    </a>
-                    ${r.snippet ? `<span class="flyer-references-snippet">${escapeHtml(r.snippet)}…</span>` : ''}
-                </li>
-            `).join('')}
+            ${refs.map(r => {
+                const src = REFERENCE_SOURCES.find(s => s.key === r.source);
+                const label = src ? src.label : r.source;
+                return `
+                    <li>
+                        <a href="${r.url}" target="_blank" rel="noopener noreferrer">
+                            <span class="flyer-references-source" style="color:${src ? src.color : '#666'}">${label}</span>
+                            · ${escapeHtml(r.title)}
+                        </a>
+                        ${r.snippet ? `<span class="flyer-references-snippet">${escapeHtml(r.snippet)}…</span>` : ''}
+                    </li>
+                `;
+            }).join('')}
         </ul>
     `;
 }
 
 /**
  * Toggle the dropdown for one flyer.
- * On first open, fetches references (lazy) and caches them.
  */
 async function toggleReferences(flyerId, title, event) {
-    if (event) {
-        event.stopPropagation();
-    }
+    if (event) event.stopPropagation();
 
-    // Find the wrapper this button belongs to.
-    // We use the button's own DOM node to walk up, because flyerId might
-    // not match exactly (UUID vs string, etc.)
     let wrapper = null;
     if (event && event.currentTarget) {
         wrapper = event.currentTarget.closest('.flyer-references');
@@ -2277,37 +2439,29 @@ async function toggleReferences(flyerId, title, event) {
     if (!wrapper) {
         wrapper = document.querySelector(`[data-refs-for="${flyerId}"]`);
     }
-    if (!wrapper) {
-        console.warn('[refs] wrapper not found for', flyerId);
-        return;
-    }
+    if (!wrapper) return;
 
     const body = wrapper.querySelector('.flyer-references-body');
     const toggle = wrapper.querySelector('.flyer-references-toggle');
-
-    // Read the CURRENT state directly from the DOM — this is the single
-    // source of truth.
     const currentlyOpen = wrapper.classList.contains('open');
-    console.log(`[refs] click on ${flyerId} — currently`, currentlyOpen ? 'OPEN' : 'CLOSED');
 
     if (currentlyOpen) {
         wrapper.classList.remove('open');
         if (toggle) toggle.setAttribute('aria-expanded', 'false');
-        console.log('[refs] → now CLOSED');
         return;
     }
 
     wrapper.classList.add('open');
     if (toggle) toggle.setAttribute('aria-expanded', 'true');
-    console.log('[refs] → now OPEN');
 
-    // Lazy-load references on first open
     if (body && body.dataset.loaded !== '1') {
         body.innerHTML = `<div class="flyer-references-loading">
             <span class="loading-spinner"></span> Turashaka ibihamya...
         </div>`;
         try {
-            const refs = await fetchReferences(title);
+            // Find the flyer to grab its keywords
+            const flyer = flyersCollection.find(f => String(f.id) === String(flyerId));
+            const refs = await fetchReferences(title, flyer?.keywords || []);
             body.innerHTML = renderReferencesListHTML(refs);
             body.dataset.loaded = '1';
         } catch (err) {
