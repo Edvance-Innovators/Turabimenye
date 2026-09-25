@@ -2155,6 +2155,12 @@ img, svg, video {
     height: 14px;
     border-width: 2px;
 }
+.flyer-references-source {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+}
 
 /* Mobile */
 @media (max-width: 480px) {
