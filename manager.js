@@ -440,8 +440,9 @@ function renderManagerEmailsList() {
     if (!tbody) return;
 
     if (!managerList.length) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">Loading…</td></tr>`;
-        fetchManagersFromCloud().then(renderManagerEmailsList);
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">
+            Nta managers babonetse. Reba ko /api/managers isubiza neza.
+        </td></tr>`;
         return;
     }
 
@@ -978,7 +979,7 @@ function switchManagerTab(tabName, evt) {
     if (clicked) clicked.classList.add('active');
 
     document.getElementById(tabName + 'Tab')?.classList.add('active');
-    if (tabName === 'managers') renderManagerEmailsList();
+    if (tabName === 'managers') renderManagerEmailsList();  // safe now
 }
 
 function searchUsers() { loadUsersTable(document.getElementById('userSearch').value); }
