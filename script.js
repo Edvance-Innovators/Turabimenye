@@ -2262,34 +2262,57 @@ function renderReferencesListHTML(refs) {
  * Toggle the dropdown for one flyer.
  * On first open, fetches references (lazy) and caches them.
  */
-async function toggleReferences(flyerId, title, extraKeywords, event) {
-    if (event) event.stopPropagation();
+async function toggleReferences(flyerId, title, event) {
+    if (event) {
+        event.stopPropagation();
+    }
 
-    const wrapper = document.querySelector(`[data-refs-for="${flyerId}"]`);
-    if (!wrapper) return;
+    // Find the wrapper this button belongs to.
+    // We use the button's own DOM node to walk up, because flyerId might
+    // not match exactly (UUID vs string, etc.)
+    let wrapper = null;
+    if (event && event.currentTarget) {
+        wrapper = event.currentTarget.closest('.flyer-references');
+    }
+    if (!wrapper) {
+        wrapper = document.querySelector(`[data-refs-for="${flyerId}"]`);
+    }
+    if (!wrapper) {
+        console.warn('[refs] wrapper not found for', flyerId);
+        return;
+    }
 
     const body = wrapper.querySelector('.flyer-references-body');
     const toggle = wrapper.querySelector('.flyer-references-toggle');
-    const isOpen = wrapper.classList.contains('open');
 
-    // Toggle the DOM state — no Set needed
-    if (isOpen) {
+    // Read the CURRENT state directly from the DOM — this is the single
+    // source of truth.
+    const currentlyOpen = wrapper.classList.contains('open');
+    console.log(`[refs] click on ${flyerId} — currently`, currentlyOpen ? 'OPEN' : 'CLOSED');
+
+    if (currentlyOpen) {
         wrapper.classList.remove('open');
         if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        console.log('[refs] → now CLOSED');
         return;
     }
 
     wrapper.classList.add('open');
     if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    console.log('[refs] → now OPEN');
 
-    // Lazy-load on first open
+    // Lazy-load references on first open
     if (body && body.dataset.loaded !== '1') {
         body.innerHTML = `<div class="flyer-references-loading">
             <span class="loading-spinner"></span> Turashaka ibihamya...
         </div>`;
-        const refs = await fetchReferences(title,extraKeywords);
-        body.innerHTML = renderReferencesListHTML(refs);
-        body.dataset.loaded = '1';
+        try {
+            const refs = await fetchReferences(title);
+            body.innerHTML = renderReferencesListHTML(refs);
+            body.dataset.loaded = '1';
+        } catch (err) {
+            body.innerHTML = `<div class="flyer-references-empty">Ntibyakunze gushaka ibihamya.</div>`;
+        }
     }
 }
 
