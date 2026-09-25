@@ -1039,7 +1039,7 @@ function createFlyerCard(f, displayIndex) {
     <button type="button"
             class="flyer-references-toggle"
             aria-expanded="false"
-            onclick="toggleReferences('${f.id}', ${JSON.stringify(f.title).replace(/"/g, '&quot;')}, ${JSON.stringify(f.keywords || []).replace(/"/g, '&quot;')}, event)">
+            onclick="toggleReferences('${f.id}', ${JSON.stringify(f.title).replace(/"/g, '&quot;')}, event)">
         <span class="flyer-references-icon">📚</span>
         <span class="flyer-references-label">Ibihamya</span>
         <span class="flyer-references-caret">▾</span>
