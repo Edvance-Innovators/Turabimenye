@@ -979,6 +979,8 @@ function displayFlyers() {
         return;
     }
     grid.innerHTML = filtered.map((f, i) => createFlyerCard(f, i)).join('');
+      // Hydrate external references for visible flyers (lazy, cached)
+    filtered.forEach(f => hydrateFlyerReferences(f.id, f.title));
 }
 
 function createFlyerCard(f, displayIndex) {
@@ -1035,6 +1037,7 @@ function createFlyerCard(f, displayIndex) {
                         </div>
                     </div>
                 ` : ''}
+                <div class="flyer-references" data-refs-for="${f.id}" onclick="event.stopPropagation()"></div>
             </div>
         </div>
     `;
@@ -2140,6 +2143,105 @@ function quoteRollPrev() {
 
 function renderQuoteRoll(category) {
     setQuoteCategory(category || 'worldwide-famous', false);
+}
+
+// ==================== EXTERNAL REFERENCES (Wikipedia) ====================
+const REFERENCES_CACHE = new Map();       // title -> array of references
+const REFERENCES_EXPANDED = new Set();    // flyer ids currently expanded
+
+/**
+ * Query Wikipedia's search API for a given title.
+ */
+async function fetchReferences(title) {
+    if (!title || typeof title !== 'string') return [];
+    const cleanTitle = title
+        .replace(/\s*\([^)]*\)/g, '')
+        .replace(/["""'']/g, '')
+        .replace(/\s*[-—:•].*$/, '')
+        .trim()
+        .slice(0, 80);
+
+    if (!cleanTitle) return [];
+    if (REFERENCES_CACHE.has(cleanTitle)) return REFERENCES_CACHE.get(cleanTitle);
+
+    const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanTitle)}&srlimit=3&format=json&origin=*`;
+
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const hits = data?.query?.search || [];
+        const refs = hits.map(h => ({
+            source: 'Wikipedia',
+            title: h.title,
+            url: `https://en.wikipedia.org/wiki/${encodeURIComponent(h.title.replace(/ /g, '_'))}`,
+            snippet: (h.snippet || '').replace(/<[^>]+>/g, '').slice(0, 160)
+        }));
+        REFERENCES_CACHE.set(cleanTitle, refs);
+        return refs;
+    } catch (err) {
+        console.warn('[references] fetch failed for', cleanTitle, err.message);
+        REFERENCES_CACHE.set(cleanTitle, []);
+        return [];
+    }
+}
+
+/**
+ * Build the inner HTML of the dropdown (the list of references).
+ */
+function renderReferencesListHTML(refs) {
+    if (!Array.isArray(refs) || refs.length === 0) {
+        return `<div class="flyer-references-empty">Nta bihamya bibonetse kuri iyi nkuru.</div>`;
+    }
+    return `
+        <ul class="flyer-references-list">
+            ${refs.map(r => `
+                <li>
+                    <a href="${r.url}" target="_blank" rel="noopener noreferrer">
+                        <strong>${escapeHtml(r.source)}</strong> · ${escapeHtml(r.title)}
+                    </a>
+                    ${r.snippet ? `<span class="flyer-references-snippet">${escapeHtml(r.snippet)}…</span>` : ''}
+                </li>
+            `).join('')}
+        </ul>
+    `;
+}
+
+/**
+ * Toggle the dropdown for one flyer.
+ * On first open, fetches references (lazy) and caches them.
+ */
+async function toggleReferences(flyerId, title, event) {
+    if (event) event.stopPropagation();
+
+    const wrapper = document.querySelector(`[data-refs-for="${flyerId}"]`);
+    if (!wrapper) return;
+
+    const body = wrapper.querySelector('.flyer-references-body');
+    const toggle = wrapper.querySelector('.flyer-references-toggle');
+
+    // If we're currently expanded, collapse and bail out.
+    if (REFERENCES_EXPANDED.has(flyerId)) {
+        REFERENCES_EXPANDED.delete(flyerId);
+        wrapper.classList.remove('open');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+        return;
+    }
+
+    // Expanding
+    REFERENCES_EXPANDED.add(flyerId);
+    wrapper.classList.add('open');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+
+    // Lazy-load on first open
+    if (body && body.dataset.loaded !== '1') {
+        body.innerHTML = `<div class="flyer-references-loading">
+            <span class="loading-spinner"></span> Turashaka ibihamya...
+        </div>`;
+        const refs = await fetchReferences(title);
+        body.innerHTML = renderReferencesListHTML(refs);
+        body.dataset.loaded = '1';
+    }
 }
 
 // ==================== GLOBAL EXPORTS ====================
