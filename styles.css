@@ -1478,6 +1478,102 @@ img, svg, video {
     line-height: 1.4;
 }
 
+/* ==================== FLYER REFERENCES ==================== */
+.flyer-references {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(0, 0, 0, 0.12);
+    font-size: 0.82rem;
+}
+
+.flyer-references:empty {
+    display: none;
+}
+
+.flyer-references-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #5b3d8a;
+    margin: 0 0 8px;
+    letter-spacing: 0.02em;
+}
+
+.flyer-references-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.flyer-references-list li {
+    line-height: 1.35;
+}
+
+.flyer-references-list a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.flyer-references-list a:hover {
+    text-decoration: underline;
+}
+
+.flyer-references-snippet {
+    display: block;
+    color: #555;
+    font-size: 0.75rem;
+    margin-top: 2px;
+    line-height: 1.35;
+}
+
+/* On dark flyer cards, force readable contrast */
+.flyer-card.color-1 .flyer-references-title,
+.flyer-card.color-2 .flyer-references-title,
+.flyer-card.color-3 .flyer-references-title,
+.flyer-card.color-4 .flyer-references-title,
+.flyer-card.color-6 .flyer-references-title,
+.flyer-card.color-7 .flyer-references-title,
+.flyer-card.color-9 .flyer-references-title,
+.flyer-card.color-10 .flyer-references-title,
+.flyer-card.color-11 .flyer-references-title,
+.flyer-card.color-12 .flyer-references-title,
+.flyer-card.color-14 .flyer-references-title,
+.flyer-card.color-15 .flyer-references-title {
+    color: #2c1844;
+}
+
+.flyer-card.color-1 .flyer-references-list a,
+.flyer-card.color-2 .flyer-references-list a,
+.flyer-card.color-3 .flyer-references-list a,
+.flyer-card.color-4 .flyer-references-list a,
+.flyer-card.color-6 .flyer-references-list a,
+.flyer-card.color-7 .flyer-references-list a,
+.flyer-card.color-9 .flyer-references-list a,
+.flyer-card.color-10 .flyer-references-list a,
+.flyer-card.color-11 .flyer-references-list a,
+.flyer-card.color-12 .flyer-references-list a,
+.flyer-card.color-14 .flyer-references-list a,
+.flyer-card.color-15 .flyer-references-list a {
+    color: #0b4f8a;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .flyer-references {
+        font-size: 0.78rem;
+    }
+    .flyer-references-title {
+        font-size: 0.75rem;
+    }
+    .flyer-references-snippet {
+        font-size: 0.72rem;
+    }
+}
+
 /* ====================================================================
    QUOTE ROLL PRIORITY & ALIGNMENT
    Keeps the parchment quote-roll visible above the collection controls
