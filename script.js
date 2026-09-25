@@ -978,9 +978,7 @@ function displayFlyers() {
         grid.innerHTML = `<div class="no-results">📄 ${NO_RESULTS}</div>`;
         return;
     }
-    grid.innerHTML = filtered.map((f, i) => createFlyerCard(f, i)).join('');
-      // Hydrate external references for visible flyers (lazy, cached)
-    filtered.forEach(f => hydrateFlyerReferences(f.id, f.title));
+   grid.innerHTML = filtered.map((f, i) => createFlyerCard(f, i)).join('');
 }
 
 function createFlyerCard(f, displayIndex) {
@@ -1037,7 +1035,17 @@ function createFlyerCard(f, displayIndex) {
                         </div>
                     </div>
                 ` : ''}
-                <div class="flyer-references" data-refs-for="${f.id}" onclick="event.stopPropagation()"></div>
+                <div class="flyer-references" data-refs-for="${f.id}" onclick="event.stopPropagation()">
+    <button type="button"
+            class="flyer-references-toggle"
+            aria-expanded="false"
+            onclick="toggleReferences('${f.id}', ${JSON.stringify(f.title).replace(/"/g, '&quot;')}, event)">
+        <span class="flyer-references-icon">📚</span>
+        <span class="flyer-references-label">Ibihamya</span>
+        <span class="flyer-references-caret">▾</span>
+    </button>
+    <div class="flyer-references-body"></div>
+</div>
             </div>
         </div>
     `;
