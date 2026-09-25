@@ -1039,7 +1039,7 @@ function createFlyerCard(f, displayIndex) {
     <button type="button"
             class="flyer-references-toggle"
             aria-expanded="false"
-            onclick="toggleReferences('${f.id}', ${JSON.stringify(f.title).replace(/"/g, '&quot;')}, event)">
+            onclick="toggleReferences('${f.id}', ${JSON.stringify(f.title).replace(/"/g, '&quot;')}, ${JSON.stringify(f.keywords || []).replace(/"/g, '&quot;')}, event)">
         <span class="flyer-references-icon">📚</span>
         <span class="flyer-references-label">Ibihamya</span>
         <span class="flyer-references-caret">▾</span>
@@ -2155,43 +2155,86 @@ function renderQuoteRoll(category) {
 
 // ==================== EXTERNAL REFERENCES (Wikipedia) ====================
 const REFERENCES_CACHE = new Map();       // title -> array of references
-const REFERENCES_EXPANDED = new Set();    // flyer ids currently expanded
 
 /**
- * Query Wikipedia's search API for a given title.
+ * Query Wikipedia for a given title. Falls back to keyword extraction
+ * if the full title returns nothing.
  */
-async function fetchReferences(title) {
+async function fetchReferences(title, extraKeywords) {
     if (!title || typeof title !== 'string') return [];
+
+    // 1. Clean the title
     const cleanTitle = title
         .replace(/\s*\([^)]*\)/g, '')
         .replace(/["""'']/g, '')
-        .replace(/\s*[-—:•].*$/, '')
+        .replace(/\s*[-—:•].*$/g, '')
+        .replace(/\s*\.{2,}$/g, '')      // trailing dots
         .trim()
         .slice(0, 80);
 
-    if (!cleanTitle) return [];
-    if (REFERENCES_CACHE.has(cleanTitle)) return REFERENCES_CACHE.get(cleanTitle);
+    // 2. Build a list of search attempts in priority order
+    const attempts = [];
+    if (cleanTitle) attempts.push(cleanTitle);
 
-    const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanTitle)}&srlimit=3&format=json&origin=*`;
+    // From the title itself: pull out Latin/proper-noun-ish tokens
+    const latinTokens = cleanTitle
+        .split(/[\s,;:.]+/)
+        .filter(w => /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'\-]{2,}$/.test(w))
+        .filter(w => w.length >= 4);
 
-    try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const hits = data?.query?.search || [];
-        const refs = hits.map(h => ({
-            source: 'Wikipedia',
-            title: h.title,
-            url: `https://en.wikipedia.org/wiki/${encodeURIComponent(h.title.replace(/ /g, '_'))}`,
-            snippet: (h.snippet || '').replace(/<[^>]+>/g, '').slice(0, 160)
-        }));
-        REFERENCES_CACHE.set(cleanTitle, refs);
-        return refs;
-    } catch (err) {
-        console.warn('[references] fetch failed for', cleanTitle, err.message);
-        REFERENCES_CACHE.set(cleanTitle, []);
-        return [];
+    if (latinTokens.length >= 2) {
+        // Use the longest 3 tokens as a fallback search
+        const topTokens = [...new Set(latinTokens)]
+            .sort((a, b) => b.length - a.length)
+            .slice(0, 3);
+        attempts.push(topTokens.join(' '));
     }
+
+    // From the flyer's own keywords (if any)
+    if (Array.isArray(extraKeywords)) {
+        const cleaned = extraKeywords
+            .filter(k => typeof k === 'string')
+            .filter(k => /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'\- ]{2,}$/.test(k))
+            .slice(0, 3);
+        if (cleaned.length) attempts.push(cleaned.join(' '));
+    }
+
+    // 3. Try each attempt, cache the first non-empty result
+    for (const attempt of attempts) {
+        const key = attempt.toLowerCase();
+        if (REFERENCES_CACHE.has(key)) {
+            const cached = REFERENCES_CACHE.get(key);
+            if (cached.length) return cached;
+            continue;   // cached empty → try next
+        }
+
+        const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(attempt)}&srlimit=3&format=json&origin=*`;
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const hits = data?.query?.search || [];
+
+            if (hits.length) {
+                const refs = hits.map(h => ({
+                    source: 'Wikipedia',
+                    title: h.title,
+                    url: `https://en.wikipedia.org/wiki/${encodeURIComponent(h.title.replace(/ /g, '_'))}`,
+                    snippet: (h.snippet || '').replace(/<[^>]+>/g, '').slice(0, 160)
+                }));
+                REFERENCES_CACHE.set(key, refs);
+                return refs;
+            }
+
+            REFERENCES_CACHE.set(key, []);   // cache the miss
+        } catch (err) {
+            console.warn('[references] fetch failed for', attempt, err.message);
+            REFERENCES_CACHE.set(key, []);
+        }
+    }
+
+    return [];
 }
 
 /**
@@ -2219,7 +2262,7 @@ function renderReferencesListHTML(refs) {
  * Toggle the dropdown for one flyer.
  * On first open, fetches references (lazy) and caches them.
  */
-async function toggleReferences(flyerId, title, event) {
+async function toggleReferences(flyerId, title, extraKeywords, event) {
     if (event) event.stopPropagation();
 
     const wrapper = document.querySelector(`[data-refs-for="${flyerId}"]`);
@@ -2227,17 +2270,15 @@ async function toggleReferences(flyerId, title, event) {
 
     const body = wrapper.querySelector('.flyer-references-body');
     const toggle = wrapper.querySelector('.flyer-references-toggle');
+    const isOpen = wrapper.classList.contains('open');
 
-    // If we're currently expanded, collapse and bail out.
-    if (REFERENCES_EXPANDED.has(flyerId)) {
-        REFERENCES_EXPANDED.delete(flyerId);
+    // Toggle the DOM state — no Set needed
+    if (isOpen) {
         wrapper.classList.remove('open');
         if (toggle) toggle.setAttribute('aria-expanded', 'false');
         return;
     }
 
-    // Expanding
-    REFERENCES_EXPANDED.add(flyerId);
     wrapper.classList.add('open');
     if (toggle) toggle.setAttribute('aria-expanded', 'true');
 
@@ -2246,7 +2287,7 @@ async function toggleReferences(flyerId, title, event) {
         body.innerHTML = `<div class="flyer-references-loading">
             <span class="loading-spinner"></span> Turashaka ibihamya...
         </div>`;
-        const refs = await fetchReferences(title);
+        const refs = await fetchReferences(title,extraKeywords);
         body.innerHTML = renderReferencesListHTML(refs);
         body.dataset.loaded = '1';
     }
