@@ -469,25 +469,22 @@ function makeSeedFlyers(style) {
 async function initializeCollection() {
     globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
 
-    const localFlyers = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
-    console.log(`💾 Local mirror: ${localFlyers.length} flyers`);
-
     const cloudFlyers = await loadFlyersFromCloud();
 
     let source;
     if (cloudFlyers === null) {
-        source = localFlyers;
-        console.log('↩️ Cloud unavailable — using local');
+        // Backend unreachable — fall back to local cache
+        source = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
+        console.log('↩️ Cloud unavailable — using local cache');
     } else if (cloudFlyers.length === 0) {
-        console.log('🌱 Cloud empty — seeding global samples');
+        // Truly empty cloud — seed
+        console.log('🌱 Cloud empty — seeding samples');
         source = makeSeedFlyers(globalFlyerStyle);
         for (const f of source) await saveFlyerToCloud(f);
     } else {
-        const map = new Map();
-        cloudFlyers.forEach(f => map.set(String(f.id), f));
-        localFlyers.forEach(f => { if (!map.has(String(f.id))) map.set(String(f.id), f); });
-        source = Array.from(map.values());
-        console.log(`🔀 Merged: ${source.length} flyers (cloud=${cloudFlyers.length})`);
+        // Cloud has data — it IS the source of truth
+        source = cloudFlyers;
+        console.log(`☁️ Using ${source.length} flyers from cloud (source of truth)`);
     }
 
     flyersCollection = source.map(f => {
@@ -497,6 +494,7 @@ async function initializeCollection() {
         return f;
     });
 
+    // Overwrite the local cache to match exactly what we have
     localStorage.setItem('wrzkk_flyers', JSON.stringify(flyersCollection));
     console.log(`✅ Collection ready: ${flyersCollection.length}`);
     updateCollectionCount();
