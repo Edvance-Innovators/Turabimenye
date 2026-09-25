@@ -1877,3 +1877,52 @@ img, svg, video {
         font-size: 0.85rem;
     }
 }
+/* ==================== MOBILE NAV TABS — WRAP INSTEAD OF SCROLL ==================== */
+@media (max-width: 768px) {
+    .nav-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        overflow-x: visible;        /* override horizontal scroll */
+        padding: 6px 4px 12px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .nav-tab,
+    .nav-tab-link {
+        flex: 0 1 auto;              /* allow shrinking */
+        min-width: 0;                /* don't force content width */
+        padding: 9px 14px;
+        font-size: 0.82rem;
+        white-space: nowrap;
+    }
+
+    .nav-tab .count-badge {
+        font-size: 0.7rem;
+        padding: 1px 7px;
+    }
+}
+
+/* Extra small phones — 2 tabs per row */
+@media (max-width: 480px) {
+    .nav-tabs {
+        gap: 6px;
+    }
+
+    .nav-tab,
+    .nav-tab-link {
+        flex: 1 1 calc(50% - 6px);
+        justify-content: center;
+        font-size: 0.78rem;
+        padding: 10px 8px;
+    }
+
+    /* Icon shrinks but stays */
+    .nav-tab i,
+    .nav-tab-link i {
+        font-size: 0.95rem;
+    }
+}
