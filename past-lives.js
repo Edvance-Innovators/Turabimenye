@@ -99,7 +99,7 @@ const PL_LIVES = [
         emoji: '🌊',
         era: 'Atlantis ya Kera',
         yearLabel: '~9600 M.Y. (cyangwa mbere)',
-        title: 'Umunyamazi wa Atlantisi',
+        title: 'Atlantisi',
         desc: 'Ubumenyi bwahishwe, ingufu z’amazi n’ubumenyi bwa kera bwatakaye.',
         gifts: 'Kumenya ibintu bya kera, gukoresha ingufu z’ibintu, kureba ikirenga.',
         shadow: 'Kwibagirwa ubutabera, kwifuza ubutware bwinshi, gukoresha ingufu nabi.',
