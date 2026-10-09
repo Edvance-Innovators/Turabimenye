@@ -41,7 +41,7 @@ const PL_LIVES = [
     {
         key: 'diplomat',
         emoji: '📜',
-        era: 'Ingoma y’Aziya',
+        era: 'Igihe cy' Aziya',
         yearLabel: '~600–1600 M.Y.',
         title: 'Umunyamahoro / Umufilozofe',
         desc: 'Ubwumvikane, ubwenge, n’ubuyobozi buhanganye.',
