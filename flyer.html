@@ -39,7 +39,7 @@
             margin-top: 24px;
         }
         .shared-btn {
-            padding: 10px 22px;
+            padding: 12px 22px;
             border: none;
             border-radius: 30px;
             font-weight: 700;
@@ -50,12 +50,12 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            transition: transform 0.15s ease;
+            transition: transform 0.15s ease, background 0.15s ease;
         }
         .shared-btn:hover { transform: translateY(-2px); }
-        .shared-btn-primary { background: #764ba2; color: white; }
-        .shared-btn-copy { background: #3498db; color: white; }
+        .shared-btn-primary { background: #f39c12; color: white; }
         .shared-btn-secondary { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); }
+        .shared-btn-copy { background: #3498db; color: white; }
         .shared-error {
             background: rgba(255,255,255,0.96);
             border-radius: 18px;
@@ -64,6 +64,16 @@
             color: #555;
         }
         .shared-error h2 { color: #764ba2; margin-bottom: 10px; }
+
+        /* Make the interaction buttons on the shared page clickable */
+        .shared-wrap .interaction-btn {
+            cursor: pointer;
+            user-select: none;
+        }
+        .shared-wrap .interaction-btn:disabled {
+            cursor: default;
+            opacity: 0.85;
+        }
     </style>
 </head>
 <body>
@@ -75,19 +85,25 @@
             </div>
             <div id="sharedFlyerContainer"></div>
             <div class="shared-actions" id="sharedActions" style="display:none;">
-                <a href="index.html" class="shared-btn shared-btn-primary">
-                    <i>🏠</i> Kora izindi nkuru
+                <a href="index.html" class="shared-btn shared-btn-secondary">
+                    🏠 Ahabanza
+                </a>
+                <a href="index.html" id="findMoreBtn" class="shared-btn shared-btn-primary">
+                    🔍 Reba izindi nkuru nk'iyi
                 </a>
                 <button type="button" class="shared-btn shared-btn-copy" onclick="copySharedLink(event)">
-                    <i>🔗</i> Kopiye link
+                    🔗 Kopiye link
                 </button>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // -------- Lightweight standalone renderer for the shared flyer --------
-        // Does not depend on script.js to keep this page fast and independent.
+        // ==================== SHARED FLYER PAGE LOGIC ====================
+        const SUPABASE_URL = 'https://yfqmkbzvsxikopbysrep.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmcW1rYnp2c3hpa29wYnlzcmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNjg1ODMsImV4cCI6MjEwNTY0NDU4M30.2egjfNM0UpGjcn5kOFAWBIigTK85bW3icb_thoh0J5Y';
+        const CLOUD_API = '/api/flyers';
 
         const CONTINENT_NAMES = {
             'africa': 'Afurika', 'asia': 'Aziya', 'europe': 'Uburayi',
@@ -100,53 +116,43 @@
             'south-america':'🌎','cosmic':'🚀','worldwide':'🌐'
         };
 
+        let currentFlyer = null;
+        const sessionInteractions = {
+            liked: new Set(JSON.parse(localStorage.getItem('wrzkk_shared_liked') || '[]')),
+            knew: new Set(JSON.parse(localStorage.getItem('wrzkk_shared_knew') || '[]')),
+            didntKnow: new Set(JSON.parse(localStorage.getItem('wrzkk_shared_didntknow') || '[]'))
+        };
+
         function escapeHtml(t) {
             const d = document.createElement('div');
             d.textContent = t == null ? '' : t;
             return d.innerHTML;
         }
 
-        // Base64url encode/decode for URL-safe hash payloads
-        function b64uEncode(str) {
-            return btoa(unescape(encodeURIComponent(str)))
-                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        }
-        function b64uDecode(str) {
-            try {
-                const padded = str.replace(/-/g, '+').replace(/_/g, '/') + '=='.slice(0, (4 - str.length % 4) % 4);
-                return decodeURIComponent(escape(atob(padded)));
-            } catch { return null; }
+        function persistSession() {
+            localStorage.setItem('wrzkk_shared_liked', JSON.stringify([...sessionInteractions.liked]));
+            localStorage.setItem('wrzkk_shared_knew', JSON.stringify([...sessionInteractions.knew]));
+            localStorage.setItem('wrzkk_shared_didntknow', JSON.stringify([...sessionInteractions.didntKnow]));
         }
 
         function parseParams() {
             const params = new URLSearchParams(window.location.search);
-            const hash = window.location.hash.replace(/^#/, '');
-            const hashParams = new URLSearchParams(hash);
-
-            const id = params.get('id') || '';
-            const dataB64 = hashParams.get('data') || '';
-
-            let snapshot = null;
-            if (dataB64) {
-                const json = b64uDecode(dataB64);
-                if (json) { try { snapshot = JSON.parse(json); } catch {} }
-            }
-            return { id, snapshot };
+            return { id: params.get('id') || '' };
         }
 
         function renderFlyer(flyer) {
-            const color = flyer.colorClass || 'color-1';
+            currentFlyer = flyer;
+            const id = String(flyer.id);
+            const color = flyer.color_class || flyer.colorClass || 'color-1';
             const styleClass = `flyer-style-${flyer.style || 'classic'}`;
             const continent = flyer.continent || 'worldwide';
             const continentLabel = CONTINENT_NAMES[continent] || continent;
             const continentIcon = CONTINENT_ICONS[continent] || '🌍';
             const imageUrl = flyer.image || 'https://images.unsplash.com/photo-1544027993-37dbfe44362b?w=800';
 
-            const commentsHtml = (flyer.comments || []).map(c => `
-                <div style="padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:0.82rem;">
-                    <strong>${escapeHtml(c.author || 'Uwihitira')}</strong>: ${escapeHtml(c.text || '')}
-                </div>
-            `).join('');
+            const liked = sessionInteractions.liked.has(id);
+            const knew = sessionInteractions.knew.has(id);
+            const didnt = sessionInteractions.didntKnow.has(id);
 
             document.getElementById('sharedFlyerContainer').innerHTML = `
                 <div class="flyer-card ${styleClass} ${color} expanded" style="position:relative;max-width:100%;">
@@ -159,29 +165,129 @@
                     <div class="flyer-content">
                         <h3 class="flyer-title">
                             ${escapeHtml(flyer.title || 'Nta mutwe')}
-                            <span class="translation-badge"><i>🇷🇼</i> Kinyarwanda</span>
                         </h3>
-                        <div class="flyer-description-full">${escapeHtml(flyer.fullDescription || flyer.previewDescription || '')}</div>
-                        <div class="flyer-metadata"><span><i>📅</i> ${escapeHtml(flyer.date || 'Tariki izwi')}</span></div>
+                        <div class="flyer-description-full">${escapeHtml(flyer.full_description || flyer.fullDescription || flyer.preview_description || '')}</div>
+                        <div class="flyer-metadata"><span>📅 ${escapeHtml(flyer.date || 'Tariki izwi')}</span></div>
 
                         <div class="interaction-bar">
-                            <span class="interaction-btn" style="cursor:default;">❤️ ${flyer.likes || 0}</span>
-                            <span class="interaction-btn" style="cursor:default;">💬 ${(flyer.comments || []).length}</span>
-                            <span class="interaction-btn" style="cursor:default;">✅ ${flyer.knew || 0}</span>
-                            <span class="interaction-btn" style="cursor:default;">❓ ${flyer.didntKnow || 0}</span>
+                            <button class="interaction-btn" id="btn-like" ${liked ? 'disabled' : ''}>
+                                ❤️ <span id="count-likes">${flyer.likes || 0}</span>
+                            </button>
+                            <button class="interaction-btn" id="btn-comments" disabled style="cursor:default;">
+                                💬 ${(flyer.comments || []).length}
+                            </button>
+                            <button class="interaction-btn" id="btn-knew" ${knew ? 'disabled' : ''}>
+                                ✅ <span id="count-knew">${flyer.knew || 0}</span>
+                            </button>
+                            <button class="interaction-btn" id="btn-didntknow" ${didnt ? 'disabled' : ''}>
+                                ❓ <span id="count-didntknow">${flyer.didnt_know || flyer.didntKnow || 0}</span>
+                            </button>
                         </div>
 
-                        ${commentsHtml ? `
+                        ${(flyer.comments || []).length ? `
                             <div class="comments-section">
-                                <div class="comment-list">${commentsHtml}</div>
+                                <div class="comment-list">
+                                    ${(flyer.comments || []).map(c => `
+                                        <div style="padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:0.82rem;">
+                                            <strong>${escapeHtml(c.author || 'Uwihitira')}</strong>: ${escapeHtml(c.text || '')}
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
                         ` : ''}
                     </div>
                 </div>
             `;
 
+            // Wire the interaction buttons
+            const likeBtn = document.getElementById('btn-like');
+            const knewBtn = document.getElementById('btn-knew');
+            const didntBtn = document.getElementById('btn-didntknow');
+
+            if (likeBtn && !liked) likeBtn.addEventListener('click', () => handleSharedInteraction('likes'));
+            if (knewBtn && !knew) knewBtn.addEventListener('click', () => handleSharedInteraction('knew'));
+            if (didntBtn && !didnt) didntBtn.addEventListener('click', () => handleSharedInteraction('didnt_know'));
+
+            // Update "find more like this" link
+            const findMore = document.getElementById('findMoreBtn');
+            if (findMore) {
+                const params = new URLSearchParams();
+                if (flyer.category && flyer.category !== 'worldwide') params.set('cat', flyer.category);
+                if (flyer.continent && flyer.continent !== 'worldwide') params.set('cont', flyer.continent);
+                findMore.href = 'index.html' + (params.toString() ? '?' + params.toString() : '');
+            }
+
             document.getElementById('sharedSubtitle').textContent = 'Iyi nkuru ni iyawe kubona.';
             document.getElementById('sharedActions').style.display = 'flex';
+        }
+
+        async function handleSharedInteraction(field) {
+            if (!currentFlyer) return;
+            const id = String(currentFlyer.id);
+
+            // Enforce the once-per-session rule
+            if (field === 'likes' && sessionInteractions.liked.has(id)) return;
+            if (field === 'knew' && sessionInteractions.knew.has(id)) return;
+            if (field === 'didnt_know' && sessionInteractions.didntKnow.has(id)) return;
+
+            // Optimistic UI update
+            const currentVal = field === 'likes' ? (currentFlyer.likes || 0)
+                             : field === 'knew' ? (currentFlyer.knew || 0)
+                             : (currentFlyer.didnt_know || currentFlyer.didntKnow || 0);
+            const newVal = currentVal + 1;
+
+            if (field === 'likes') {
+                currentFlyer.likes = newVal;
+                document.getElementById('count-likes').textContent = newVal;
+                sessionInteractions.liked.add(id);
+                document.getElementById('btn-like').disabled = true;
+            } else if (field === 'knew') {
+                currentFlyer.knew = newVal;
+                document.getElementById('count-knew').textContent = newVal;
+                sessionInteractions.knew.add(id);
+                document.getElementById('btn-knew').disabled = true;
+            } else {
+                currentFlyer.didnt_know = newVal;
+                document.getElementById('count-didntknow').textContent = newVal;
+                sessionInteractions.didntKnow.add(id);
+                document.getElementById('btn-didntknow').disabled = true;
+            }
+            persistSession();
+
+            // Send to backend
+            try {
+                const row = {
+                    id: currentFlyer.id,
+                    user_id: currentFlyer.user_id || 'system',
+                    title: currentFlyer.title || '',
+                    preview_description: currentFlyer.preview_description || '',
+                    full_description: currentFlyer.full_description || '',
+                    image: currentFlyer.image || '',
+                    date: currentFlyer.date || '',
+                    likes: currentFlyer.likes || 0,
+                    comments: currentFlyer.comments || [],
+                    knew: currentFlyer.knew || 0,
+                    didnt_know: currentFlyer.didnt_know || 0,
+                    keywords: currentFlyer.keywords || [],
+                    continent: currentFlyer.continent || 'worldwide',
+                    category: currentFlyer.category || 'worldwide',
+                    region: currentFlyer.region || ''
+                };
+
+                const res = await fetch(CLOUD_API, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(row)
+                });
+                if (!res.ok) {
+                    const txt = await res.text();
+                    console.warn('Interaction save failed:', res.status, txt);
+                } else {
+                    console.log('✅ Interaction saved:', field, newVal);
+                }
+            } catch (err) {
+                console.warn('Interaction network error:', err.message);
+            }
         }
 
         function renderError(msg) {
@@ -194,45 +300,23 @@
             document.getElementById('sharedActions').style.display = 'flex';
         }
 
-        // Inside flyer.html's inline script
+        async function loadFlyer() {
+            const { id } = parseParams();
+            if (!id) return renderError('Iyi link ntariho flyer.');
 
-async function loadFlyer() {
-    const params = new URLSearchParams(window.location.search);
-    let id = params.get('id') || '';
-
-    // If the id looks short (like a share slug), let the API resolve it
-    if (id && id.length < 36) {
-        try {
-            const res = await fetch(`/api/flyers?id=${encodeURIComponent(id)}`);
-            if (res.ok) {
-                const arr = await res.json();
-                const found = Array.isArray(arr) ? arr[0] : arr;
-                if (found && found.id) id = found.id;
+            try {
+                const res = await fetch(`/api/flyers?id=${encodeURIComponent(id)}`);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                const live = Array.isArray(data) ? data[0] : data;
+                if (live && live.id) {
+                    return renderFlyer(live);
+                }
+            } catch (err) {
+                console.warn('Fetch failed:', err.message);
             }
-        } catch {}
-    }
-
-    if (!id) return renderError('Iyi link ntariho flyer.');
-
-    try {
-        const res = await fetch(`/api/flyers?id=${encodeURIComponent(id)}`);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        const live = Array.isArray(data) ? data[0] : data;
-        if (live && live.id) {
-            return renderFlyer({
-                ...live,
-                previewDescription: live.preview_description,
-                fullDescription: live.full_description,
-                didntKnow: live.didnt_know
-            });
+            renderError('Iyi flyer yasibwe cyangwa ntibonetse.');
         }
-    } catch (err) {
-        console.warn('Fetch failed:', err.message);
-    }
-
-    renderError('Iyi flyer yasibwe cyangwa ntibonetse.');
-}
 
         async function copySharedLink(event) {
             if (event) event.stopPropagation();
@@ -241,7 +325,7 @@ async function loadFlyer() {
                 const btn = event?.currentTarget;
                 if (btn) {
                     const original = btn.innerHTML;
-                    btn.innerHTML = '<i>✅</i> Byakopiwe!';
+                    btn.innerHTML = '✅ Byakopiwe!';
                     setTimeout(() => { btn.innerHTML = original; }, 1800);
                 }
             } catch (err) {
