@@ -19,6 +19,13 @@ let currentFilters = {
 
 let globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
 // ==================== CLOUD STORAGE (SUPABASE) ====================
+
+const SUPABASE_STORAGE_URL = 'https://yfqmkbzvsxikopbysrep.supabase.co';
+const SUPABASE_STORAGE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmcW1rYnp2c3hpa29wYnlzcmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNjg1ODMsImV4cCI6MjEwNTY0NDU4M30.2egjfNM0UpGjcn5kOFAWBIigTK85bW3icb_thoh0J5Y';
+let storageClient = null;
+if (typeof supabase !== 'undefined' && !storageClient) {
+    storageClient = supabase.createClient(SUPABASE_STORAGE_URL, SUPABASE_STORAGE_KEY);
+}
 const CLOUD_API = '/api/flyers';
 
 function currentUserId() {
