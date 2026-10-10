@@ -16,8 +16,13 @@ export default async function handler(req, res) {
          if (req.method === 'GET') {
     const { user_id, id } = req.query;
     let query = supabase.from('flyers').select('*').order('created_at', { ascending: false });
-    if (id) query = query.eq('id', id);
-    else if (user_id) query = query.eq('user_id', user_id);
+    if (id) {
+        // If id looks like a UUID fragment, use prefix match
+        if (id.length < 36) query = query.ilike('id', `${id}%`);
+        else query = query.eq('id', id);
+    } else if (user_id) {
+        query = query.eq('user_id', user_id);
+    }
     const { data, error } = await query;
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json(data);
