@@ -7,7 +7,7 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', ', POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') return res.status(200).end();
@@ -16,10 +16,10 @@ export default async function handler(req, res) {
          if (req.method === 'GET') {
     const { user_id, id } = req.query;
     let query = supabase.from('flyers').select('*').order('created_at', { ascending: false });
-    if (id) {
-        // If id looks like a UUID fragment, use prefix match
-        if (id.length < 36) query = query.ilike('id', `${id}%`);
-        else query = query.eq('id', id);
+    if (id && String(id).length < 36) {
+        query = query.ilike('id', `${id}%`);
+    } else if (id) {
+        query = query.eq('id', id);
     } else if (user_id) {
         query = query.eq('user_id', user_id);
     }
@@ -27,7 +27,6 @@ export default async function handler(req, res) {
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json(data);
 }
-    }
 
         if (req.method === 'POST') {
             const { data, error } = await supabase
