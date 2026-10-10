@@ -2610,6 +2610,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Collection can load in parallel
     initializeCollection();
 
+    // Read ?cat= and ?cont= from the URL and pre-apply filters
+(function applyUrlFilters() {
+    const params = new URLSearchParams(window.location.search);
+    const cat = params.get('cat');
+    const cont = params.get('cont');
+    if (cat || cont) {
+        if (cat) currentFilters.category = cat;
+        if (cont) currentFilters.continent = cont;
+        // Update the dropdown labels
+        if (cat && CATEGORY_NAMES[cat]) {
+            const el = document.getElementById('selectedCategory');
+            if (el) el.textContent = CATEGORY_NAMES[cat];
+        }
+        if (cont && CONTINENT_NAMES[cont]) {
+            const el = document.getElementById('selectedContinent');
+            if (el) el.textContent = CONTINENT_NAMES[cont];
+        }
+        displayFlyers();
+        updateActiveFilters();
+        // Switch to the collection tab
+        showTab('collection');
+    }
+})();
+
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
