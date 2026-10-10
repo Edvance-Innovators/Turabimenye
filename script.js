@@ -908,59 +908,46 @@ function b64uEncode(str) {
         .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+// ==================== SHARE FLYER ====================
+function slugifyFlyerTitle(text) {
+    return String(text || 'flyer')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 60);
+}
+
 async function shareFlyer(flyerId, event) {
     if (event) event.stopPropagation();
 
     const flyer = flyersCollection.find(f => String(f.id) === String(flyerId));
     if (!flyer) return alert('Flyer ntibonetse!');
 
-    // Build the snapshot with everything needed to render offline
-    const snapshot = {
-        id: flyer.id,
-        title: flyer.title || '',
-        previewDescription: flyer.previewDescription || '',
-        fullDescription: flyer.fullDescription || '',
-        image: flyer.image || '',
-        date: flyer.date || '',
-        likes: flyer.likes || 0,
-        comments: flyer.comments || [],
-        knew: flyer.knew || 0,
-        didntKnow: flyer.didntKnow || 0,
-        keywords: flyer.keywords || [],
-        continent: flyer.continent || 'worldwide',
-        category: flyer.category || 'worldwide',
-        region: flyer.region || '',
-        colorClass: flyer.colorClass || 'color-1',
-        style: flyer.style || globalFlyerStyle
-    };
+    const shortId = String(flyer.id).slice(0, 8);
+    const slug = slugifyFlyerTitle(flyer.title);
+    const shareUrl = `${window.location.origin}/f/${slug}-${shortId}`;
 
-    // Build both parts of the URL
-    const origin = window.location.origin;
-    const idPart = `?id=${encodeURIComponent(flyer.id)}`;
-    const hashPart = `#data=${b64uEncode(JSON.stringify(snapshot))}`;
-    const url = `${origin}/flyer.html${idPart}${hashPart}`;
-
-    // Use the Web Share API if available (mobile), else clipboard
+    // 1. Native share on mobile
     if (navigator.share) {
         try {
             await navigator.share({
                 title: flyer.title,
                 text: flyer.previewDescription || 'Reba iyi nkuru kuri TURABIMENYE!',
-                url
+                url: shareUrl
             });
             return;
         } catch (err) {
-            // User cancelled — fall through to clipboard
             if (err && err.name === 'AbortError') return;
         }
     }
 
+    // 2. Fallback: copy to clipboard
     try {
-        await navigator.clipboard.writeText(url);
-        alert('✅ Link yakopiwe! Shyira aho ushaka: WhatsApp, imeyili, SMS, ...');
-    } catch (err) {
-        // Last resort: show a prompt where the user can copy manually
-        prompt('Kopiye iyi link:', url);
+        await navigator.clipboard.writeText(shareUrl);
+        alert('✅ Link yakopiwe!\n\n' + shareUrl);
+    } catch {
+        prompt('Kopiye iyi link:', shareUrl);
     }
 }
 
