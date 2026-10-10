@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="rw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="Reba iyi nkuru kuri TURABIMENYE!">
+    <meta property="og:description" content="Kanda urebe iyi nkuru y'amateka.">
+    <meta property="og:type" content="article">
+    <title>Flyer — TURABIMENYE!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:ital,wght@0,600;1,500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .shared-wrap {
+            max-width: 720px;
+            margin: 60px auto 40px;
+            padding: 0 var(--page-pad, 16px);
+        }
+        .shared-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .shared-header h1 {
+            color: white;
+            font-size: clamp(1.2rem, 4vw, 1.6rem);
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+        .shared-header p {
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9rem;
+        }
+        .shared-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 24px;
+        }
+        .shared-btn {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 30px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.15s ease;
+        }
+        .shared-btn:hover { transform: translateY(-2px); }
+        .shared-btn-primary { background: #764ba2; color: white; }
+        .shared-btn-copy { background: #3498db; color: white; }
+        .shared-btn-secondary { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); }
+        .shared-error {
+            background: rgba(255,255,255,0.96);
+            border-radius: 18px;
+            padding: 28px;
+            text-align: center;
+            color: #555;
+        }
+        .shared-error h2 { color: #764ba2; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="shared-wrap" id="sharedWrap">
+            <div class="shared-header">
+                <h1>📖 Iyi nkuru yasangiwe nawe</h1>
+                <p id="sharedSubtitle">Turashakisha inkuru...</p>
+            </div>
+            <div id="sharedFlyerContainer"></div>
+            <div class="shared-actions" id="sharedActions" style="display:none;">
+                <a href="index.html" class="shared-btn shared-btn-primary">
+                    <i>🏠</i> Kora izindi nkuru
+                </a>
+                <button type="button" class="shared-btn shared-btn-copy" onclick="copySharedLink(event)">
+                    <i>🔗</i> Kopiye link
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // -------- Lightweight standalone renderer for the shared flyer --------
+        // Does not depend on script.js to keep this page fast and independent.
+
+        const CONTINENT_NAMES = {
+            'africa': 'Afurika', 'asia': 'Aziya', 'europe': 'Uburayi',
+            'north-america': 'Amerika ya Ruguru', 'south-america': 'Amerika y\'Epfo',
+            'australia': 'Ositariya', 'antarctica': 'Antaragitika',
+            'cosmic': 'Ikirere', 'worldwide': 'Isi Yose'
+        };
+        const CONTINENT_ICONS = {
+            'africa':'🌍','asia':'🌏','europe':'🌍','north-america':'🌎',
+            'south-america':'🌎','cosmic':'🚀','worldwide':'🌐'
+        };
+
+        function escapeHtml(t) {
+            const d = document.createElement('div');
+            d.textContent = t == null ? '' : t;
+            return d.innerHTML;
+        }
+
+        // Base64url encode/decode for URL-safe hash payloads
+        function b64uEncode(str) {
+            return btoa(unescape(encodeURIComponent(str)))
+                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+        function b64uDecode(str) {
+            try {
+                const padded = str.replace(/-/g, '+').replace(/_/g, '/') + '=='.slice(0, (4 - str.length % 4) % 4);
+                return decodeURIComponent(escape(atob(padded)));
+            } catch { return null; }
+        }
+
+        function parseParams() {
+            const params = new URLSearchParams(window.location.search);
+            const hash = window.location.hash.replace(/^#/, '');
+            const hashParams = new URLSearchParams(hash);
+
+            const id = params.get('id') || '';
+            const dataB64 = hashParams.get('data') || '';
+
+            let snapshot = null;
+            if (dataB64) {
+                const json = b64uDecode(dataB64);
+                if (json) { try { snapshot = JSON.parse(json); } catch {} }
+            }
+            return { id, snapshot };
+        }
+
+        function renderFlyer(flyer) {
+            const color = flyer.colorClass || 'color-1';
+            const styleClass = `flyer-style-${flyer.style || 'classic'}`;
+            const continent = flyer.continent || 'worldwide';
+            const continentLabel = CONTINENT_NAMES[continent] || continent;
+            const continentIcon = CONTINENT_ICONS[continent] || '🌍';
+            const imageUrl = flyer.image || 'https://images.unsplash.com/photo-1544027993-37dbfe44362b?w=800';
+
+            const commentsHtml = (flyer.comments || []).map(c => `
+                <div style="padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:0.82rem;">
+                    <strong>${escapeHtml(c.author || 'Uwihitira')}</strong>: ${escapeHtml(c.text || '')}
+                </div>
+            `).join('');
+
+            document.getElementById('sharedFlyerContainer').innerHTML = `
+                <div class="flyer-card ${styleClass} ${color} expanded" style="position:relative;max-width:100%;">
+                    <div class="flyer-image">
+                        <img class="flyer-image-photo" src="${escapeHtml(imageUrl)}" alt="" loading="eager">
+                        <div class="flyer-image-badge">
+                            ${continentIcon} ${escapeHtml(continentLabel)}
+                        </div>
+                    </div>
+                    <div class="flyer-content">
+                        <h3 class="flyer-title">
+                            ${escapeHtml(flyer.title || 'Nta mutwe')}
+                            <span class="translation-badge"><i>🇷🇼</i> Kinyarwanda</span>
+                        </h3>
+                        <div class="flyer-description-full">${escapeHtml(flyer.fullDescription || flyer.previewDescription || '')}</div>
+                        <div class="flyer-metadata"><span><i>📅</i> ${escapeHtml(flyer.date || 'Tariki izwi')}</span></div>
+
+                        <div class="interaction-bar">
+                            <span class="interaction-btn" style="cursor:default;">❤️ ${flyer.likes || 0}</span>
+                            <span class="interaction-btn" style="cursor:default;">💬 ${(flyer.comments || []).length}</span>
+                            <span class="interaction-btn" style="cursor:default;">✅ ${flyer.knew || 0}</span>
+                            <span class="interaction-btn" style="cursor:default;">❓ ${flyer.didntKnow || 0}</span>
+                        </div>
+
+                        ${commentsHtml ? `
+                            <div class="comments-section">
+                                <div class="comment-list">${commentsHtml}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('sharedSubtitle').textContent = 'Iyi nkuru ni iyawe kubona.';
+            document.getElementById('sharedActions').style.display = 'flex';
+        }
+
+        function renderError(msg) {
+            document.getElementById('sharedFlyerContainer').innerHTML = `
+                <div class="shared-error">
+                    <h2>😕 Ntibyakunze</h2>
+                    <p>${escapeHtml(msg)}</p>
+                </div>
+            `;
+            document.getElementById('sharedActions').style.display = 'flex';
+        }
+
+        async function loadFlyer() {
+            const { id, snapshot } = parseParams();
+            if (!id && !snapshot) return renderError('Iyi link ntariho flyer.');
+
+            // 1. Try to fetch the live version
+            if (id) {
+                try {
+                    const res = await fetch(`/api/flyers?id=${encodeURIComponent(id)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const live = Array.isArray(data) ? data[0] : data;
+                        if (live && live.id) {
+                            // Merge sender's design choices from the hash on top of the live row
+                            const merged = {
+                                ...live,
+                                title: live.title,
+                                previewDescription: live.preview_description,
+                                fullDescription: live.full_description,
+                                didntKnow: live.didnt_know,
+                                colorClass: snapshot?.colorClass || live.color_class || 'color-1',
+                                style: snapshot?.style || 'classic'
+                            };
+                            return renderFlyer(merged);
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Live fetch failed, falling back to snapshot:', err.message);
+                }
+            }
+
+            // 2. Fall back to the snapshot embedded in the URL
+            if (snapshot) return renderFlyer(snapshot);
+
+            return renderError('Iyi flyer yasibwe cyangwa ntibonetse.');
+        }
+
+        async function copySharedLink(event) {
+            if (event) event.stopPropagation();
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                const btn = event?.currentTarget;
+                if (btn) {
+                    const original = btn.innerHTML;
+                    btn.innerHTML = '<i>✅</i> Byakopiwe!';
+                    setTimeout(() => { btn.innerHTML = original; }, 1800);
+                }
+            } catch (err) {
+                alert('Ntibyakunze kopi. Koresha uburyo bwa mudasobwa (Ctrl+C).');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadFlyer);
+    </script>
+</body>
+</html>
