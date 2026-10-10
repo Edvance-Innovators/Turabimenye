@@ -14,12 +14,14 @@ export default async function handler(req, res) {
 
     try {
          if (req.method === 'GET') {
-        const { user_id } = req.query;
-        let query = supabase.from('flyers').select('*').order('created_at', { ascending: false });
-        if (user_id) query = query.eq('user_id', user_id);
-        const { data, error } = await query;
-        if (error) return res.status(500).json({ error: error.message });
-        return res.status(200).json(data);
+    const { user_id, id } = req.query;
+    let query = supabase.from('flyers').select('*').order('created_at', { ascending: false });
+    if (id) query = query.eq('id', id);
+    else if (user_id) query = query.eq('user_id', user_id);
+    const { data, error } = await query;
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(200).json(data);
+}
     }
 
         if (req.method === 'POST') {
