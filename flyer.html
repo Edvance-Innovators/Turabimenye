@@ -194,41 +194,45 @@
             document.getElementById('sharedActions').style.display = 'flex';
         }
 
-        async function loadFlyer() {
-            const { id, snapshot } = parseParams();
-            if (!id && !snapshot) return renderError('Iyi link ntariho flyer.');
+        // Inside flyer.html's inline script
 
-            // 1. Try to fetch the live version
-            if (id) {
-                try {
-                    const res = await fetch(`/api/flyers?id=${encodeURIComponent(id)}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        const live = Array.isArray(data) ? data[0] : data;
-                        if (live && live.id) {
-                            // Merge sender's design choices from the hash on top of the live row
-                            const merged = {
-                                ...live,
-                                title: live.title,
-                                previewDescription: live.preview_description,
-                                fullDescription: live.full_description,
-                                didntKnow: live.didnt_know,
-                                colorClass: snapshot?.colorClass || live.color_class || 'color-1',
-                                style: snapshot?.style || 'classic'
-                            };
-                            return renderFlyer(merged);
-                        }
-                    }
-                } catch (err) {
-                    console.warn('Live fetch failed, falling back to snapshot:', err.message);
-                }
+async function loadFlyer() {
+    const params = new URLSearchParams(window.location.search);
+    let id = params.get('id') || '';
+
+    // If the id looks short (like a share slug), let the API resolve it
+    if (id && id.length < 36) {
+        try {
+            const res = await fetch(`/api/flyers?id=${encodeURIComponent(id)}`);
+            if (res.ok) {
+                const arr = await res.json();
+                const found = Array.isArray(arr) ? arr[0] : arr;
+                if (found && found.id) id = found.id;
             }
+        } catch {}
+    }
 
-            // 2. Fall back to the snapshot embedded in the URL
-            if (snapshot) return renderFlyer(snapshot);
+    if (!id) return renderError('Iyi link ntariho flyer.');
 
-            return renderError('Iyi flyer yasibwe cyangwa ntibonetse.');
+    try {
+        const res = await fetch(`/api/flyers?id=${encodeURIComponent(id)}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const live = Array.isArray(data) ? data[0] : data;
+        if (live && live.id) {
+            return renderFlyer({
+                ...live,
+                previewDescription: live.preview_description,
+                fullDescription: live.full_description,
+                didntKnow: live.didnt_know
+            });
         }
+    } catch (err) {
+        console.warn('Fetch failed:', err.message);
+    }
+
+    renderError('Iyi flyer yasibwe cyangwa ntibonetse.');
+}
 
         async function copySharedLink(event) {
             if (event) event.stopPropagation();
