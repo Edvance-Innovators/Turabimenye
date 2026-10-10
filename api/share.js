@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
+    process.env.SUPABASE_ANON_KEY
 );
 
 function escapeHtml(str) {
@@ -17,7 +17,7 @@ function escapeHtml(str) {
 
 function slugify(text) {
     return String(text || 'flyer')
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // strip accents
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
@@ -26,63 +26,64 @@ function slugify(text) {
 
 export default async function handler(req, res) {
     try {
-        // Read the slug — prefer query param (set by the rewrite), fall back to path
+        // 1. Get the slug — from query string first, then from the URL path
         let slug = req.query.slug || '';
         if (!slug) {
             const parts = (req.url || '').split('?')[0].split('/').filter(Boolean);
             slug = decodeURIComponent(parts[parts.length - 1] || '');
         }
+        console.log('[share] slug:', slug);
 
-        console.log('[share] slug received:', slug);
-
-        // Extract trailing hex id fragment
+        // 2. Extract trailing hex id fragment (last 6+ hex chars)
         const match = slug.match(/([a-f0-9]{6,})$/i);
         const shortId = match ? match[1] : slug;
         console.log('[share] shortId:', shortId);
 
-        if (!shortId) return res.status(400).send('Invalid link');
-
-        // Query Supabase
-        const { data, error } = await supabase
-            .from('flyers')
-            .select('*')
-            .ilike('id', `${shortId}%`)   // ← note below
-            .limit(1)
-            .maybeSingle();
-
-        // ... rest unchanged
-    }
-}
-        if (error || !data) {
-            res.setHeader('Content-Type', 'text/html; charset=utf-8');
-            return res.status(404).send(`
-                <!DOCTYPE html>
-                <html><head>
-                    <meta charset="utf-8">
-                    <title>Flyer ntibonetse — TURABIMENYE!</title>
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <style>body{font-family:system-ui;padding:40px;text-align:center;background:#1a1233;color:#fff}
-                    a{color:#ffd966;font-weight:700}</style>
-                </head><body>
-                    <h1>😕 Iyi flyer ntibonetse</h1>
-                    <p>Yasibwe cyangwa ntiyigeze ibaho.</p>
-                    <a href="/">← Subira ku ipaji nyamukuru</a>
-                </body></html>
-            `);
+        if (!shortId) {
+            return res.status(400).send('Invalid link');
         }
 
+        // 3. Fetch all flyers (small dataset) and filter in JS — most reliable across
+        //    uuid vs text column types.
+        const { data: rows, error } = await supabase
+            .from('flyers')
+            .select('*');
+
+        if (error) throw error;
+
+        const data = (rows || []).find(f => String(f.id).startsWith(shortId));
+        console.log('[share] match:', data ? data.id : 'none');
+
+        // 4. If no match — friendly 404
+        if (!data) {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            return res.status(404).send(`<!DOCTYPE html>
+<html lang="rw">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flyer ntibonetse — TURABIMENYE!</title>
+    <style>body{font-family:system-ui;padding:40px;text-align:center;background:#1a1233;color:#fff}a{color:#ffd966;font-weight:700}</style>
+</head>
+<body>
+    <h1>😕 Iyi flyer ntibonetse</h1>
+    <p>Yasibwe cyangwa ntiyigeze ibaho.</p>
+    <p style="font-size:0.8rem;opacity:0.6">ID: ${escapeHtml(shortId)}</p>
+    <a href="/">← Subira ku ipaji nyamukuru</a>
+</body>
+</html>`);
+        }
+
+        // 5. Build the metadata and redirect
         const title = data.title || 'Flyer — TURABIMENYE!';
         const description = (data.preview_description || data.full_description || '').slice(0, 160);
         const flyerPageUrl = `https://turabimenye.vercel.app/flyer.html?id=${data.id}`;
-        const slug = slugify(data.title);
-        const canonicalUrl = `https://turabimenye.vercel.app/f/${slug}-${String(data.id).slice(0, 8)}`;
+        const canonicalSlug = slugify(data.title);
+        const canonicalUrl = `https://turabimenye.vercel.app/f/${canonicalSlug}-${String(data.id).slice(0, 8)}`;
 
-        // Choose preview image: prefer public http(s) urls.
-        let previewImage = '';
+        let previewImage = 'https://turabimenye.vercel.app/logo.png';
         if (typeof data.image === 'string' && /^https?:\/\//i.test(data.image)) {
             previewImage = data.image;
-        } else {
-            previewImage = 'https://turabimenye.vercel.app/logo.png';
         }
 
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -95,7 +96,6 @@ export default async function handler(req, res) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${escapeHtml(title)} — TURABIMENYE!</title>
 
-    <!-- Open Graph (WhatsApp, Facebook, LinkedIn, iMessage) -->
     <meta property="og:type" content="article">
     <meta property="og:title" content="${escapeHtml(title)}">
     <meta property="og:description" content="${escapeHtml(description)}">
@@ -105,13 +105,11 @@ export default async function handler(req, res) {
     <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
     <meta property="og:site_name" content="TURABIMENYE!">
 
-    <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${escapeHtml(title)}">
     <meta name="twitter:description" content="${escapeHtml(description)}">
     <meta name="twitter:image" content="${escapeHtml(previewImage)}">
 
-    <!-- Instantly redirect humans to the full viewer -->
     <meta http-equiv="refresh" content="0; url=${escapeHtml(flyerPageUrl)}">
     <link rel="canonical" href="${escapeHtml(flyerPageUrl)}">
 </head>
@@ -122,7 +120,7 @@ export default async function handler(req, res) {
 </body>
 </html>`);
     } catch (err) {
-        console.error('[share]', err);
-        return res.status(500).send('Server error');
+        console.error('[share] EXCEPTION:', err);
+        return res.status(500).send('Server error: ' + escapeHtml(err.message));
     }
 }
