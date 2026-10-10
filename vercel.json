@@ -1,7 +1,6 @@
 {
     "rewrites": [
         { "source": "/flyer/:id", "destination": "/flyer.html?id=:id" },
-        { "source": "/f/:id", "destination": "/flyer.html?id=:id" },
-        { "source": "/f/:path*", "destination": "/api/share" }
+        { "source": "/f/:slug", "destination": "/api/share?slug=:slug" }
     ]
 }
