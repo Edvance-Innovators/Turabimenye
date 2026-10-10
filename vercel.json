@@ -1,0 +1,6 @@
+{
+    "rewrites": [
+        { "source": "/flyer/:id", "destination": "/flyer.html?id=:id" },
+        { "source": "/f/:id", "destination": "/flyer.html?id=:id" }
+    ]
+}
