@@ -164,6 +164,23 @@
                 font-size: 0.9rem;
             }
         }
+
+        /* Match the active class names used in the collection cards */
+            .shared-wrap .interaction-btn.liked {
+                background: #e74c3c !important;
+                color: white !important;
+                border-color: #e74c3c !important;
+            }
+            .shared-wrap .interaction-btn.knew-active {
+                background: #2ecc71 !important;
+                color: white !important;
+                border-color: #2ecc71 !important;
+            }
+            .shared-wrap .interaction-btn.didntknow-active {
+                background: #e67e22 !important;
+                color: white !important;
+                border-color: #e67e22 !important;
+            }
     </style>
 </head>
 <body>
@@ -259,17 +276,17 @@
                         <div class="flyer-description-full">${escapeHtml(flyer.full_description || flyer.fullDescription || flyer.preview_description || '')}</div>
                         <div class="flyer-metadata"><span>📅 ${escapeHtml(flyer.date || 'Tariki izwi')}</span></div>
 
-                        <div class="interaction-bar">
-                            <button class="interaction-btn" id="btn-like" ${liked ? 'disabled' : ''}>
+                        <<div class="interaction-bar">
+                            <button class="interaction-btn ${liked ? 'liked' : ''}" id="btn-like" ${liked ? 'disabled' : ''}>
                                 ❤️ <span id="count-likes">${flyer.likes || 0}</span>
                             </button>
-                            <button class="interaction-btn" id="btn-comments" disabled style="cursor:default;">
-                                💬 ${(flyer.comments || []).length}
+                            <button class="interaction-btn" id="btn-comments" disabled>
+                                💬 <span>${(flyer.comments || []).length}</span>
                             </button>
-                            <button class="interaction-btn" id="btn-knew" ${knew ? 'disabled' : ''}>
+                            <button class="interaction-btn ${knew ? 'knew-active' : ''}" id="btn-knew" ${knew ? 'disabled' : ''}>
                                 ✅ <span id="count-knew">${flyer.knew || 0}</span>
                             </button>
-                            <button class="interaction-btn" id="btn-didntknow" ${didnt ? 'disabled' : ''}>
+                            <button class="interaction-btn ${didnt ? 'didntknow-active' : ''}" id="btn-didntknow" ${didnt ? 'disabled' : ''}>
                                 ❓ <span id="count-didntknow">${flyer.didnt_know || flyer.didntKnow || 0}</span>
                             </button>
                         </div>
