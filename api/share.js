@@ -26,23 +26,33 @@ function slugify(text) {
 
 export default async function handler(req, res) {
     try {
-        // Path is /f/<slug>-<shortId> or /f/<shortId>
-        const pathParts = (req.url || '').split('?')[0].split('/').filter(Boolean);
-        const last = decodeURIComponent(pathParts[pathParts.length - 1] || '');
-        const shortId = (last.match(/([a-f0-9]{6,})$/i) || [])[1] || last;
-
-        if (!shortId) {
-            return res.status(400).send('Invalid link');
+        // Read the slug — prefer query param (set by the rewrite), fall back to path
+        let slug = req.query.slug || '';
+        if (!slug) {
+            const parts = (req.url || '').split('?')[0].split('/').filter(Boolean);
+            slug = decodeURIComponent(parts[parts.length - 1] || '');
         }
 
-        // Find the flyer by matching the first chars of its id
+        console.log('[share] slug received:', slug);
+
+        // Extract trailing hex id fragment
+        const match = slug.match(/([a-f0-9]{6,})$/i);
+        const shortId = match ? match[1] : slug;
+        console.log('[share] shortId:', shortId);
+
+        if (!shortId) return res.status(400).send('Invalid link');
+
+        // Query Supabase
         const { data, error } = await supabase
             .from('flyers')
             .select('*')
-            .ilike('id', `${shortId}%`)
+            .ilike('id', `${shortId}%`)   // ← note below
             .limit(1)
             .maybeSingle();
 
+        // ... rest unchanged
+    }
+}
         if (error || !data) {
             res.setHeader('Content-Type', 'text/html; charset=utf-8');
             return res.status(404).send(`
