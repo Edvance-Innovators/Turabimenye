@@ -902,6 +902,67 @@ async function handleLike(id, e) {
         displayFlyers();
     }
 }
+// ==================== SHARE FLYER ====================
+function b64uEncode(str) {
+    return btoa(unescape(encodeURIComponent(str)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function shareFlyer(flyerId, event) {
+    if (event) event.stopPropagation();
+
+    const flyer = flyersCollection.find(f => String(f.id) === String(flyerId));
+    if (!flyer) return alert('Flyer ntibonetse!');
+
+    // Build the snapshot with everything needed to render offline
+    const snapshot = {
+        id: flyer.id,
+        title: flyer.title || '',
+        previewDescription: flyer.previewDescription || '',
+        fullDescription: flyer.fullDescription || '',
+        image: flyer.image || '',
+        date: flyer.date || '',
+        likes: flyer.likes || 0,
+        comments: flyer.comments || [],
+        knew: flyer.knew || 0,
+        didntKnow: flyer.didntKnow || 0,
+        keywords: flyer.keywords || [],
+        continent: flyer.continent || 'worldwide',
+        category: flyer.category || 'worldwide',
+        region: flyer.region || '',
+        colorClass: flyer.colorClass || 'color-1',
+        style: flyer.style || globalFlyerStyle
+    };
+
+    // Build both parts of the URL
+    const origin = window.location.origin;
+    const idPart = `?id=${encodeURIComponent(flyer.id)}`;
+    const hashPart = `#data=${b64uEncode(JSON.stringify(snapshot))}`;
+    const url = `${origin}/flyer.html${idPart}${hashPart}`;
+
+    // Use the Web Share API if available (mobile), else clipboard
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: flyer.title,
+                text: flyer.previewDescription || 'Reba iyi nkuru kuri TURABIMENYE!',
+                url
+            });
+            return;
+        } catch (err) {
+            // User cancelled — fall through to clipboard
+            if (err && err.name === 'AbortError') return;
+        }
+    }
+
+    try {
+        await navigator.clipboard.writeText(url);
+        alert('✅ Link yakopiwe! Shyira aho ushaka: WhatsApp, imeyili, SMS, ...');
+    } catch (err) {
+        // Last resort: show a prompt where the user can copy manually
+        prompt('Kopiye iyi link:', url);
+    }
+}
 
 async function handleKnew(id, e) {
     e.stopPropagation();
@@ -1023,6 +1084,9 @@ function createFlyerCard(f, displayIndex) {
                     <button class="interaction-btn" onclick="toggleComments('${f.id}', event)" style="background: #34495e; color: white; border: none; padding: 5px 10px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem;">💬 ${f.comments?.length || 0}</button>
                     <button class="interaction-btn ${knew ? 'knew-active' : ''}" onclick="handleKnew('${f.id}', event)" ${knew ? 'disabled' : ''} style="background: ${knew ? '#2ecc71' : '#34495e'}; color: white; border: none; padding: 5px 10px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem;">✅ ${f.knew || 0}</button>
                     <button class="interaction-btn ${didnt ? 'didntknow-active' : ''}" onclick="handleDidntKnow('${f.id}', event)" ${didnt ? 'disabled' : ''} style="background: ${didnt ? '#e67e22' : '#34495e'}; color: white; border: none; padding: 5px 10px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem;">❓ ${f.didntKnow || 0}</button>
+                    <button class="interaction-btn" onclick="shareFlyer('${f.id}', event)" title="Sangiza iyi nkuru" style="background: #16a085; color: white; border: none; padding: 5px 10px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem;">
+                        🔗 Sangiza
+                    </button>
                 </div>
                 ${comExp ? `
                     <div class="comments-section" onclick="event.stopPropagation()" style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px;">
@@ -2511,6 +2575,7 @@ window.quoteRollNext = quoteRollNext;
 window.quoteRollPrev = quoteRollPrev;
 window.onQuoteCategoryChange = onQuoteCategoryChange;
 window.renderQuoteRoll = renderQuoteRoll;
+window.shareFlyer = shareFlyer;
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', async () => {
