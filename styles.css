@@ -1083,6 +1083,26 @@ img, svg, video {
     padding: 3px 10px;
     border-radius: 15px;
 }
+/* ==================== SHARED FLYER PAGE ==================== */
+.shared-wrap .flyer-card {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.shared-wrap .flyer-card.expanded {
+    transform: none;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.shared-wrap .flyer-card .flyer-image {
+    height: 240px;
+}
+
+@media (max-width: 480px) {
+    .shared-wrap .flyer-card .flyer-image {
+        height: 180px;
+    }
+}
 
 /* ==================== INTERACTION BAR ==================== */
 .interaction-bar {
