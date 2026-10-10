@@ -726,6 +726,7 @@ async function generateFlyer(storyIndex) {
         style: globalFlyerStyle
     };
     flyersCollection.unshift(newFlyer);
+    newFlyer.image = await uploadFlyerImageIfData(newFlyer);
     await saveFlyerToCloud(newFlyer);
     delete storyImageOverrides[storyIndex];
     updateCollectionCount();
@@ -800,6 +801,7 @@ async function saveEditedStory() {
         style: globalFlyerStyle
     };
     flyersCollection.unshift(editedStory);
+    newFlyer.image = await uploadFlyerImageIfData(newFlyer);
     await saveFlyerToCloud(editedStory);
     delete storyImageOverrides[currentEditingStory.index];
     updateCollectionCount();
@@ -1100,6 +1102,31 @@ function createFlyerCard(f, displayIndex) {
             </div>
         </div>
     `;
+}
+async function uploadFlyerImageIfData(flyer) {
+    if (!flyer.image || !flyer.image.startsWith('data:image/')) return flyer.image;
+
+    try {
+        // Convert data URL to Blob
+        const res = await fetch(flyer.image);
+        const blob = await res.blob();
+
+        const filename = `${flyer.id || Date.now()}.jpg`;
+        const { data, error } = await supabase.storage
+            .from('flyer-images')
+            .upload(filename, blob, { contentType: 'image/jpeg', upsert: true });
+
+        if (error) throw error;
+
+        const { data: pub } = supabase.storage
+            .from('flyer-images')
+            .getPublicUrl(filename);
+
+        return pub.publicUrl;
+    } catch (err) {
+        console.warn('Image upload failed:', err.message);
+        return flyer.image;   // fall back to the data URL
+    }
 }
 
 // ==================== LOGIN ====================
