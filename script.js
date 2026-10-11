@@ -2608,6 +2608,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Proverb FIRST, so it never waits on the cloud fetch
     loadProverb();
 
+    // ==================== LOCAL DEDUPE ====================
+function dedupeLocalStorage() {
+    try {
+        const raw = localStorage.getItem('wrzkk_flyers');
+        if (!raw) return;
+        const list = JSON.parse(raw) || [];
+        if (!Array.isArray(list) || list.length < 2) return;
+
+        const seen = new Map();      // normalized title -> flyer
+        const kept = [];
+        let removed = 0;
+
+        for (const f of list) {
+            const key = String(f.title || '').trim().toLowerCase();
+            if (!key) {
+                kept.push(f);
+                continue;
+            }
+            if (seen.has(key)) {
+                // Prefer the one that already has a UUID (cloud-synced)
+                const existing = seen.get(key);
+                const existingIsUuid = /^[0-9a-f]{8}-/i.test(String(existing.id));
+                const thisIsUuid = /^[0-9a-f]{8}-/i.test(String(f.id));
+                if (!existingIsUuid && thisIsUuid) {
+                    // Replace the older non-UUID one
+                    const idx = kept.indexOf(existing);
+                    if (idx !== -1) kept[idx] = f;
+                    seen.set(key, f);
+                }
+                removed++;
+                continue;
+            }
+            seen.set(key, f);
+            kept.push(f);
+        }
+
+        if (removed > 0) {
+            localStorage.setItem('wrzkk_flyers', JSON.stringify(kept));
+            console.log(`🧹 Local dedupe: removed ${removed} duplicates (${list.length} → ${kept.length})`);
+        }
+    } catch (err) {
+        console.warn('Local dedupe failed:', err.message);
+    }
+}
+
     // Collection can load in parallel
     initializeCollection();
 
