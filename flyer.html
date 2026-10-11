@@ -181,6 +181,75 @@
                 color: white !important;
                 border-color: #e67e22 !important;
             }
+
+        /* ==================== SHARED PAGE — COMMENTS ==================== */
+            .shared-wrap .comment-input {
+                display: flex;
+                gap: 8px;
+                align-items: stretch;
+            }
+            
+            .shared-wrap .comment-input input {
+                flex: 1;
+                padding: 10px 16px;
+                border: 1.5px solid #e0dbe8;
+                border-radius: 999px;
+                font-size: 0.9rem;
+                font-family: inherit;
+                background: #fbfaff;
+                transition: border-color 0.2s ease, background 0.2s ease;
+            }
+            
+            .shared-wrap .comment-input input:focus {
+                outline: none;
+                border-color: #764ba2;
+                background: #ffffff;
+            }
+            
+            .shared-wrap .comment-input button {
+                padding: 10px 22px;
+                border: none;
+                border-radius: 999px;
+                background: #764ba2;
+                color: white;
+                font-weight: 700;
+                font-family: inherit;
+                font-size: 0.85rem;
+                cursor: pointer;
+                transition: background 0.15s ease, transform 0.15s ease;
+                white-space: nowrap;
+            }
+            
+            .shared-wrap .comment-input button:hover:not(:disabled) {
+                background: #667eea;
+                transform: translateY(-1px);
+            }
+            
+            .shared-wrap .comment-input button:disabled {
+                background: #b8a8d6;
+                cursor: wait;
+            }
+            
+            .shared-wrap .comment-list {
+                margin-top: 12px;
+                max-height: 320px;
+                overflow-y: auto;
+                padding-right: 4px;
+            }
+            
+            /* Scrollbar */
+            .shared-wrap .comment-list::-webkit-scrollbar { width: 6px; }
+            .shared-wrap .comment-list::-webkit-scrollbar-thumb {
+                background: #d0c4e8;
+                border-radius: 3px;
+            }
+            
+            @media (max-width: 480px) {
+                .shared-wrap .comment-input button {
+                    padding: 10px 16px;
+                    font-size: 0.8rem;
+                }
+            }
     </style>
 </head>
 <body>
@@ -334,7 +403,139 @@
 
             document.getElementById('sharedSubtitle').textContent = 'Iyi nkuru ni iyawe kubona.';
             document.getElementById('sharedActions').style.display = 'flex';
+
+            // Wire the comment toggle and submit
+            const commentsBtn = document.getElementById('btn-comments');
+            if (commentsBtn) {
+                commentsBtn.addEventListener('click', toggleSharedComments);
+            }
+            const submitBtn = document.getElementById('comment-submit');
+            if (submitBtn) {
+                submitBtn.addEventListener('click', submitSharedComment);
+            }
+            const commentInput = document.getElementById('comment-input');
+            if (commentInput) {
+                commentInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        submitSharedComment(e);
+                    }
+                });
+            }
         }
+
+        // ==================== COMMENTS ====================
+function renderCommentList() {
+    const list = document.getElementById('comment-list');
+    if (!list || !currentFlyer) return;
+    const comments = currentFlyer.comments || [];
+    if (!comments.length) {
+        list.innerHTML = `<div style="padding:12px 0;color:#888;font-size:0.85rem;font-style:italic;text-align:center;">Nta gitekerezo kirahari. Ba uwambere!</div>`;
+        return;
+    }
+    list.innerHTML = comments.map(c => `
+        <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:0.85rem;">
+            <strong>${escapeHtml(c.author || 'Uwihitira')}</strong>: ${escapeHtml(c.text || '')}
+            <span style="color:#999;font-size:0.7rem;margin-left:6px;">${escapeHtml(c.time || '')}</span>
+        </div>
+    `).join('');
+}
+
+function toggleSharedComments(event) {
+    if (event) event.stopPropagation();
+    const section = document.getElementById('comments-section');
+    if (!section) return;
+    const isOpen = section.style.display !== 'none' && section.style.display !== '';
+    if (isOpen) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+    renderCommentList();
+    setTimeout(() => document.getElementById('comment-input')?.focus(), 100);
+}
+
+async function submitSharedComment(event) {
+    if (event) event.stopPropagation();
+    const input = document.getElementById('comment-input');
+    const submitBtn = document.getElementById('comment-submit');
+    if (!input || !currentFlyer) return;
+
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Disable while submitting
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '...'; }
+    input.disabled = true;
+
+    // Local name: use stored user name or default
+    const author = localStorage.getItem('wrzkk_user_name') || 'Umushyitsi';
+
+    // Build updated comments array
+    const newComment = {
+        author,
+        text,
+        time: new Date().toLocaleString('rw-RW')
+    };
+    const updatedComments = [...(currentFlyer.comments || []), newComment];
+
+    // Optimistic UI
+    currentFlyer.comments = updatedComments;
+    const countSpan = document.getElementById('count-comments');
+    if (countSpan) countSpan.textContent = updatedComments.length;
+    input.value = '';
+    renderCommentList();
+
+    // Persist to Supabase
+    try {
+        const row = {
+            id: currentFlyer.id,
+            user_id: currentFlyer.user_id || 'system',
+            title: currentFlyer.title || '',
+            preview_description: currentFlyer.preview_description || '',
+            full_description: currentFlyer.full_description || '',
+            image: currentFlyer.image || '',
+            date: currentFlyer.date || '',
+            likes: currentFlyer.likes || 0,
+            comments: updatedComments,
+            knew: currentFlyer.knew || 0,
+            didnt_know: currentFlyer.didnt_know || currentFlyer.didntKnow || 0,
+            keywords: currentFlyer.keywords || [],
+            continent: currentFlyer.continent || 'worldwide',
+            category: currentFlyer.category || 'worldwide',
+            region: currentFlyer.region || ''
+        };
+
+        const res = await fetch(CLOUD_API, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(row)
+        });
+
+        if (!res.ok) {
+            const txt = await res.text();
+            console.warn('Comment save failed:', res.status, txt);
+            // Rollback
+            currentFlyer.comments = updatedComments.slice(0, -1);
+            if (countSpan) countSpan.textContent = currentFlyer.comments.length;
+            renderCommentList();
+            alert('⚠️ Ntibyakunze kohereza igitekerezo. Ongera ugerageze.');
+        } else {
+            console.log('✅ Comment saved');
+        }
+    } catch (err) {
+        console.warn('Comment network error:', err.message);
+        // Rollback
+        currentFlyer.comments = updatedComments.slice(0, -1);
+        if (countSpan) countSpan.textContent = currentFlyer.comments.length;
+        renderCommentList();
+        alert('⚠️ Ntibyakunze kohereza igitekerezo. Reba internet yawe.');
+    } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Ohereza'; }
+        input.disabled = false;
+        input.focus();
+    }
+}
 
         async function handleSharedInteraction(field) {
             if (!currentFlyer) return;
