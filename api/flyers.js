@@ -14,7 +14,51 @@ export default async function handler(req, res) {
 
     try {
          if (req.method === 'GET') {
-    const { user_id, id } = req.query;
+    const { user_id, id, dedupe } = req.query;
+
+    // --- Manual dedupe trigger: GET /api/flyers?dedupe=1 ---
+    if (dedupe === '1') {
+        try {
+            const { data: all, error } = await supabase
+                .from('flyers')
+                .select('id, title, created_at')
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+
+            const seen = new Map();   // normalized title -> first (oldest) id
+            const toDelete = [];
+
+            for (const row of (all || [])) {
+                const key = String(row.title || '').trim().toLowerCase();
+                if (!key) continue;
+                if (seen.has(key)) {
+                    toDelete.push(row.id);
+                } else {
+                    seen.set(key, row.id);
+                }
+            }
+
+            if (toDelete.length) {
+                const { error: delErr } = await supabase
+                    .from('flyers')
+                    .delete()
+                    .in('id', toDelete);
+                if (delErr) throw delErr;
+            }
+
+            return res.status(200).json({
+                ok: true,
+                total: (all || []).length,
+                duplicatesRemoved: toDelete.length,
+                removedIds: toDelete
+            });
+        } catch (err) {
+            return res.status(500).json({ error: err.message });
+        }
+    }
+
+    // --- Normal read ---
     let query = supabase.from('flyers').select('*').order('created_at', { ascending: false });
     if (id && String(id).length < 36) {
         query = query.ilike('id', `${id}%`);
