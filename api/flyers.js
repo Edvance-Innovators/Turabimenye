@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
                 if (error) return res.status(500).json({ error: error.message });
 
-                const seen = new Map();   // normalized title -> oldest id
+                const seen = new Map();
                 const toDelete = [];
 
                 for (const row of (all || [])) {
@@ -60,8 +60,6 @@ export default async function handler(req, res) {
 
             if (id) {
                 const cleanId = String(id).trim();
-                // Prefix match works for both full UUIDs and slug fragments.
-                // Cast id to text first so it works whether the column is uuid or text.
                 query = query.filter('id::text', 'ilike', `${cleanId}%`);
             } else if (user_id) {
                 query = query.eq('user_id', user_id);
@@ -87,20 +85,31 @@ export default async function handler(req, res) {
 
         // ==================== PUT ====================
         if (req.method === 'PUT') {
-            console.log('[flyers PUT] raw body:', JSON.stringify(req.body));
-            const { id, ...updates } = req.body || {};
-            console.log('[flyers PUT] extracted id:', id, '| len:', String(id).length, '| type:', typeof id);
-            console.log('[flyers PUT] keys being updated:', Object.keys(updates));
-        
-            // ... rest of the PUT handler
-    
-            const { id, ...updates } = req.body || {};
+            const body = req.body || {};
+            const { id, ...updates } = body;
+
             if (!id) return res.status(400).json({ error: 'id required' });
+
+            const cleanId = String(id).trim();
+
+            let realId = cleanId;
+            if (cleanId.length < 36) {
+                const { data: found, error: findErr } = await supabase
+                    .from('flyers')
+                    .select('id')
+                    .filter('id::text', 'ilike', `${cleanId}%`)
+                    .limit(1)
+                    .maybeSingle();
+
+                if (findErr) return res.status(500).json({ error: findErr.message });
+                if (!found) return res.status(404).json({ error: 'Flyer not found' });
+                realId = found.id;
+            }
 
             const { data, error } = await supabase
                 .from('flyers')
                 .update(updates)
-                .eq('id', id)
+                .eq('id', realId)
                 .select()
                 .maybeSingle();
 
@@ -111,13 +120,29 @@ export default async function handler(req, res) {
 
         // ==================== DELETE ====================
         if (req.method === 'DELETE') {
-            const { id } = req.query;
-            if (!id) return res.status(400).json({ error: 'id required' });
+            const rawId = req.query.id;
+            if (!rawId) return res.status(400).json({ error: 'id required' });
+
+            const cleanId = String(rawId).trim();
+
+            let realId = cleanId;
+            if (cleanId.length < 36) {
+                const { data: found, error: findErr } = await supabase
+                    .from('flyers')
+                    .select('id')
+                    .filter('id::text', 'ilike', `${cleanId}%`)
+                    .limit(1)
+                    .maybeSingle();
+
+                if (findErr) return res.status(500).json({ error: findErr.message });
+                if (!found) return res.status(404).json({ error: 'Flyer not found' });
+                realId = found.id;
+            }
 
             const { error } = await supabase
                 .from('flyers')
                 .delete()
-                .eq('id', id);
+                .eq('id', realId);
 
             if (error) return res.status(500).json({ error: error.message });
             return res.status(200).json({ ok: true });
