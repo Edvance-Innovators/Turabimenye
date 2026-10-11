@@ -15,6 +15,9 @@ export default async function handler(req, res) {
     try {
          if (req.method === 'GET') {
     const { user_id, id, dedupe } = req.query;
+         if (title) {
+    query = query.eq('title', title);
+}    
 
     // --- Manual dedupe trigger: GET /api/flyers?dedupe=1 ---
     if (dedupe === '1') {
