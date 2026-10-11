@@ -1015,6 +1015,29 @@ function saveSettings() {
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
+
+    function dedupeManagerStorage() {
+    try {
+        const raw = localStorage.getItem('wrzkk_all_flyers');
+        if (!raw) return;
+        const list = JSON.parse(raw) || [];
+        const seen = new Set();
+        const kept = [];
+        let removed = 0;
+        for (const f of list) {
+            const key = String(f.title || '').trim().toLowerCase();
+            if (!key) { kept.push(f); continue; }
+            if (seen.has(key)) { removed++; continue; }
+            seen.add(key);
+            kept.push(f);
+        }
+        if (removed > 0) {
+            localStorage.setItem('wrzkk_all_flyers', JSON.stringify(kept));
+            localStorage.setItem('wrzkk_flyers', JSON.stringify(kept));
+            console.log(`🧹 Manager dedupe: removed ${removed} duplicates`);
+        }
+    } catch {}
+}
     const authed = await checkManagerAuth();
     if (!authed) {
         document.getElementById('loginSection').style.display = 'block';
