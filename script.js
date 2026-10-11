@@ -480,18 +480,17 @@ async function initializeCollection() {
 
     let source;
     if (cloudFlyers === null) {
-        // Backend unreachable — fall back to local cache
+        // Backend unreachable — use cache, but DON'T merge, so we don't re-create rows
         source = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
-        console.log('↩️ Cloud unavailable — using local cache');
+        console.log('↩️ Cloud unavailable — using local cache only');
     } else if (cloudFlyers.length === 0) {
-        // Truly empty cloud — seed
-        console.log('🌱 Cloud empty — seeding samples');
+        // Truly empty — seed samples
         source = makeSeedFlyers(globalFlyerStyle);
         for (const f of source) await saveFlyerToCloud(f);
     } else {
-        // Cloud has data — it IS the source of truth
+        // Cloud has data — it is THE source of truth
         source = cloudFlyers;
-        console.log(`☁️ Using ${source.length} flyers from cloud (source of truth)`);
+        console.log(`☁️ Using ${source.length} flyers from cloud`);
     }
 
     flyersCollection = source.map(f => {
@@ -501,8 +500,10 @@ async function initializeCollection() {
         return f;
     });
 
-    // Overwrite the local cache to match exactly what we have
+    // Overwrite local cache to match EXACTLY what the cloud has.
+    // This is what kills the resurrection bug — stale orphans get wiped.
     localStorage.setItem('wrzkk_flyers', JSON.stringify(flyersCollection));
+
     console.log(`✅ Collection ready: ${flyersCollection.length}`);
     updateCollectionCount();
     displayFlyers();
