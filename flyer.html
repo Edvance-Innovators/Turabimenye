@@ -506,10 +506,32 @@ async function submitSharedComment(event) {
             region: currentFlyer.region || ''
         };
 
+        const putBody = {
+            id: currentFlyer.id,
+            user_id: currentFlyer.user_id || 'system',
+            title: currentFlyer.title || '',
+            preview_description: currentFlyer.preview_description || '',
+            full_description: currentFlyer.full_description || '',
+            image: currentFlyer.image || '',
+            date: currentFlyer.date || '',
+            likes: currentFlyer.likes || 0,
+            comments: updatedComments,
+            knew: currentFlyer.knew || 0,
+            didnt_know: currentFlyer.didnt_know || currentFlyer.didntKnow || 0,
+            keywords: currentFlyer.keywords || [],
+            continent: currentFlyer.continent || 'worldwide',
+            category: currentFlyer.category || 'worldwide',
+            region: currentFlyer.region || ''
+        };
+        console.log('🔵 PUT body:', JSON.stringify(putBody, null, 2));
+        console.log('🔵 id value:', putBody.id);
+        console.log('🔵 id length:', String(putBody.id).length);
+        console.log('🔵 id bytes:', JSON.stringify(putBody.id));
+        
         const res = await fetch(CLOUD_API, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(row)
+            body: JSON.stringify(putBody)
         });
 
         if (!res.ok) {
