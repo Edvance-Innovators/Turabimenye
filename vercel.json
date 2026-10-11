@@ -2,5 +2,11 @@
     "rewrites": [
         { "source": "/flyer/:id", "destination": "/flyer.html?id=:id" },
         { "source": "/f/:slug", "destination": "/api/share?slug=:slug" }
+    ],
+    "crons": [
+        {
+            "path": "/api/flyers?dedupe=1",
+            "schedule": "0 3 * * *"
+        }
     ]
 }
