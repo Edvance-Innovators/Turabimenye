@@ -276,12 +276,12 @@
                         <div class="flyer-description-full">${escapeHtml(flyer.full_description || flyer.fullDescription || flyer.preview_description || '')}</div>
                         <div class="flyer-metadata"><span>📅 ${escapeHtml(flyer.date || 'Tariki izwi')}</span></div>
 
-                        <<div class="interaction-bar">
+                        <div class="interaction-bar">
                             <button class="interaction-btn ${liked ? 'liked' : ''}" id="btn-like" ${liked ? 'disabled' : ''}>
                                 ❤️ <span id="count-likes">${flyer.likes || 0}</span>
                             </button>
-                            <button class="interaction-btn" id="btn-comments" disabled>
-                                💬 <span>${(flyer.comments || []).length}</span>
+                            <button class="interaction-btn" id="btn-comments">
+                                💬 <span id="count-comments">${(flyer.comments || []).length}</span>
                             </button>
                             <button class="interaction-btn ${knew ? 'knew-active' : ''}" id="btn-knew" ${knew ? 'disabled' : ''}>
                                 ✅ <span id="count-knew">${flyer.knew || 0}</span>
@@ -289,6 +289,14 @@
                             <button class="interaction-btn ${didnt ? 'didntknow-active' : ''}" id="btn-didntknow" ${didnt ? 'disabled' : ''}>
                                 ❓ <span id="count-didntknow">${flyer.didnt_know || flyer.didntKnow || 0}</span>
                             </button>
+                        </div>
+                        
+                        <div class="comments-section" id="comments-section" style="display:none; margin-top:14px; padding-top:12px; border-top:1px solid rgba(0,0,0,0.08);">
+                            <div class="comment-input" style="display:flex; gap:8px;">
+                                <input type="text" id="comment-input" placeholder="Andika igitekerezo..." autocomplete="off">
+                                <button id="comment-submit" type="button">Ohereza</button>
+                            </div>
+                            <div class="comment-list" id="comment-list"></div>
                         </div>
 
                         ${(flyer.comments || []).length ? `
