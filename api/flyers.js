@@ -87,6 +87,13 @@ export default async function handler(req, res) {
 
         // ==================== PUT ====================
         if (req.method === 'PUT') {
+            console.log('[flyers PUT] raw body:', JSON.stringify(req.body));
+            const { id, ...updates } = req.body || {};
+            console.log('[flyers PUT] extracted id:', id, '| len:', String(id).length, '| type:', typeof id);
+            console.log('[flyers PUT] keys being updated:', Object.keys(updates));
+        
+            // ... rest of the PUT handler
+    
             const { id, ...updates } = req.body || {};
             if (!id) return res.status(400).json({ error: 'id required' });
 
