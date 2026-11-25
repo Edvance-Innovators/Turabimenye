@@ -1399,7 +1399,7 @@ function addColorRefreshButton() {
     btn.className = 'clear-filter';
     btn.innerHTML = '<i>🎨</i> Hindura Amabara';
     btn.onclick = refreshAllColors;
-    btn.style.cssText = 'background:#9b59b6; color:white; border:none; padding:6px 14px; border-radius:25px; cursor:pointer; margin-left:10px; font-size:0.8rem;';
+    btn.style.cssText = 'background:linear-gradient(135deg, rgba(43,91,255,0.45), rgba(140,180,255,0.22)); color:white; border:none; padding:6px 14px; border-radius:8px; cursor:pointer; margin-left:10px; font-size:0.8rem; backdrop-filter:blur(6px);';
     filterSection.appendChild(btn);
 }
 

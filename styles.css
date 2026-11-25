@@ -1634,7 +1634,7 @@ img, svg, video {
     height: 38px;
     border-radius: 50%;
     border: 2px solid #2B5BFF;
-    background: linear-gradient(135deg, #7c3aed 0%, #5b21b8 100%);
+    background: linear-gradient(135deg, #2B5BFF 0%, #1e4bff 100%);
     color: #fff;
     font-weight: 800;
     font-size: 0.9rem;
@@ -2238,14 +2238,13 @@ img, svg, video {
     --theme-yellow-2: #FFD400;
 }
 
-/* ---- Page background: solid blue with just a very small corner gradient ---- */
+/* ---- Page background: blue fading visibly into light blue, faint corner light ---- */
 body {
     background:
-        radial-gradient(420px 260px at 0% 0%, rgba(120, 150, 255, 0.45) 0%, transparent 60%),
-        radial-gradient(420px 260px at 100% 0%, rgba(120, 150, 255, 0.35) 0%, transparent 60%),
-        radial-gradient(460px 300px at 0% 100%, rgba(15, 36, 140, 0.55) 0%, transparent 62%),
-        radial-gradient(460px 300px at 100% 100%, rgba(15, 36, 140, 0.55) 0%, transparent 62%),
-        #2b53f0 !important;
+        radial-gradient(520px 320px at 0% 0%, rgba(160, 195, 255, 0.30) 0%, transparent 62%),
+        radial-gradient(520px 320px at 100% 0%, rgba(160, 195, 255, 0.22) 0%, transparent 62%),
+        linear-gradient(175deg, #2b53f0 0%, #3f6bff 30%, #6f97ff 62%, #9dbdff 100%) !important;
+    background-attachment: fixed !important;
     color: #ffffff !important;
 }
 
@@ -2312,6 +2311,14 @@ body {
     text-shadow: none !important;
 }
 .flyer-card .flyer-title { color: var(--theme-yellow) !important; }
+
+/* ---- Expanded story text: transparent light-yellow panel, black text ---- */
+.flyer-card .flyer-description-full {
+    background: rgba(255, 241, 163, 0.80) !important;
+    color: #10131f !important;
+    border-radius: 8px !important;
+    padding: 10px 12px !important;
+}
 
 /* ---- Image area: no contour (square top corners) ---- */
 .flyer-image { border-bottom: none !important; border-radius: 0 !important; }
@@ -2419,16 +2426,47 @@ body {
 .action-btn.edit,
 .action-btn.message { background: #2B5BFF !important; color: #ffffff !important; }
 
-/* ---- Filter buttons above the flyers: blue -> light-blue gradient + overlap fix ---- */
+/* ---- Group (filter) buttons above the flyers: transparent blue + overlap fix ---- */
 .filter-dropdown-btn {
-    background: linear-gradient(135deg, #2B5BFF, #6f9bff) !important;
+    background: linear-gradient(135deg, rgba(43, 91, 255, 0.45), rgba(140, 180, 255, 0.22)) !important;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     color: #ffffff !important;
     border: none !important;
     border-radius: 8px !important;
+    box-shadow: 0 4px 14px rgba(6, 16, 66, 0.22) !important;
 }
-.filter-dropdown-btn:hover { background: linear-gradient(135deg, #1e4bff, #4f7dff) !important; }
-.filter-option.active { background: var(--theme-blue-1) !important; color: #ffffff !important; }
+.filter-dropdown-btn:hover { background: linear-gradient(135deg, rgba(43, 91, 255, 0.65), rgba(140, 180, 255, 0.35)) !important; }
+.filter-option.active { background: rgba(43, 91, 255, 0.90) !important; color: #ffffff !important; }
 .controls { z-index: 40 !important; }
 .filter-dropdown:hover,
 .filter-dropdown:focus-within { z-index: 60 !important; }
 .filter-dropdown-content { z-index: 70 !important; border: none !important; }
+
+/* ---- User icon: blue fill (see .acct-avatar), yellow hint on hover ---- */
+.acct-bar .acct-avatar:hover {
+    box-shadow: 0 0 0 2px rgba(254, 235, 0, 0.75);
+}
+
+/* ---- Light-blue cone emitted from the logo down onto the page title ---- */
+.site-brand { position: relative; }
+.site-brand .app-header { position: relative; z-index: 2; }
+.site-brand .app-header::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -96px;                       /* reaches up into the logo so the beam starts there */
+    width: min(560px, 94vw);
+    height: clamp(170px, calc(100% + 96px), 250px);
+    transform: translateX(-50%);
+    background: linear-gradient(180deg,
+        rgba(185, 215, 255, 0.62) 0%,
+        rgba(160, 198, 255, 0.26) 45%,
+        rgba(160, 198, 255, 0) 100%);
+    clip-path: polygon(47% 0%, 53% 0%, 100% 100%, 0% 100%);
+    filter: blur(14px);
+    pointer-events: none;
+    z-index: -1;
+}
+.site-logo { position: relative; z-index: 3; }
+.site-logo img { filter: drop-shadow(0 0 22px rgba(175, 208, 255, 0.55)) drop-shadow(0 6px 16px rgba(0, 0, 0, 0.28)); }
