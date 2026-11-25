@@ -328,17 +328,22 @@ img, svg, video {
     min-width: 0;
 }
 
-/* ==================== NAVIGATION TABS ==================== */
+/* ==================== NAVIGATION TABS (DIVI-STYLE BAR) ==================== */
 .nav-tabs {
     display: flex;
-    justify-content: flex-start;
+    justify-content: center;
+    align-items: center;
     gap: 8px;
-    margin: 0 auto 20px;
+    margin: 0 auto 24px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 8px;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 18px 40px rgba(20, 10, 50, 0.28);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding: 4px 2px 10px;
-    max-width: 100%;
 }
 
 .nav-tabs::-webkit-scrollbar {
@@ -346,18 +351,15 @@ img, svg, video {
 }
 
 .nav-tab {
-    padding: 10px 16px;
+    padding: 11px 20px;
     border: none;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.14);
-    color: white;
+    border-radius: 13px;
+    background: #eef1f8;
+    color: #5b3d8a;
     font-size: 0.92rem;
-    font-weight: 650;
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.16);
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -374,26 +376,29 @@ img, svg, video {
 }
 
 .nav-tab:hover {
-    background: rgba(255,255,255,0.26);
+    background: linear-gradient(135deg, #8f7fe0, #6d4cc4);
+    color: #ffffff;
+    transform: translateY(-1px);
 }
 
 .nav-tab.active {
-    background: white;
-    color: var(--accent-2);
-    border-color: transparent;
-    box-shadow: var(--shadow-sm);
+    background: linear-gradient(135deg, #7c5cd6, #5b3d8a);
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(91, 61, 138, 0.42);
 }
 
 .nav-tab .count-badge {
-    background: var(--accent-2);
+    background: #5b3d8a;
     color: white;
     padding: 2px 8px;
     border-radius: 20px;
     font-size: 0.75rem;
 }
 
+.nav-tab:hover .count-badge,
 .nav-tab.active .count-badge {
-    background: var(--accent-2);
+    background: rgba(255, 255, 255, 0.28);
+    color: #ffffff;
 }
 
 /* ==================== FILE UPLOAD SECTION ==================== */
@@ -1681,7 +1686,7 @@ img, svg, video {
 .acct-caret:hover { background: #e4d7f2; }
 .acct-caret.open { transform: rotate(180deg); }
 
-/* Dropdown */
+/* Dropdown (Divi-style: pointer + gradient rows) */
 .acct-menu {
     position: absolute;
     top: 54px;
@@ -1695,6 +1700,22 @@ img, svg, video {
     max-height: 80vh;
     overflow-y: auto;
 }
+/* Speech-bubble pointer on the bar (not clipped by the menu's scroll) */
+.acct-bar::after {
+    content: '';
+    position: absolute;
+    top: 45px;
+    right: 22px;
+    width: 0; height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 9px solid #fff;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 1401;
+}
+.acct-bar:has(.acct-menu:not([hidden]))::after { opacity: 1; }
 
 .acct-menu-head {
     display: flex;
@@ -1718,11 +1739,15 @@ img, svg, video {
     color: #5b3d8a;
     font-weight: 600;
     display: block;
-    padding: 6px 10px;
-    border-radius: 8px;
-    transition: background 0.15s ease;
+    padding: 8px 12px;
+    border-radius: 10px;
+    transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease;
 }
-.acct-menu-links a:hover { background: #f4eefb; }
+.acct-menu-links a:hover {
+    background: linear-gradient(135deg, #4ecdc4, #6d4cc4);
+    color: #fff;
+    transform: translateX(2px);
+}
 
 .acct-menu-section {
     padding-top: 12px;
@@ -1737,23 +1762,27 @@ img, svg, video {
     overflow-y: auto;
 }
 .acct-menu-section li {
-    padding: 6px 8px;
-    border-radius: 8px;
+    padding: 7px 10px;
+    border-radius: 10px;
     font-size: 0.82rem;
     color: #333;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 6px;
-    transition: background 0.15s ease;
+    transition: background 0.18s ease, color 0.18s ease;
 }
-.acct-menu-section li:hover { background: #f8f4fc; }
+.acct-menu-section li:hover {
+    background: linear-gradient(135deg, #4ecdc4, #6d4cc4);
+    color: #fff;
+}
 .acct-menu-section a {
     text-decoration: none;
     color: #333;
     flex: 1;
 }
-.acct-menu-section a:hover { color: #764ba2; }
+.acct-menu-section li:hover a,
+.acct-menu-section a:hover { color: #fff; }
 
 .acct-menu-title {
     display: flex;

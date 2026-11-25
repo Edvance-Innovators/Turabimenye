@@ -23,8 +23,12 @@ let globalFlyerStyle = localStorage.getItem('wrzkk_global_style') || 'classic';
 const SUPABASE_STORAGE_URL = 'https://yfqmkbzvsxikopbysrep.supabase.co';
 const SUPABASE_STORAGE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmcW1rYnp2c3hpa29wYnlzcmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNjg1ODMsImV4cCI6MjEwNTY0NDU4M30.2egjfNM0UpGjcn5kOFAWBIigTK85bW3icb_thoh0J5Y';
 let storageClient = null;
-if (typeof supabase !== 'undefined' && !storageClient) {
-    storageClient = supabase.createClient(SUPABASE_STORAGE_URL, SUPABASE_STORAGE_KEY);
+function getStorageClient() {
+    if (storageClient) return storageClient;
+    if (typeof supabase !== 'undefined' && supabase && supabase.createClient) {
+        storageClient = supabase.createClient(SUPABASE_STORAGE_URL, SUPABASE_STORAGE_KEY);
+    }
+    return storageClient;
 }
 const CLOUD_API = '/api/flyers';
 
@@ -89,9 +93,9 @@ async function saveFlyerToCloud(flyer) {
         return true;
     }
 
-    // 3. Push to cloud
+    // 3. Push to cloud (time-boxed — a stalled network must not hang the save)
     try {
-        const res = await fetch(CLOUD_API, {
+        const res = await fetchWithTimeout(CLOUD_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(flyerToRow(flyer))
@@ -114,6 +118,7 @@ async function saveFlyerToCloud(flyer) {
         }
         return true;
     } catch (err) {
+        // Network stall, timeout, or server error — never let the caller hang
         console.warn('⚠️ Cloud save failed:', err.message);
         return false;
     }
@@ -121,7 +126,7 @@ async function saveFlyerToCloud(flyer) {
 
 async function loadFlyersFromCloud() {
     try {
-        const res = await fetch(CLOUD_API);   // global read — all users
+        const res = await fetchWithTimeout(CLOUD_API);   // global read — all users
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const rows = await res.json();
         console.log(`☁️ Loaded ${rows.length} flyers from cloud (all users)`);
@@ -168,6 +173,10 @@ const CATEGORY_NAMES = {
 };
 
 const CLICK_TO_READ = '👇 Kanda usome byinshi';
+const CLOUD_SAVING = 'Irabika ...';
+const CLOUD_SAVED = '✅ Byabitswe kuri seriveri';
+const CLOUD_SAVE_FAILED = '⚠️ Byabitswe hafi gusa. Seriveri ntiyabibonye — ongera ugerageze.';
+const CLOUD_SAVE_ERROR = '⚠️ Kubika byanze: ';
 const ADD_COMMENT_PLACEHOLDER = 'Andika igitekerezo...';
 const POST_BUTTON = 'Ohereza';
 const EDIT_BUTTON = 'Hindura';
@@ -191,6 +200,61 @@ const TRANSLATION_SUCCESS = 'zahinduwe mu Kinyarwanda!';
 const TRANSLATION_FAILED = 'Kutahindura byanze. Ongera ugerageze.';
 const SAVED_TO_COLLECTION = 'Flyer yahinduwe neza! Reba muri collection.';
 const FLYER_CREATED = 'Flyer nshya yakozwe neza! Yabitswe mu bubiko. Reba muri collection.';
+
+// ==================== SAVE SAFETY HELPERS ====================
+// Every network call involved in saving is time-boxed so a stalled request
+// can never leave the Save button hanging forever.
+const CLOUD_TIMEOUT_MS = 15000;
+const STORAGE_TIMEOUT_MS = 20000;
+
+function fetchWithTimeout(url, options = {}, ms = CLOUD_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    return fetch(url, { ...options, signal: controller.signal })
+        .finally(() => clearTimeout(timer));
+}
+
+function withAsyncTimeout(promise, ms, label = 'Request') {
+    let timer;
+    return Promise.race([
+        Promise.resolve(promise),
+        new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+        })
+    ]).finally(() => clearTimeout(timer));
+}
+
+function setBtnBusy(btn, busy, label, busyText) {
+    if (!btn) return;
+    if (busy) {
+        if (label) btn.dataset.saveLabel = label.innerHTML;
+        btn.disabled = true;
+        label.innerHTML = busyText;
+    } else {
+        btn.disabled = false;
+        if (label && btn.dataset.saveLabel) label.innerHTML = btn.dataset.saveLabel;
+    }
+}
+
+function showToast(message, type = 'success', ms = 4000) {
+    let wrap = document.getElementById('wrzkkToasts');
+    if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.id = 'wrzkkToasts';
+        wrap.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:4000;display:flex;flex-direction:column;gap:8px;align-items:flex-end;';
+        document.body.appendChild(wrap);
+    }
+    const toast = document.createElement('div');
+    const bg = type === 'success' ? '#2ecc71' : (type === 'error' ? '#e74c3c' : '#f39c12');
+    toast.style.cssText = `background:${bg};color:white;padding:10px 18px;border-radius:25px;box-shadow:0 4px 14px rgba(0,0,0,0.25);font-size:0.9rem;max-width:320px;opacity:0;transition:opacity .25s;`;
+    toast.textContent = message;
+    wrap.appendChild(toast);
+    requestAnimationFrame(() => { toast.style.opacity = '1'; });
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, ms);
+}
 
 // ==================== TRANSLATION ====================
 async function translateWithRapidAPILang(text, from = 'en', to = 'rw') {
@@ -697,7 +761,7 @@ function displayStoryPreviews(stories) {
                 ${renderFlyerImageControls(index)}
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
                     <button onclick="openEditor(${index})" style="background:#3498db; color:white; border:none; padding:8px 20px; border-radius:25px; cursor:pointer;">✏️ ${EDIT_BUTTON}</button>
-                    <button onclick="generateFlyer(${index})" ${isDuplicate ? 'disabled' : ''} style="background:${isDuplicate ? '#ccc' : '#2ecc71'}; color:white; border:none; padding:8px 25px; border-radius:25px; cursor:${isDuplicate ? 'not-allowed' : 'pointer'};">🎨 ${isDuplicate ? ALREADY_EXISTS : CREATE_FLYER_BUTTON}</button>
+                    <button id="createFlyerBtn-${index}" onclick="generateFlyer(${index})" ${isDuplicate ? 'disabled' : ''} style="background:${isDuplicate ? '#ccc' : '#2ecc71'}; color:white; border:none; padding:8px 25px; border-radius:25px; cursor:${isDuplicate ? 'not-allowed' : 'pointer'};">🎨 <span id="createFlyerLabel-${index}">${isDuplicate ? ALREADY_EXISTS : CREATE_FLYER_BUTTON}</span></button>
                 </div>
             </div>
         `;
@@ -708,39 +772,55 @@ function displayStoryPreviews(stories) {
 }
 
 // ==================== FLYER GENERATION ====================
+let flyerCreateBusy = false;
 async function generateFlyer(storyIndex) {
-    syncStoryImageFromUrlInput(storyIndex);
-    const story = extractedStories[storyIndex];
-    if (isDuplicateFlyer(story.title, story.fullDescription)) return alert(`⚠️ ${DUPLICATE_WARNING}!`);
-    const currentUser = getCurrentUser();
-    const newFlyer = {
-        id: 'flyer_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-        title: story.title,
-        previewDescription: story.previewDescription,
-        fullDescription: story.fullDescription,
-        image: getStoryImageForIndex(storyIndex) || getImageForStory(story),
-        date: story.date || "Tariki izwi",
-        likes: 0, comments: [], knew: 0, didntKnow: 0,
-        keywords: story.keywords || [],
-        continent: story.continent || 'worldwide',
-        category: story.category || 'worldwide',
-        region: story.region || 'Ntaho igarukira',
-        language: 'Kinyarwanda', translated: true,
-        userId: currentUser.id,
-        userName: currentUser.name || currentUser.email || 'Uwihitira',
-        userType: currentUser.role || 'anonymous',
-        createdAt: new Date().toISOString(),
-        colorClass: getRandomColorClass(),
-        style: globalFlyerStyle
-    };
-    flyersCollection.unshift(newFlyer);
-    newFlyer.image = await uploadFlyerImageIfData(newFlyer);
-    await saveFlyerToCloud(newFlyer);
-    delete storyImageOverrides[storyIndex];
-    updateCollectionCount();
-    displayFlyers();
-    alert(`✨ ${FLYER_CREATED}`);
-    showTab('collection');
+    if (flyerCreateBusy) return;   // block double-submit while a save is in flight
+    flyerCreateBusy = true;
+    const btn = document.getElementById(`createFlyerBtn-${storyIndex}`);
+    const label = document.getElementById(`createFlyerLabel-${storyIndex}`);
+    setBtnBusy(btn, true, label, `⏳ ${CLOUD_SAVING}`);
+    try {
+        syncStoryImageFromUrlInput(storyIndex);
+        const story = extractedStories[storyIndex];
+        if (isDuplicateFlyer(story.title, story.fullDescription)) { alert(`⚠️ ${DUPLICATE_WARNING}!`); return; }
+        const currentUser = getCurrentUser();
+        const newFlyer = {
+            id: 'flyer_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            title: story.title,
+            previewDescription: story.previewDescription,
+            fullDescription: story.fullDescription,
+            image: getStoryImageForIndex(storyIndex) || getImageForStory(story),
+            date: story.date || "Tariki izwi",
+            likes: 0, comments: [], knew: 0, didntKnow: 0,
+            keywords: story.keywords || [],
+            continent: story.continent || 'worldwide',
+            category: story.category || 'worldwide',
+            region: story.region || 'Ntaho igarukira',
+            language: 'Kinyarwanda', translated: true,
+            userId: currentUser.id,
+            userName: currentUser.name || currentUser.email || 'Uwihitira',
+            userType: currentUser.role || 'anonymous',
+            createdAt: new Date().toISOString(),
+            colorClass: getRandomColorClass(),
+            style: globalFlyerStyle
+        };
+        flyersCollection.unshift(newFlyer);
+        // Offload base64 picture to Storage (timeout-protected) so the DB payload stays small
+        newFlyer.image = await uploadFlyerImageIfData(newFlyer);
+        const ok = await saveFlyerToCloud(newFlyer);
+        delete storyImageOverrides[storyIndex];
+        updateCollectionCount();
+        displayFlyers();
+        showTab('collection');
+        if (ok) showToast(CLOUD_SAVED, 'success');
+        else showToast(CLOUD_SAVE_FAILED, 'warning', 6000);
+    } catch (err) {
+        console.error('generateFlyer failed:', err);
+        showToast(CLOUD_SAVE_ERROR + err.message, 'error', 6000);
+    } finally {
+        setBtnBusy(btn, false, label);
+        flyerCreateBusy = false;
+    }
 }
 
 // ==================== EDITOR ====================
@@ -761,8 +841,8 @@ function openEditor(storyIndex) {
             <div style="margin-bottom:15px;"><label>Amagambo y'Ingenzi:</label><input type="text" id="editKeywords" value="${(currentEditingStory.keywords || []).join(', ')}" style="width:100%; padding:10px;"></div>
             ${renderFlyerImageControls(idx)}
             <div style="display:flex; gap:15px; justify-content:flex-end; margin-top:20px;">
-                <button onclick="closeEditor()" style="background:#95a5a6; color:white; border:none; padding:10px 25px; border-radius:25px;">Guhagarika</button>
-                <button onclick="saveEditedStory()" style="background:#2ecc71; color:white; border:none; padding:10px 25px; border-radius:25px;">Kubika</button>
+                <button id="editorCancelButton" onclick="closeEditor()" style="background:#95a5a6; color:white; border:none; padding:10px 25px; border-radius:25px;">Guhagarika</button>
+                <button id="editorSaveButton" onclick="saveEditedStory()" style="background:#2ecc71; color:white; border:none; padding:10px 25px; border-radius:25px;">Kubika</button>
             </div>
         </div>
     `;
@@ -784,39 +864,60 @@ function closeEditor() {
     if (savedIndex != null && extractedStories.length) displayStoryPreviews(extractedStories);
 }
 
+let storySaving = false;
 async function saveEditedStory() {
-    if (!currentEditingStory) return;
-    syncStoryImageFromUrlInput(currentEditingStory.index);
-    const currentUser = getCurrentUser();
-    const editedStory = {
-        id: 'flyer_' + Date.now(),
-        title: document.getElementById('editTitle').value.trim(),
-        previewDescription: document.getElementById('editPreview').value.trim(),
-        fullDescription: document.getElementById('editFull').value.trim(),
-        date: document.getElementById('editDate').value.trim() || "Tariki izwi",
-        region: document.getElementById('editRegion').value.trim() || "Ntaho igarukira",
-        keywords: document.getElementById('editKeywords').value.split(',').map(k => k.trim()).filter(k => k),
-        continent: currentEditingStory.continent || 'worldwide',
-        category: currentEditingStory.category || 'worldwide',
-        image: getStoryImageForIndex(currentEditingStory.index) || getImageForStory(currentEditingStory),
-        likes: 0, comments: [], knew: 0, didntKnow: 0,
-        language: 'Kinyarwanda', translated: true,
-        createdAt: new Date().toISOString(),
-        userId: currentUser.id,
-        userName: currentUser.name || currentUser.email || 'Uwihitira',
-        userType: currentUser.role || 'anonymous',
-        colorClass: getRandomColorClass(),
-        style: globalFlyerStyle
-    };
-    flyersCollection.unshift(editedStory);
-    newFlyer.image = await uploadFlyerImageIfData(newFlyer);
-    await saveFlyerToCloud(editedStory);
-    delete storyImageOverrides[currentEditingStory.index];
-    updateCollectionCount();
-    closeEditor();
-    alert(`✨ ${SAVED_TO_COLLECTION}`);
-    showTab('collection');
-    displayFlyers();
+    if (!currentEditingStory || storySaving) return;   // ignore re-entry while saving
+    storySaving = true;
+    const storyIndexToClear = currentEditingStory.index;
+    const btn = document.getElementById('editorSaveButton');
+    setBtnBusy(btn, true, btn, `⏳ ${CLOUD_SAVING}`);
+    try {
+        syncStoryImageFromUrlInput(currentEditingStory.index);
+        const currentUser = getCurrentUser();
+        const editedStory = {
+            id: 'flyer_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            title: document.getElementById('editTitle').value.trim(),
+            previewDescription: document.getElementById('editPreview').value.trim(),
+            fullDescription: document.getElementById('editFull').value.trim(),
+            date: document.getElementById('editDate').value.trim() || "Tariki izwi",
+            region: document.getElementById('editRegion').value.trim() || "Ntaho igarukira",
+            keywords: document.getElementById('editKeywords').value.split(',').map(k => k.trim()).filter(k => k),
+            continent: currentEditingStory.continent || 'worldwide',
+            category: currentEditingStory.category || 'worldwide',
+            image: getStoryImageForIndex(currentEditingStory.index) || getImageForStory(currentEditingStory),
+            likes: 0, comments: [], knew: 0, didntKnow: 0,
+            language: 'Kinyarwanda', translated: true,
+            createdAt: new Date().toISOString(),
+            userId: currentUser.id,
+            userName: currentUser.name || currentUser.email || 'Uwihitira',
+            userType: currentUser.role || 'anonymous',
+            colorClass: getRandomColorClass(),
+            style: globalFlyerStyle
+        };
+        if (isDuplicateFlyer(editedStory.title, editedStory.fullDescription)) {
+            alert(`⚠️ ${DUPLICATE_WARNING}!`);
+            return;
+        }
+        flyersCollection.unshift(editedStory);
+        // Offload base64 picture to Storage (timeout-protected) before saving the row
+        editedStory.image = await uploadFlyerImageIfData(editedStory);
+        const ok = await saveFlyerToCloud(editedStory);
+        localStorage.setItem('wrzkk_flyers', JSON.stringify(flyersCollection));
+        delete storyImageOverrides[storyIndexToClear];
+        closeEditor();
+        updateCollectionCount();
+        showTab('collection');
+        displayFlyers();
+        if (ok) showToast(CLOUD_SAVED, 'success');
+        else showToast(CLOUD_SAVE_FAILED, 'warning', 6000);
+    } catch (err) {
+        // Any unexpected failure surfaces as a message instead of a frozen modal
+        console.error('saveEditedStory failed:', err);
+        showToast(CLOUD_SAVE_ERROR + err.message, 'error', 6000);
+    } finally {
+        setBtnBusy(btn, false, btn);
+        storySaving = false;
+    }
 }
 
 // ==================== COLLECTION FUNCTIONS ====================
@@ -1114,19 +1215,27 @@ function createFlyerCard(f, displayIndex) {
 async function uploadFlyerImageIfData(flyer) {
     if (!flyer.image || !flyer.image.startsWith('data:image/')) return flyer.image;
 
+    const client = getStorageClient();
+    if (!client) return flyer.image;   // SDK not loaded — keep data URL rather than hanging/failing
+
     try {
         // Convert data URL to Blob
         const res = await fetch(flyer.image);
         const blob = await res.blob();
 
         const filename = `${flyer.id || Date.now()}.jpg`;
-        const { data, error } = await supabase.storage
-            .from('flyer-images')
-            .upload(filename, blob, { contentType: 'image/jpeg', upsert: true });
+        // Timeout-guarded: a stalled Supabase request used to block the whole save flow
+        const upload = await withAsyncTimeout(
+            client.storage
+                .from('flyer-images')
+                .upload(filename, blob, { contentType: 'image/jpeg', upsert: true }),
+            STORAGE_TIMEOUT_MS,
+            'Storage upload'
+        );
 
-        if (error) throw error;
+        if (upload.error) throw upload.error;
 
-        const { data: pub } = supabase.storage
+        const { data: pub } = client.storage
             .from('flyer-images')
             .getPublicUrl(filename);
 

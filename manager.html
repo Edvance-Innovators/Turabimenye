@@ -656,7 +656,7 @@
                         <strong>Amasura ariho:</strong> <span id="currentStyleDisplay">Classic</span>
                     </div>
                     
-                    <button onclick="applyStyleToAllFlyers()" class="manager-btn primary" style="margin-top: 20px;">
+                    <button id="applyStyleBtn" onclick="applyStyleToAllFlyers()" class="manager-btn primary" style="margin-top: 20px;">
                         <i>🎨</i> Shyiramo ku tuzingo twose
                     </button>
                 </div>
@@ -792,8 +792,8 @@
                 </select>
             </div>
             <div class="modal-actions">
-                <button onclick="closeEditFlyerModal()" class="manager-btn" style="background: #95a5a6; color: white;">Guhagarika</button>
-                <button onclick="saveFlyerChanges()" class="manager-btn primary"><i>💾</i> Bikana n'ibihinduwe</button>
+                <button id="editFlyerCancelBtn" onclick="closeEditFlyerModal()" class="manager-btn" style="background: #95a5a6; color: white;">Guhagarika</button>
+                <button id="editFlyerSaveBtn" onclick="saveFlyerChanges()" class="manager-btn primary"><i>💾</i> Bikana n'ibihinduwe</button>
             </div>
         </div>
     </div>
