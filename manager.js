@@ -329,20 +329,23 @@ async function updateManagerInCloud(id, updates) {
     return saved;
 }
 
+// The API compares the password, so it never travels back to the browser.
+// Resolves to { manager } | { inactive } | { error: '<code>' }.
 async function verifyManagerCredentials(email, password) {
     const target = normalizeEmail(email);
     try {
-        const res = await fetch(`${MANAGERS_API}?email=${encodeURIComponent(target)}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const rows = await res.json();
-        const found = Array.isArray(rows) && rows[0];
-        if (!found) return null;
-        if (found.is_active === false) return { inactive: true };
-        if (found.password !== password) return null;
-        return found;
+        const res = await fetch(MANAGERS_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'verify', email: target, password })
+        });
+        const payload = await res.json().catch(() => ({}));
+        if (payload.inactive) return { inactive: true };
+        if (res.ok && payload.ok && payload.manager) return { manager: payload.manager };
+        return { error: payload.error || (res.status >= 500 ? 'server_error' : 'verification_failed') };
     } catch (err) {
         console.warn('verifyManagerCredentials error:', err.message);
-        return null;
+        return { error: 'network_error' };
     }
 }
 
@@ -747,30 +750,59 @@ async function managerLogin() {
         return;
     }
 
+    // Read the allow-list fresh so a row restored in Supabase works without a reload
+    await fetchManagersFromCloud();
+
+    if (!managerList.length) {
+        alert(`❌ Nta manager n'umwe ubonetse muri database.
+
+Imeyili ntishobora kugenzurwa: table "managers" irimo ubusa cyangwa policy za RLS zibuza gusoma.
+
+Muri Supabase: ongeramo umurongo wa manager (email, password, role, is_active = true),
+cyangwa wemezeho policy ya "select" ku role "anon".`);
+        return;
+    }
+
     if (!isEmailAllowedAsManager(email) && !isSuperAdminEmail(email)) {
-        alert('❌ Iyi imeyili ntiyemewe nka manager.');
+        alert(`❌ Imeyili ${email} ntiyemewe nka manager.
+
+Ntiiri muri managers ${managerList.length} babonetse muri database.
+Ubuyobozi bukuru: ${SUPER_ADMIN_EMAIL}`);
         return;
     }
 
-    const found = await verifyManagerCredentials(email, password);
+    const result = await verifyManagerCredentials(email, password);
 
-    if (!found) {
-        alert('❌ Imeyili cyangwa ijambo ry\'ibanga si byo');
-        return;
-    }
-    if (found.inactive) {
+    if (result.inactive) {
         alert('❌ Konti yawe yahagaritswe n\'umuyobozi mukuru');
         return;
     }
+
+    if (!result.manager) {
+        const reasons = {
+            no_managers_in_database: `❌ Nta manager ubonetse muri database (table irimo ubusa cyangwa RLS ikabuza gusoma).`,
+            email_not_registered: `❌ Nta murongo wa manager ubonetse kuri ${email} muri database.
+
+Ongeza uyu manager muri table "managers" (email, password, role, is_active = true).`,
+            wrong_password: '❌ Ijambo ry\'ibanga si ryo.',
+            server_error: '❌ Ikosa kuri server ya /api/managers — reba Vercel logs.',
+            network_error: '❌ Ntibyakunze guhuza na server. Genzura internet cyangwa API.',
+            verification_failed: '❌ Kwinjira byanze. Imeyili cyangwa ijambo ry\'ibanga si byo.'
+        };
+        alert(reasons[result.error] || `❌ Kwinjira byanze (${result.error}).`);
+        console.warn('Manager login rejected:', result.error);
+        return;
+    }
+
+    const found = result.manager;
 
     currentManager = {
         id: found.id,
         email: found.email,
         name: found.name || found.email.split('@')[0],
         role: found.role,
-        password: found.password,
         lastActive: new Date().toISOString()
-    };
+    };   // the password stays on the server — never stored here
 
     updateManagerInCloud(found.id, { last_active: currentManager.lastActive })
         .catch(err => console.warn('Could not update last_active:', err.message));
@@ -802,7 +834,6 @@ async function checkManagerAuth() {
                 email: siteEmail,
                 name: localStorage.getItem('wrzkk_user_name') || siteEmail.split('@')[0],
                 role: isSuperAdminEmail(siteEmail) ? 'super_admin' : 'manager',
-                password: '(from_site_session)',
                 lastActive: new Date().toISOString()
             };
             localStorage.setItem('wrzkk_manager', JSON.stringify(currentManager));
@@ -831,7 +862,11 @@ async function checkManagerAuth() {
         return false;
     }
 
-    currentManager = m;
+    // Older sessions kept the password on this device — drop it now only the server knows it
+    const { password: stalePassword, ...safeManager } = m;
+    if (stalePassword !== undefined) console.log('🧹 Removed stored manager password from localStorage');
+    currentManager = safeManager;
+    localStorage.setItem('wrzkk_manager', JSON.stringify(currentManager));
     document.getElementById('loginSection').style.display = 'none';
     document.getElementById('dashboardSection').style.display = 'block';
     refreshAllData();
@@ -1161,15 +1196,35 @@ async function changeManagerPassword() {
     const newPass = document.getElementById('newPassword').value;
     const confirm = document.getElementById('confirmPassword').value;
     if (!currentManager) return;
-    if (current !== currentManager.password) { alert('Ijambo ry\'ibanga risanzwe si ryo'); return; }
+    if (!current || !newPass) { alert('Andika ijambo ry\'ibanga risanzwe n\'irishya'); return; }
     if (newPass !== confirm) { alert('Ijambo ry\'ibanga rishya ntirihuye'); return; }
     if (newPass.length < 6) { alert('Ijambo ry\'ibanga rigomba kugira byibura inyuguti 6'); return; }
 
     try {
-        await updateManagerInCloud(currentManager.id, { password: newPass });
-        currentManager.password = newPass;
+        // The API checks the old password before writing the new one
+        const res = await fetch(MANAGERS_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'change_password',
+                email: normalizeEmail(currentManager.email),
+                current_password: current,
+                new_password: newPass
+            })
+        });
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok || !payload.ok) {
+            const reasons = {
+                wrong_password: '❌ Ijambo ry\'ibanga risanzwe si ryo',
+                no_manager_account: `❌ Nta murongo wa manager ubonetse kuri ${currentManager.email} muri database`,
+                password_too_short: '❌ Ijambo ry\'ibanga rishya rigomba kugira byibura inyuguti 6'
+            };
+            alert(reasons[payload.error] || `⚠️ Ntibyakunze: ${payload.error || `HTTP ${res.status}`}`);
+            return;
+        }
+        if (payload.manager) currentManager = { ...currentManager, ...payload.manager };
         localStorage.setItem('wrzkk_manager', JSON.stringify(currentManager));
-        alert('✅ Ijambo ry\'ibanga ryahinduwe (muri cloud no kuri iyi device)');
+        alert('✅ Ijambo ry\'ibanga ryahinduwe (muri cloud)');
     } catch (err) {
         alert(`⚠️ Ntibyakunze: ${err.message}`);
     }
