@@ -450,8 +450,10 @@ img, svg, video {
 }
 
 /* ==================== PARSER SECTION ==================== */
+/* The panel is a near-white plate, so its text must stay dark */
 .parser-section {
     background: rgba(255,255,255,0.96);
+    color: #2a2f45;
     border-radius: var(--radius);
     padding: clamp(16px, 3vw, 28px);
     margin-bottom: 20px;
@@ -481,6 +483,12 @@ img, svg, video {
     resize: vertical;
     margin-bottom: 15px;
     background: #fbfaff;
+    color: #1c2450;
+}
+
+.text-input-area textarea::placeholder {
+    color: #6b7090;
+    opacity: 1;
 }
 
 .text-input-area textarea:focus {
@@ -529,6 +537,7 @@ img, svg, video {
     padding: 25px;
     margin-top: 20px;
     border-left: 5px solid #2B5BFF;
+    color: #23283f;
 }
 
 .story-actions {
@@ -623,6 +632,7 @@ img, svg, video {
     border-left: 4px solid #2B5BFF;
     overflow-x: auto;
     word-break: break-word;
+    color: #2b2450;
 }
 
 /* ==================== CONTROLS WITH Z-INDEX ==================== */
@@ -1231,6 +1241,7 @@ img, svg, video {
     border-radius: 10px;
     margin-bottom: 8px;
     font-size: 0.9rem;
+    color: #23283f;
     animation: fadeIn 0.3s ease;
 }
 
@@ -1615,7 +1626,8 @@ img, svg, video {
 }
 /* ==================== ACCOUNT BAR + DROPDOWN ==================== */
 .acct-bar {
-    position: fixed;
+    /* Sits at the top of the document and scrolls away with the page */
+    position: absolute;
     top: 14px;
     right: 16px;
     z-index: 1400;
@@ -1871,9 +1883,10 @@ img, svg, video {
     padding: 24px 20px 32px;
     font-size: 0.7rem;
     line-height: 1.5;
-    color: rgba(205, 125, 205, 0.75);
+    color: #6d5300;
     letter-spacing: 0.02em;
-    font-weight: 400;
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
     margin-top: 40px;
 }
 
@@ -2651,41 +2664,148 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.22);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 18px 40px rgba(6, 16, 66, 0.28);
 }
-.cloud-canvas { position: relative; width: 100%; }
+.cloud-canvas {
+    position: relative;
+    width: 100%;
+    min-height: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+    justify-content: center;
+    gap: 24px 12px;
+    padding: 22px 14px 34px;
+    box-sizing: border-box;
+}
+
+/* ================================================================
+   ONE PILE = .flyer-stack (holds the ambient float) + up to
+   STACK_CAPACITY cards layered inside .stack-body. The pile offsets
+   live on the card through --d (depth), so a mouse-wheel turn only
+   has to change one number and CSS animates the rest.
+   ================================================================ */
+.flyer-stack {
+    position: relative;
+    flex: 0 0 auto;
+    width: calc(var(--tw, 200px) + 46px);
+    height: calc(var(--th, 240px) + 40px);
+    animation-name: stackIn, stackFloat;
+    animation-duration: 0.45s, var(--fdur, 10s);
+    animation-timing-function: ease, ease-in-out;
+    animation-delay: var(--fade, 0s), var(--fdel, -3s);
+    animation-iteration-count: 1, infinite;
+    animation-fill-mode: backwards, none;
+}
+.stack-body {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 46px;
+    bottom: 40px;
+}
 
 .flyer-tile {
     position: absolute;
+    left: 0;
+    top: 0;
     cursor: pointer;
-    transform: rotate(var(--rot, 0deg));
-    animation-name: cloudIn, cloudFloat;
-    animation-duration: 0.55s, var(--fdur, 9s);
-    animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1), ease-in-out;
-    animation-delay: var(--fdel, 0s), var(--fdel2, -4s);
-    animation-iteration-count: 1, infinite;
-    animation-fill-mode: backwards, none;
+    --step-x: 7px;
+    --step-y: 6px;
+    --twist: 1.3deg;
+    transform:
+        translate3d(calc(var(--dx, 0px) + var(--d, 0) * var(--step-x)),
+                    calc(var(--dy, 0px) + var(--d, 0) * var(--step-y) - var(--lift, 0px)),
+                    0)
+        rotate(calc(var(--rot, 0deg) + var(--d, 0) * var(--twist)))
+        scale(calc(1 - var(--d, 0) * 0.016 + var(--grow, 0)));
+    transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
     will-change: transform;
+}
+/* Buried cards stay quiet, the visible one is the mounted poster */
+.flyer-tile:not(.is-top) {
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.36),
+        0 9px 18px rgba(4, 10, 40, 0.34) !important;
+}
+.flyer-tile.is-top {
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+        inset 0 0 0 5px rgba(255, 255, 255, 0.12),
+        inset 0 0 0 6px rgba(0, 0, 0, 0.12),
+        0 26px 48px rgba(4, 10, 40, 0.54) !important;
 }
 .flyer-tile:hover,
 .flyer-tile:focus-visible {
-    animation: cloudHover var(--fdur, 9s) ease-in-out infinite;
+    --lift: 10px;
+    --grow: 0.035;
+}
+.flyer-tile.is-top:hover,
+.flyer-tile.is-top:focus-visible {
     z-index: 900 !important;
-    /* Only the hovered tile gets the expensive frosted blur */
-    backdrop-filter: blur(7px) saturate(1.25);
-    -webkit-backdrop-filter: blur(7px) saturate(1.25);
+    /* Only the opened-up card pays for the frosted blur */
+    backdrop-filter: blur(6px) saturate(1.2);
+    -webkit-backdrop-filter: blur(6px) saturate(1.2);
     box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.40),
-        inset 0 0 0 5px rgba(255, 255, 255, 0.13),
-        inset 0 0 0 6px rgba(0, 0, 0, 0.12),
-        0 30px 60px rgba(4, 10, 40, 0.60) !important;
+        inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+        inset 0 0 0 5px rgba(255, 255, 255, 0.16),
+        inset 0 0 0 6px rgba(0, 0, 0, 0.14),
+        0 32px 62px rgba(4, 10, 40, 0.62) !important;
 }
-@keyframes cloudIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes cloudFloat {
-    0%, 100% { transform: rotate(var(--rot, 0deg)) translate3d(0, 0, 0); }
-    50%      { transform: rotate(var(--rot, 0deg)) translate3d(6px, -12px, 0); }
+
+/* Rotation controls (also the touch path for the pile) */
+.stack-nav {
+    position: absolute;
+    left: 0;
+    right: 46px;
+    bottom: 4px;
+    z-index: 960;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
-@keyframes cloudHover {
-    0%, 100% { transform: rotate(0deg) translate3d(0, -6px, 0) scale(1.05); }
-    50%      { transform: rotate(0deg) translate3d(0, -14px, 0) scale(1.05); }
+.stack-nav button {
+    background: linear-gradient(135deg, rgba(43, 91, 255, 0.58), rgba(140, 180, 255, 0.26));
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 8px;
+    padding: 3px 9px;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.40), 0 4px 10px rgba(6, 16, 66, 0.28);
+    transition: transform 0.18s ease, background 0.22s ease, box-shadow 0.22s ease;
+}
+.stack-nav button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, rgba(43, 91, 255, 0.78), rgba(140, 180, 255, 0.40));
+}
+.stack-nav button:active:not(:disabled) { transform: translateY(0); box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.32); }
+.stack-nav button:disabled { opacity: 0.45; cursor: not-allowed; }
+.stack-count {
+    min-width: 48px;
+    text-align: center;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: #ffffff;
+    background: rgba(8, 16, 48, 0.46);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    padding: 2px 8px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+.flyer-stack.spinning .stack-nav { animation: stackNudge 0.34s ease; }
+
+@keyframes stackIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes stackFloat {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50%      { transform: translate3d(0, -9px, 0); }
+}
+@keyframes stackNudge {
+    0%   { transform: translateY(0); }
+    45%  { transform: translateY(3px); }
+    100% { transform: translateY(0); }
 }
 
 /* Compact tile internals */
@@ -2814,11 +2934,11 @@ body {
     .focus-panel { width: 96%; padding: 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .flyer-tile,
-    .flyer-tile:hover,
+    .flyer-stack,
+    .flyer-stack.spinning .stack-nav,
     .focus-panel,
     .cloud-scroll-hint { animation: none !important; }
-    .flyer-tile { transform: rotate(var(--rot, 0deg)); }
+    .flyer-tile { transition: none !important; }
 }
 
 /* ====================================================================
@@ -2841,3 +2961,76 @@ body {
 
 /* Keyboard users still get a visible ring on the floating tiles */
 .flyer-tile:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.9); outline-offset: 3px; }
+
+/* ====================================================================
+   LAST PASS — yellow evidences title, no side scrolling, readable plates
+   ==================================================================== */
+
+/* ---- "Ibihamya" (reference) title: bright yellow on dark glass ---- */
+.flyer-card .flyer-references-toggle {
+    background: rgba(8, 14, 44, 0.46) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    color: var(--theme-yellow) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 6px 14px rgba(4, 10, 40, 0.26) !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.60) !important;
+}
+.flyer-card .flyer-references-toggle:hover {
+    background: rgba(8, 14, 44, 0.62) !important;
+    border-color: rgba(255, 255, 255, 0.34) !important;
+}
+.flyer-card .flyer-references-toggle:focus-visible {
+    outline: 2px solid var(--theme-yellow) !important;
+    outline-offset: 2px;
+}
+.flyer-card .flyer-references-icon,
+.flyer-card .flyer-references-label,
+.flyer-card .flyer-references-caret {
+    color: var(--theme-yellow) !important;
+}
+
+/* The opened list rests on its own dark plate so every line stays readable */
+.flyer-references.open .flyer-references-body {
+    background: rgba(6, 10, 34, 0.44);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+.flyer-card .flyer-references { border-top-color: rgba(255, 255, 255, 0.30) !important; }
+.flyer-card .flyer-references-list a { color: #ffffff !important; }
+.flyer-card .flyer-references-list a:hover { color: var(--theme-yellow) !important; }
+.flyer-card .flyer-references-source { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.70); }
+.flyer-card .flyer-references-list li { border-bottom-color: rgba(255, 255, 255, 0.14) !important; }
+.flyer-card .flyer-references-snippet { color: #e8edff !important; }
+.flyer-card .flyer-references-empty,
+.flyer-card .flyer-references-loading { color: #eaf0ff !important; }
+
+/* ---- No side scrolling: nothing may be wider than the page ---- */
+body { overflow-x: clip; }
+.flyers-grid { min-width: 0; }
+.flyers-grid > * { min-width: 0; max-width: 100%; }
+.flyer-card,
+.flyer-card .flyer-content,
+.flyer-card .flyer-description-full,
+.flyer-card .flyer-metadata,
+.flyer-card .comments-section,
+.flyer-references,
+.flyer-references-body,
+.flyer-references-list,
+.flyer-references-list li,
+.flyer-references-list a,
+.flyer-references-snippet {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+.flyer-references-list a { display: block; }
+
+/* ---- Narrow screens: one pile per row keeps the cards readable ---- */
+@media (max-width: 460px) {
+    .cloud-canvas { gap: 18px 4px; padding: 16px 6px 26px; }
+    .flyer-stack { width: calc(var(--tw, 180px) + 34px); height: calc(var(--th, 220px) + 36px); }
+    .stack-body { right: 34px; bottom: 36px; }
+    .stack-nav { right: 34px; }
+    .flyer-tile { --step-x: 6px; --step-y: 5px; }
+}

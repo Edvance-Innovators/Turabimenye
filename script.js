@@ -1233,8 +1233,8 @@ function createFlyerCard(f, displayIndex) {
         </div>
     `;
 }
-// ==================== FLYER CLOUD (stacked, random-size tiles) ====================
-// Deterministic per-flyer randomness so a story keeps its size/tilt across
+// ==================== FLYER STACKS (piles + mouse-wheel rotation) ====================
+// Deterministic per-flyer randomness so a story keeps its tilt across
 // re-renders (filters, likes, colour refresh) instead of jumping around.
 function seededRandom(seed) {
     let h = 2166136261 >>> 0;
@@ -1251,36 +1251,131 @@ function seededRandom(seed) {
     };
 }
 
-function computeCloudLayout(list, canvasWidth) {
-    const cols = canvasWidth < 560 ? 2 : (canvasWidth < 900 ? 3 : 4);
-    const lane = canvasWidth / cols;
-    const base = lane * 0.94;
-    const colTop = new Array(cols).fill(0);
-    const geo = [];
+// How many flyers a single pile holds before a new pile starts next to it.
+const STACK_CAPACITY = 7;
+let stackRotations = {};      // pile index -> position of the visible card
+let activeStackIndex = 0;     // pile the arrow keys turn
+let cloudWheelLock = 0;       // throttles one wheel notch = one card
 
-    list.forEach((f, i) => {
-        const r = seededRandom(f.id || ('idx-' + i));
-        const scale = 0.70 + r() * 0.68;                       // random size, like the reference stack
-        const w = Math.round(Math.min(lane * 1.12, base * scale));
-        const h = Math.round(w * (0.84 + r() * 0.52));
-        let col = colTop.indexOf(Math.min.apply(null, colTop));
-        if (r() < 0.35) col = Math.max(0, Math.min(cols - 1, col + (r() < 0.5 ? -1 : 1)));
-        const x = Math.max(2, Math.min(canvasWidth - w - 2,
-            col * lane + (lane - w) / 2 + (r() - 0.5) * lane * 0.20));
-        const y = Math.max(0, colTop[col] + (r() - 0.5) * 22);
-        colTop[col] = y + h - Math.round(h * 0.08);             // gentle overlap = cloud stacking
-        geo.push({
-            x: Math.round(x), y: Math.round(y), w: w, h: h,
-            rot: +((r() - 0.5) * 5).toFixed(2),
-            dur: +(7 + r() * 6).toFixed(2),
-            del: +(i * 0.05).toFixed(2),
-            del2: +(-r() * 8).toFixed(2),
-            z: 14 - Math.round(scale * 4),                      // small tiles float above big ones
-            bucket: scale < 0.9 ? 'tile-sm' : (scale > 1.16 ? 'tile-lg' : 'tile-md')
+function computeStackLayout(list, canvasWidth) {
+    const perRow = canvasWidth < 430 ? 1 : (canvasWidth < 720 ? 2 : (canvasWidth < 1100 ? 3 : 4));
+    const lane = canvasWidth / perRow;
+    const tileW = Math.round(Math.max(140, Math.min(250, lane * 0.62)));
+    const tileH = Math.round(tileW * 1.18);
+    const stacks = [];
+
+    for (let start = 0; start < list.length; start += STACK_CAPACITY) {
+        const si = stacks.length;
+        const r = seededRandom('pile-' + si);
+        const lean = +((r() - 0.5) * 6).toFixed(2);          // the whole pile leans slightly
+        const items = [];
+        const end = Math.min(start + STACK_CAPACITY, list.length);
+        for (let i = start; i < end; i++) {
+            const rr = seededRandom(list[i].id || ('p' + si + '-' + i));
+            const d = i - start;
+            items.push({
+                f: list[i],
+                index: i,
+                d: d,
+                w: tileW,
+                h: tileH,
+                dx: Math.round((rr() - 0.5) * 8),            // hand-scattered card inside the pile
+                dy: Math.round((rr() - 0.5) * 6),
+                rot: +((rr() - 0.5) * 3 + lean + d * 0.35).toFixed(2)
+            });
+        }
+        stacks.push({
+            items: items,
+            dur: +(9 + r() * 5).toFixed(2),
+            del: +(-r() * 6).toFixed(2),
+            fade: +(si * 0.05).toFixed(2)
         });
-    });
+    }
 
-    return { cols, geo, height: Math.round(Math.max.apply(null, colTop) + 28) };
+    return { perRow, tileW, tileH, stacks };
+}
+
+function getStackEl(si) {
+    return document.querySelector('.flyer-cloud .flyer-stack[data-stack="' + si + '"]');
+}
+
+/**
+ * Re-layer one pile: card `p` sits at depth (p - rotation), so turning the
+ * wheel only moves which card is depth 0 (the readable, clickable one).
+ */
+function applyStackOrder(si, rotation) {
+    const stack = getStackEl(si);
+    if (!stack) return;
+    const tiles = stack.querySelectorAll('.flyer-tile');
+    const n = tiles.length;
+    if (!n) return;
+    const rot = ((rotation % n) + n) % n;
+    stackRotations[si] = rot;
+
+    for (let p = 0; p < n; p++) {
+        const d = ((p - rot) % n + n) % n;
+        const tile = tiles[p];
+        tile.style.setProperty('--d', String(d));
+        tile.style.zIndex = String(200 - d * 2);
+        tile.classList.toggle('is-top', d === 0);
+        tile.tabIndex = d === 0 ? 0 : -1;                     // buried cards stay out of the tab order
+    }
+
+    const count = stack.querySelector('.stack-count');
+    if (count) count.textContent = (rot + 1) + '/' + n;
+    const btns = stack.querySelectorAll('.stack-nav button');
+    if (btns.length === 2) {
+        btns[0].disabled = n < 2;
+        btns[1].disabled = n < 2;
+    }
+}
+
+function rotateStack(stack, dir) {
+    if (!stack) return;
+    const si = Number(stack.dataset.stack);
+    const tiles = stack.querySelectorAll('.flyer-tile');
+    if (tiles.length < 2) return;
+    activeStackIndex = si;
+    applyStackOrder(si, (stackRotations[si] || 0) + (dir > 0 ? 1 : -1));
+    stack.classList.remove('spinning');
+    void stack.offsetWidth;                                   // restart the confirmation nudge
+    stack.classList.add('spinning');
+}
+
+function rotateStackDir(si, dir, ev) {
+    if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+    rotateStack(getStackEl(Number(si)), dir);
+}
+
+/** Top card opens the reader, a buried card is pulled to the top of the pile. */
+function stackTileClick(tile, id, ev) {
+    if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+    const stack = tile.closest ? tile.closest('.flyer-stack') : null;
+    if (!stack) { focusFlyer(id, ev); return; }
+    const si = Number(stack.dataset.stack);
+    const tiles = stack.querySelectorAll('.flyer-tile');
+    let pos = -1;
+    for (let p = 0; p < tiles.length; p++) { if (tiles[p] === tile) { pos = p; break; } }
+    if (pos === -1) return;
+    activeStackIndex = si;
+    if (pos === (stackRotations[si] || 0)) { focusFlyer(id, ev); return; }
+    applyStackOrder(si, pos);
+}
+
+/** Mouse wheel over a pile turns it; anywhere else the page scrolls normally. */
+function onCloudWheel(e) {
+    if (flyerViewMode !== 'cloud' || focusedFlyerId) return;
+    const target = e.target;
+    const stack = target && target.closest ? target.closest('.flyer-stack') : null;
+    if (!stack) return;
+    if (stack.querySelectorAll('.flyer-tile').length < 2) return;
+    const delta = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+    if (!delta) return;
+    e.preventDefault();
+    const now = Date.now();
+    if (now - cloudWheelLock < 130) return;
+    cloudWheelLock = now;
+    rotateStack(stack, delta > 0 ? 1 : -1);
 }
 
 function createFlyerTile(f, i, g) {
@@ -1290,11 +1385,11 @@ function createFlyerTile(f, i, g) {
     const styleClass = `flyer-style-${f.style || globalFlyerStyle}`;
     if (!f.colorClass) f.colorClass = getRandomColorClass();
     return `
-        <div class="flyer-card flyer-tile ${g.bucket} ${styleClass} ${f.colorClass}"
-             data-flyer-key="${flyerIdKey(f.id)}" tabindex="0" role="button" title="Kanda usome iyi nkuru"
-             style="left:${g.x}px;top:${g.y}px;width:${g.w}px;height:${g.h}px;--rot:${g.rot}deg;--fdur:${g.dur}s;--fdel:${g.del}s;--fdel2:${g.del2}s;z-index:${g.z};"
-             onclick="focusFlyer('${f.id}', event)"
-             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();focusFlyer('${f.id}',event);}">
+        <div class="flyer-card flyer-tile${g.d === 0 ? ' is-top' : ''} ${styleClass} ${f.colorClass}"
+             data-flyer-key="${flyerIdKey(f.id)}" tabindex="${g.d === 0 ? 0 : -1}" role="button" title="Kanda usome iyi nkuru"
+             style="width:${g.w}px;height:${g.h}px;--dx:${g.dx}px;--dy:${g.dy}px;--rot:${g.rot}deg;--d:${g.d};z-index:${200 - g.d * 2};"
+             onclick="stackTileClick(this, '${f.id}', event)"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();stackTileClick(this,'${f.id}',event);}">
             ${FLYER_SCREWS_HTML}
             <div class="flyer-number-tag" style="position:absolute; top:8px; right:8px; width:26px; height:26px; background:#FEEB00; color:#2B5BFF; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:bold; box-shadow:0 2px 6px rgba(0,0,0,0.25); z-index:10; border:2px solid #ffffff;">
                 ${i + 1}
@@ -1318,7 +1413,7 @@ function renderFlyerCloud(grid, list) {
     grid.className = 'flyers-grid flyer-cloud' + (focusedFlyerId ? ' cloud-focused' : '');
     // The frosted viewport keeps a 1px rim, so reserve a few px from the grid width
     const width = Math.max(320, (grid.clientWidth || (grid.parentElement ? grid.parentElement.clientWidth : 0) || 900) - 4);
-    const layout = computeCloudLayout(list, width);
+    const layout = computeStackLayout(list, width);
 
     // Keep the open reader across re-renders (likes, comments, colour refresh)
     // so it never closes or replays its entrance animation mid-read.
@@ -1327,17 +1422,30 @@ function renderFlyerCloud(grid, list) {
 
     grid.innerHTML = `
         <div class="cloud-viewport" id="cloudViewport">
-            <div class="cloud-canvas" style="height:${layout.height}px;">
-                ${list.map((f, i) => createFlyerTile(f, i, layout.geo[i])).join('')}
+            <div class="cloud-canvas" style="--tw:${layout.tileW}px;--th:${layout.tileH}px;">
+                ${layout.stacks.map((st, si) => `
+                    <div class="flyer-stack" data-stack="${si}" style="--fdur:${st.dur}s;--fdel:${st.del}s;--fade:${st.fade}s;">
+                        <div class="stack-body">
+                            ${st.items.map((item) => createFlyerTile(item.f, item.index, item)).join('')}
+                        </div>
+                        <div class="stack-nav">
+                            <button type="button" onclick="rotateStackDir(${si}, -1, event)" title="Ikarita ibanza" aria-label="Ikarita ibanza">◀</button>
+                            <span class="stack-count">1/${st.items.length}</span>
+                            <button type="button" onclick="rotateStackDir(${si}, 1, event)" title="Ikarita ikurikira" aria-label="Ikarita ikurikira">▶</button>
+                        </div>
+                    </div>`).join('')}
             </div>
         </div>
-        <div class="cloud-scroll-hint">⬍ Zunguruka mu gicu · kanda ikaze usome inkuru</div>
+        <div class="cloud-scroll-hint">🖱 Zunguruka uruzi rw'imbeba kugira uhindure ikarita · kanda usome inkuru</div>
         <div class="flyer-focus-layer" id="flyerFocusLayer"></div>`;
 
     const vp = document.getElementById('cloudViewport');
     if (vp) vp.addEventListener('scroll', () => {
         if (vp.scrollTop > 40) grid.classList.add('scrolled');
     }, { passive: true });
+
+    // Restore every pile where the reader left it
+    layout.stacks.forEach((st, si) => applyStackOrder(si, stackRotations[si] || 0));
 
     if (focusedFlyerId) {
         const layer = document.getElementById('flyerFocusLayer');
@@ -1442,11 +1550,21 @@ function initFlyerCloud() {
         rt = setTimeout(() => { if (flyerViewMode === 'cloud') displayFlyers(); }, 260);
     });
 
+    // Wheel over a pile turns it (delegated: #flyersGrid survives every re-render)
+    const grid = document.getElementById('flyersGrid');
+    if (grid) grid.addEventListener('wheel', onCloudWheel, { passive: false });
+
     document.addEventListener('keydown', (e) => {
-        if (!focusedFlyerId) return;
-        if (e.key === 'Escape') closeFlyerFocus();
-        else if (e.key === 'ArrowRight') stepFlyerFocus(1);
-        else if (e.key === 'ArrowLeft') stepFlyerFocus(-1);
+        const typing = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable);
+        if (focusedFlyerId) {
+            if (e.key === 'Escape') closeFlyerFocus();
+            else if (e.key === 'ArrowRight') stepFlyerFocus(1);
+            else if (e.key === 'ArrowLeft') stepFlyerFocus(-1);
+            return;
+        }
+        if (typing || flyerViewMode !== 'cloud') return;
+        if (e.key === 'ArrowRight') rotateStack(getStackEl(activeStackIndex), 1);
+        else if (e.key === 'ArrowLeft') rotateStack(getStackEl(activeStackIndex), -1);
     });
 }
 
