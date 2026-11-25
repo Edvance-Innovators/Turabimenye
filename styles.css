@@ -2238,41 +2238,44 @@ img, svg, video {
     --theme-yellow-2: #FFD400;
 }
 
-/* ---- Page background: white -> light blue gradient ---- */
+/* ---- Page background: solid blue with just a very small corner gradient ---- */
 body {
     background:
-        radial-gradient(1100px 520px at 100% -10%, rgba(70, 100, 250, 0.18) 0%, transparent 55%),
-        radial-gradient(820px 460px at -5% 0%, rgba(43, 91, 255, 0.12) 0%, transparent 50%),
-        linear-gradient(165deg, #ffffff 0%, #eef3ff 45%, #cfe0ff 100%) !important;
-    color: #16224d !important;
+        radial-gradient(420px 260px at 0% 0%, rgba(120, 150, 255, 0.45) 0%, transparent 60%),
+        radial-gradient(420px 260px at 100% 0%, rgba(120, 150, 255, 0.35) 0%, transparent 60%),
+        radial-gradient(460px 300px at 0% 100%, rgba(15, 36, 140, 0.55) 0%, transparent 62%),
+        radial-gradient(460px 300px at 100% 100%, rgba(15, 36, 140, 0.55) 0%, transparent 62%),
+        #2b53f0 !important;
+    color: #ffffff !important;
 }
 
-.app-header h1 { color: var(--theme-blue-1) !important; text-shadow: none !important; }
-.app-header p { color: #3a4a7a !important; }
+.app-header h1 { color: var(--theme-yellow) !important; text-shadow: 0 6px 18px rgba(0, 0, 0, 0.30) !important; }
+.app-header p { color: #eaf0ff !important; }
 
 /* ---- Recolor leftover violet accents to blue ---- */
-.quote-roll-arrow { background: linear-gradient(135deg, #2B5BFF, #4664FA) !important; border: 2px solid var(--theme-yellow) !important; box-shadow: 0 4px 12px rgba(43, 91, 255, 0.35) !important; }
-.user-status button { background: linear-gradient(135deg, #2B5BFF, #4664FA) !important; color: #ffffff !important; border: 2px solid var(--theme-yellow) !important; }
+.quote-roll-arrow { background: linear-gradient(135deg, #2B5BFF, #4664FA) !important; border: 1.5px solid var(--theme-yellow) !important; box-shadow: 0 4px 12px rgba(43, 91, 255, 0.35) !important; }
+.user-status button { background: linear-gradient(135deg, #2B5BFF, #4664FA) !important; color: #ffffff !important; border: 1.5px solid var(--theme-yellow) !important; }
 .user-status button:hover { background: #2B5BFF !important; }
 .proverb-lang-name,
 .comment-author { color: var(--theme-blue-1) !important; }
 .proverb-trans-modal .loading-spinner { border-color: var(--theme-blue-1) !important; }
 
-/* ---- Yellow contours on the main surfaces ---- */
+/* ---- Surfaces carry NO contour (only a soft shadow); contours live on buttons ---- */
 .flyer-card,
 .filter-section,
 .file-upload-section,
 .shared-error,
 .flyer-card .comments-section {
-    border: 3px solid var(--theme-yellow) !important;
+    border: none !important;
 }
 
 /* ---- Flyer cards: blue RECTANGLE with a white dot-grid in the top corners ---- */
 .flyer-card {
     background: linear-gradient(160deg, #3a5cff 0%, #2b53f0 100%) !important;
+    border: none !important;
     border-radius: 10px !important;
     overflow: hidden !important;
-    box-shadow: 0 18px 40px rgba(10, 20, 90, 0.35) !important;
+    box-shadow: 0 22px 45px rgba(6, 16, 66, 0.55), 0 8px 18px rgba(6, 16, 66, 0.40) !important;
 }
 .flyer-card::before,
 .flyer-card::after {
@@ -2310,12 +2313,12 @@ body {
 }
 .flyer-card .flyer-title { color: var(--theme-yellow) !important; }
 
-/* ---- Image framed with a yellow contour (square top corners) ---- */
-.flyer-image { border-bottom: 3px solid var(--theme-yellow) !important; border-radius: 0 !important; }
+/* ---- Image area: no contour (square top corners) ---- */
+.flyer-image { border-bottom: none !important; border-radius: 0 !important; }
 .flyer-image-badge {
     background: rgba(0, 0, 0, 0.55) !important;
     color: var(--theme-yellow) !important;
-    border: 2px solid var(--theme-yellow) !important;
+    border: none !important;
     border-radius: 8px !important;
 }
 
@@ -2337,7 +2340,7 @@ body {
     font-weight: 700 !important;
     background: linear-gradient(135deg, #2B5BFF, #4664FA) !important;
     color: #ffffff !important;
-    border: 2px solid var(--theme-yellow) !important;
+    border: 1.5px solid var(--theme-yellow) !important;
     border-radius: 8px !important;
     filter: none !important;
     box-shadow: 0 4px 12px rgba(10, 20, 90, 0.35) !important;
@@ -2355,17 +2358,17 @@ body {
 .interaction-btn.didntknow-active,
 .flyer-card .interaction-btn.didntknow-active { background: #e67e22 !important; color: #fff !important; }
 
-/* Comment submit + input inside collection cards */
+/* Comment submit (thin yellow contour) + input (no contour) inside cards */
 .flyer-card .comment-input button {
     background: linear-gradient(135deg, #2B5BFF, #4664FA) !important;
     color: #fff !important;
-    border: 2px solid var(--theme-yellow) !important;
+    border: 1.5px solid var(--theme-yellow) !important;
     border-radius: 8px !important;
     font-weight: 700 !important;
 }
 .flyer-card .comment-input input {
     background: #ffffff !important;
-    border: 2px solid var(--theme-yellow) !important;
+    border: none !important;
     color: #1c2450 !important;
     border-radius: 8px !important;
 }
@@ -2400,7 +2403,7 @@ body {
 .action-btn,
 .save-match-btn,
 .flyer-references-toggle {
-    border: 2px solid var(--theme-yellow) !important;
+    border: 1.5px solid var(--theme-yellow) !important;
     border-radius: 8px !important;
 }
 .upload-btn,
@@ -2420,7 +2423,7 @@ body {
 .filter-dropdown-btn {
     background: linear-gradient(135deg, #2B5BFF, #6f9bff) !important;
     color: #ffffff !important;
-    border: 2px solid var(--theme-yellow) !important;
+    border: none !important;
     border-radius: 8px !important;
 }
 .filter-dropdown-btn:hover { background: linear-gradient(135deg, #1e4bff, #4f7dff) !important; }
@@ -2428,4 +2431,4 @@ body {
 .controls { z-index: 40 !important; }
 .filter-dropdown:hover,
 .filter-dropdown:focus-within { z-index: 60 !important; }
-.filter-dropdown-content { z-index: 70 !important; border: 2px solid var(--theme-yellow) !important; }
+.filter-dropdown-content { z-index: 70 !important; border: none !important; }
