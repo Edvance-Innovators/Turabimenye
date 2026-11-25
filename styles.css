@@ -16,36 +16,38 @@
     --shadow-sm: 0 4px 16px rgba(18, 8, 40, 0.1);
     --safe-top: 64px;
     --page-pad: clamp(12px, 3vw, 24px);
-    --color-1-start: #FF6B6B;     /* Coral Red */
-    --color-1-end: #FF8E8E;
-    --color-2-start: #4ECDC4;     /* Turquoise */
-    --color-2-end: #6AD1C9;
-    --color-3-start: #45B7D1;     /* Sky Blue */
-    --color-3-end: #6AC8E0;
-    --color-4-start: #96CEB4;     /* Sage Green */
-    --color-4-end: #B5E0CC;
-    --color-5-start: #FFE194;     /* Light Yellow */
-    --color-5-end: #FFECB3;
-    --color-6-start: #B19CD9;     /* Lavender */
-    --color-6-end: #CAB5E6;
-    --color-7-start: #FFB347;     /* Orange */
-    --color-7-end: #FFC97A;
-    --color-8-start: #A8E6CF;     /* Mint */
-    --color-8-end: #C2F0DC;
-    --color-9-start: #FF8B94;     /* Pink */
-    --color-9-end: #FFB0B9;
-    --color-10-start: #6C5B7B;    /* Purple */
-    --color-10-end: #8A7A9C;
-    --color-11-start: #F8A5C2;    /* Light Pink */
-    --color-11-end: #FFC0D6;
-    --color-12-start: #3B9AE1;    /* Bright Blue */
-    --color-12-end: #6AB6F0;
-    --color-13-start: #F9D56E;    /* Golden */
-    --color-13-end: #FFE494;
-    --color-14-start: #B83B5E;    /* Burgundy */
-    --color-14-end: #D45F81;
-    --color-15-start: #2F9292;    /* Teal */
-    --color-15-end: #4FB3B3;
+    /* Poster palette sampled from Images/image_238ef3df.jpg — deep, saturated
+       card colours so the white story text stays readable on every variant. */
+    --color-1-start: #E2483F;     /* Coral Red */
+    --color-1-end: #F26B5E;
+    --color-2-start: #10756B;     /* Turquoise */
+    --color-2-end: #17998C;
+    --color-3-start: #1E7FC6;     /* Sky Blue */
+    --color-3-end: #3AA0E8;
+    --color-4-start: #17703F;     /* Forest Green */
+    --color-4-end: #249A57;
+    --color-5-start: #C8820A;     /* Sun Amber */
+    --color-5-end: #E8A62B;
+    --color-6-start: #6C4BC4;     /* Royal Purple */
+    --color-6-end: #8A63E0;
+    --color-7-start: #E8700F;     /* Orange */
+    --color-7-end: #FF9231;
+    --color-8-start: #33506F;     /* Slate Blue */
+    --color-8-end: #4C6E93;
+    --color-9-start: #C22E6A;     /* Rose */
+    --color-9-end: #E85A8F;
+    --color-10-start: #4A2E8A;    /* Indigo */
+    --color-10-end: #6A48B0;
+    --color-11-start: #2A2E36;    /* Charcoal */
+    --color-11-end: #454B56;
+    --color-12-start: #1A5FD6;    /* Bright Blue */
+    --color-12-end: #2E7FE8;
+    --color-13-start: #5D6B1F;    /* Olive */
+    --color-13-end: #82932E;
+    --color-14-start: #8B1F35;    /* Burgundy */
+    --color-14-end: #B23255;
+    --color-15-start: #0F5F66;    /* Deep Teal */
+    --color-15-end: #168891;
 }
 
 /* Flyer card background colors - properly defined gradients */
@@ -2268,13 +2270,18 @@ body {
     border: none !important;
 }
 
-/* ---- Flyer cards: blue RECTANGLE with a white dot-grid in the top corners ---- */
+/* ---- Flyer cards: coloured RECTANGLES with a white dot-grid in the top corners ---- */
 .flyer-card {
-    background: linear-gradient(160deg, #3a5cff 0%, #2b53f0 100%) !important;
     border: none !important;
     border-radius: 10px !important;
     overflow: hidden !important;
     box-shadow: 0 22px 45px rgba(6, 16, 66, 0.55), 0 8px 18px rgba(6, 16, 66, 0.40) !important;
+}
+/* Fallback fill only for cards that carry no .color-N class, so the
+   "Hindura Amabara" randomisation stays visible (.flyer-card.color-N is
+   more specific than .flyer-card and therefore wins). */
+.flyer-card:not([class*="color-"]) {
+    background: linear-gradient(160deg, #3a5cff 0%, #2b53f0 100%) !important;
 }
 .flyer-card::before,
 .flyer-card::after {
@@ -2470,3 +2477,190 @@ body {
 }
 .site-logo { position: relative; z-index: 3; }
 .site-logo img { filter: drop-shadow(0 0 22px rgba(175, 208, 255, 0.55)) drop-shadow(0 6px 16px rgba(0, 0, 0, 0.28)); }
+
+/* ====================================================================
+   FLYER CLOUD — stacked, random-size tiles (ref: Images/stackwindws.webp)
+   The collection floats as an overlapping cloud inside a scrollable window;
+   clicking a tile targets that story and opens it as a readable panel.
+   ==================================================================== */
+.view-toggle {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin: 0 0 12px;
+}
+.view-toggle .view-btn {
+    background: linear-gradient(135deg, rgba(43, 91, 255, 0.45), rgba(140, 180, 255, 0.22));
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+}
+.view-toggle .view-btn:hover { transform: translateY(-1px); background: linear-gradient(135deg, rgba(43, 91, 255, 0.65), rgba(140, 180, 255, 0.35)); }
+.view-toggle .view-btn.active {
+    background: linear-gradient(135deg, #2B5BFF, #4664FA);
+    box-shadow: 0 4px 14px rgba(10, 20, 90, 0.40);
+}
+
+.flyers-grid.flyer-cloud {
+    display: block !important;
+    gap: 0 !important;
+    animation: none !important;
+}
+.cloud-viewport {
+    position: relative;
+    height: min(74vh, 660px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    border-radius: 18px;
+    -webkit-overflow-scrolling: touch;
+}
+.cloud-canvas { position: relative; width: 100%; }
+
+.flyer-tile {
+    position: absolute;
+    cursor: pointer;
+    transform: rotate(var(--rot, 0deg));
+    animation-name: cloudIn, cloudFloat;
+    animation-duration: 0.55s, var(--fdur, 9s);
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1), ease-in-out;
+    animation-delay: var(--fdel, 0s), var(--fdel2, -4s);
+    animation-iteration-count: 1, infinite;
+    animation-fill-mode: backwards, none;
+    will-change: transform;
+}
+.flyer-tile:hover,
+.flyer-tile:focus-visible {
+    animation: cloudHover var(--fdur, 9s) ease-in-out infinite;
+    z-index: 900 !important;
+    box-shadow: 0 26px 55px rgba(4, 10, 40, 0.62) !important;
+}
+@keyframes cloudIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cloudFloat {
+    0%, 100% { transform: rotate(var(--rot, 0deg)) translate3d(0, 0, 0); }
+    50%      { transform: rotate(var(--rot, 0deg)) translate3d(6px, -12px, 0); }
+}
+@keyframes cloudHover {
+    0%, 100% { transform: rotate(0deg) translate3d(0, -6px, 0) scale(1.05); }
+    50%      { transform: rotate(0deg) translate3d(0, -14px, 0) scale(1.05); }
+}
+
+/* Compact tile internals */
+.flyer-tile .flyer-image { height: 46%; position: relative; overflow: hidden; }
+.flyer-tile .flyer-image .flyer-image-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+.flyer-tile .flyer-image .flyer-image-badge { font-size: 0.5rem; padding: 2px 5px; }
+.flyer-tile .tile-content { padding: 8px 10px 10px; }
+.flyer-tile .flyer-title {
+    font-size: 0.78rem;
+    line-height: 1.2;
+    margin: 0 0 4px;
+    padding: 0 !important;
+    color: #ffffff !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.flyer-tile .tile-snippet {
+    margin: 0;
+    font-size: 0.66rem;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.86);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.flyer-tile .tile-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; font-size: 0.58rem; color: rgba(255, 255, 255, 0.92); }
+.flyer-tile .flyer-number-tag { position: absolute !important; top: 8px !important; right: 8px !important; width: 26px; height: 26px; font-size: 0.72rem; }
+.flyer-tile.tile-lg .flyer-title { font-size: 0.92rem; }
+.flyer-tile.tile-lg .tile-snippet { font-size: 0.72rem; -webkit-line-clamp: 4; }
+.flyer-tile.tile-xs .tile-snippet { display: none; }
+.flyer-tile.tile-xs .flyer-title { font-size: 0.7rem; }
+
+/* Scroll hint */
+.cloud-scroll-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    z-index: 5;
+    pointer-events: none;
+    font-size: 0.68rem;
+    color: #ffffff;
+    background: rgba(12, 24, 70, 0.45);
+    padding: 4px 12px;
+    border-radius: 999px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    animation: hintBob 2.4s ease-in-out infinite;
+}
+.flyer-cloud.scrolled .cloud-scroll-hint { display: none; }
+@keyframes hintBob {
+    0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.85; }
+    50%      { transform: translateX(-50%) translateY(-4px); opacity: 1; }
+}
+
+/* Targeted reading layer */
+.flyer-cloud .flyer-focus-layer { position: absolute; inset: 0; z-index: 1000; display: none; }
+.flyer-cloud.cloud-focused .flyer-focus-layer { display: block; animation: cloudFade 0.25s ease; }
+.flyer-cloud.cloud-focused .cloud-canvas { pointer-events: none; }
+.flyer-cloud.cloud-focused .flyer-tile { filter: brightness(0.55) saturate(0.65); }
+.focus-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 16, 48, 0.62);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border-radius: 18px;
+}
+.focus-panel {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(720px, 94%);
+    max-height: 94%;
+    overflow-y: auto;
+    padding: 12px;
+    animation: cloudPop 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.focus-bar { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px; }
+.focus-bar button {
+    background: linear-gradient(135deg, #2B5BFF, #4664FA);
+    color: #ffffff;
+    border: 1.5px solid var(--theme-yellow);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.focus-bar button:hover { background: #1e4bff; }
+.focus-bar .focus-count { min-width: 78px; text-align: center; font-size: 0.78rem; font-weight: 700; color: #ffffff; }
+.focus-panel .flyer-card { position: relative; }
+@keyframes cloudFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cloudPop {
+    from { opacity: 0; transform: translate(-50%, -46%) scale(0.94); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@media (max-width: 700px) {
+    .cloud-viewport { height: min(66vh, 520px); }
+    .flyer-tile .flyer-title { font-size: 0.72rem; }
+    .focus-panel { width: 96%; padding: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .flyer-tile,
+    .flyer-tile:hover,
+    .focus-panel,
+    .cloud-scroll-hint { animation: none !important; }
+    .flyer-tile { transform: rotate(var(--rot, 0deg)); }
+}

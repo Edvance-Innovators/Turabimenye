@@ -4,6 +4,13 @@ let extractedStories = [];
 let expandedFlyers = new Set();
 let expandedComments = new Set();
 
+// Flyer cloud (stacked random-size tiles) — view mode, focus target and current list
+const CLOUD_VIEW_KEY = 'wrzkk_flyer_view';
+let flyerViewMode = 'cloud';
+try { flyerViewMode = localStorage.getItem(CLOUD_VIEW_KEY) === 'list' ? 'list' : 'cloud'; } catch (e) { }
+let focusedFlyerId = null;
+let flyerCloudList = [];
+
 let sessionInteractions = {
     liked: new Set(),
     knew: new Set(),
@@ -1133,11 +1140,19 @@ function displayFlyers() {
     }
     const grid = document.getElementById('flyersGrid');
     if (!grid) return;
+    flyerCloudList = filtered;
     if (!filtered.length) {
+        grid.className = 'flyers-grid';
         grid.innerHTML = `<div class="no-results">📄 ${NO_RESULTS}</div>`;
         return;
     }
-   grid.innerHTML = filtered.map((f, i) => createFlyerCard(f, i)).join('');
+    if (flyerViewMode === 'cloud') {
+        renderFlyerCloud(grid, filtered);
+    } else {
+        focusedFlyerId = null;
+        grid.className = 'flyers-grid';
+        grid.innerHTML = filtered.map((f, i) => createFlyerCard(f, i)).join('');
+    }
 }
 
 function createFlyerCard(f, displayIndex) {
@@ -1210,6 +1225,221 @@ function createFlyerCard(f, displayIndex) {
         </div>
     `;
 }
+// ==================== FLYER CLOUD (stacked, random-size tiles) ====================
+// Deterministic per-flyer randomness so a story keeps its size/tilt across
+// re-renders (filters, likes, colour refresh) instead of jumping around.
+function seededRandom(seed) {
+    let h = 2166136261 >>> 0;
+    const s = String(seed);
+    for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+    }
+    return function () {
+        h = (h + 0x6D2B79F5) >>> 0;
+        let t = Math.imul(h ^ (h >>> 15), 1 | h);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function computeCloudLayout(list, canvasWidth) {
+    const cols = canvasWidth < 560 ? 2 : (canvasWidth < 900 ? 3 : 4);
+    const lane = canvasWidth / cols;
+    const base = lane * 0.94;
+    const colTop = new Array(cols).fill(0);
+    const geo = [];
+
+    list.forEach((f, i) => {
+        const r = seededRandom(f.id || ('idx-' + i));
+        const scale = 0.70 + r() * 0.68;                       // random size, like the reference stack
+        const w = Math.round(Math.min(lane * 1.12, base * scale));
+        const h = Math.round(w * (0.84 + r() * 0.52));
+        let col = colTop.indexOf(Math.min.apply(null, colTop));
+        if (r() < 0.35) col = Math.max(0, Math.min(cols - 1, col + (r() < 0.5 ? -1 : 1)));
+        const x = Math.max(2, Math.min(canvasWidth - w - 2,
+            col * lane + (lane - w) / 2 + (r() - 0.5) * lane * 0.20));
+        const y = Math.max(0, colTop[col] + (r() - 0.5) * 22);
+        colTop[col] = y + h - Math.round(h * 0.08);             // gentle overlap = cloud stacking
+        geo.push({
+            x: Math.round(x), y: Math.round(y), w: w, h: h,
+            rot: +((r() - 0.5) * 5).toFixed(2),
+            dur: +(7 + r() * 6).toFixed(2),
+            del: +(i * 0.05).toFixed(2),
+            del2: +(-r() * 8).toFixed(2),
+            z: 14 - Math.round(scale * 4),                      // small tiles float above big ones
+            bucket: scale < 0.9 ? 'tile-sm' : (scale > 1.16 ? 'tile-lg' : 'tile-md')
+        });
+    });
+
+    return { cols, geo, height: Math.round(Math.max.apply(null, colTop) + 28) };
+}
+
+function createFlyerTile(f, i, g) {
+    const imageUrl = normalizeFlyerImage(f.image, f);
+    const continent = CONTINENT_NAMES[f.continent] || f.continent;
+    const snippet = String(f.previewDescription || f.fullDescription || '').replace(/<[^>]*>/g, '').trim();
+    const styleClass = `flyer-style-${f.style || globalFlyerStyle}`;
+    if (!f.colorClass) f.colorClass = getRandomColorClass();
+    return `
+        <div class="flyer-card flyer-tile ${g.bucket} ${styleClass} ${f.colorClass}"
+             data-flyer-key="${flyerIdKey(f.id)}" tabindex="0" role="button" title="Kanda usome iyi nkuru"
+             style="left:${g.x}px;top:${g.y}px;width:${g.w}px;height:${g.h}px;--rot:${g.rot}deg;--fdur:${g.dur}s;--fdel:${g.del}s;--fdel2:${g.del2}s;z-index:${g.z};"
+             onclick="focusFlyer('${f.id}', event)"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();focusFlyer('${f.id}',event);}">
+            <div class="flyer-number-tag" style="position:absolute; top:8px; right:8px; width:26px; height:26px; background:#FEEB00; color:#2B5BFF; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:bold; box-shadow:0 2px 6px rgba(0,0,0,0.25); z-index:10; border:2px solid #ffffff;">
+                ${i + 1}
+            </div>
+            <div class="flyer-image">
+                <img class="flyer-image-photo" src="${imageUrl}" alt="" loading="lazy">
+            </div>
+            <div class="flyer-content tile-content">
+                <h3 class="flyer-title">${escapeHtml(f.title)}</h3>
+                <p class="tile-snippet">${escapeHtml(snippet)}</p>
+                <div class="tile-meta">
+                    <span>${getContinentIcon(f.continent)} ${escapeHtml(continent)}</span>
+                    <span>♥ ${f.likes || 0}</span>
+                    <span>💬 ${(f.comments || []).length}</span>
+                </div>
+            </div>
+        </div>`;
+}
+
+function renderFlyerCloud(grid, list) {
+    grid.className = 'flyers-grid flyer-cloud' + (focusedFlyerId ? ' cloud-focused' : '');
+    const width = Math.max(320, grid.clientWidth || (grid.parentElement ? grid.parentElement.clientWidth : 0) || 900);
+    const layout = computeCloudLayout(list, width);
+
+    // Keep the open reader across re-renders (likes, comments, colour refresh)
+    // so it never closes or replays its entrance animation mid-read.
+    const prevLayer = document.getElementById('flyerFocusLayer');
+    const keepPanel = (focusedFlyerId && prevLayer) ? prevLayer.querySelector('.focus-panel') : null;
+
+    grid.innerHTML = `
+        <div class="cloud-viewport" id="cloudViewport">
+            <div class="cloud-canvas" style="height:${layout.height}px;">
+                ${list.map((f, i) => createFlyerTile(f, i, layout.geo[i])).join('')}
+            </div>
+        </div>
+        <div class="cloud-scroll-hint">⬍ Zunguruka mu gicu · kanda ikaze usome inkuru</div>
+        <div class="flyer-focus-layer" id="flyerFocusLayer"></div>`;
+
+    const vp = document.getElementById('cloudViewport');
+    if (vp) vp.addEventListener('scroll', () => {
+        if (vp.scrollTop > 40) grid.classList.add('scrolled');
+    }, { passive: true });
+
+    if (focusedFlyerId) {
+        const layer = document.getElementById('flyerFocusLayer');
+        if (layer && keepPanel) layer.appendChild(keepPanel);
+        renderFlyerFocusLayer();
+    }
+}
+
+function renderFlyerFocusLayer() {
+    const layer = document.getElementById('flyerFocusLayer');
+    if (!layer) return;
+    const idx = flyerCloudList.findIndex(f => String(f.id) === String(focusedFlyerId));
+    if (idx === -1) { closeFlyerFocus(); return; }
+    const f = flyerCloudList[idx];
+    const key = String(f.id);
+    const panel = layer.querySelector('.focus-panel');
+
+    // Same story already open (like/comment/expand re-render) -> refresh the body
+    // only, so the reader never flashes or replays its entrance animation.
+    if (panel && panel.dataset.flyerKey === key) {
+        const body = panel.querySelector('.focus-body');
+        if (body) body.innerHTML = createFlyerCard(f, idx);
+        const count = panel.querySelector('.focus-count');
+        if (count) count.textContent = `${idx + 1} / ${flyerCloudList.length}`;
+        const nav = panel.querySelectorAll('.focus-bar button');
+        if (nav.length >= 3) {
+            nav[0].disabled = idx === 0;
+            nav[1].disabled = idx === flyerCloudList.length - 1;
+        }
+        return;
+    }
+
+    layer.innerHTML = `
+        <div class="focus-scrim" onclick="closeFlyerFocus(event)"></div>
+        <div class="focus-panel" data-flyer-key="${key}" role="dialog" aria-modal="true" aria-label="${escapeHtml(f.title || '')}">
+            <div class="focus-bar">
+                <button type="button" onclick="stepFlyerFocus(-1, event)" title="Inkuru ibanza" ${idx === 0 ? 'disabled' : ''}>◀</button>
+                <span class="focus-count">${idx + 1} / ${flyerCloudList.length}</span>
+                <button type="button" onclick="stepFlyerFocus(1, event)" title="Inkuru ikurikira" ${idx === flyerCloudList.length - 1 ? 'disabled' : ''}>▶</button>
+                <button type="button" onclick="closeFlyerFocus(event)">✕ Funga</button>
+            </div>
+            <div class="focus-body">${createFlyerCard(f, idx)}</div>
+        </div>`;
+}
+
+function focusFlyer(id, ev) {
+    if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+    const idx = flyerCloudList.findIndex(f => String(f.id) === String(id));
+    if (idx === -1) return;
+    focusedFlyerId = flyerCloudList[idx].id;
+    expandedFlyers.add(flyerIdKey(focusedFlyerId));   // open the story so it reads straight away
+    const tile = document.querySelector(`.flyer-tile[data-flyer-key="${CSS.escape(String(id))}"]`);
+    if (tile && tile.scrollIntoView) tile.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const grid = document.getElementById('flyersGrid');
+    if (grid) grid.classList.add('cloud-focused');
+    renderFlyerFocusLayer();
+}
+
+function stepFlyerFocus(delta, ev) {
+    if (ev) ev.stopPropagation();
+    const idx = flyerCloudList.findIndex(f => String(f.id) === String(focusedFlyerId));
+    if (idx === -1) return;
+    const next = idx + delta;
+    if (next < 0 || next >= flyerCloudList.length) return;
+    focusFlyer(flyerCloudList[next].id, ev);
+}
+
+function closeFlyerFocus(ev) {
+    if (ev) ev.stopPropagation();
+    const last = focusedFlyerId;
+    focusedFlyerId = null;
+    const grid = document.getElementById('flyersGrid');
+    if (grid) grid.classList.remove('cloud-focused');
+    const layer = document.getElementById('flyerFocusLayer');
+    if (layer) layer.innerHTML = '';
+    const tile = grid && grid.querySelector(`.flyer-tile[data-flyer-key="${CSS.escape(String(last))}"]`);
+    if (tile && tile.scrollIntoView) tile.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+function setFlyerView(mode) {
+    flyerViewMode = mode === 'list' ? 'list' : 'cloud';
+    try { localStorage.setItem(CLOUD_VIEW_KEY, flyerViewMode); } catch (e) { }
+    focusedFlyerId = null;
+    document.querySelectorAll('#flyerViewToggle .view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === flyerViewMode);
+    });
+    displayFlyers();
+}
+
+function syncFlyerViewToggle() {
+    document.querySelectorAll('#flyerViewToggle .view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === flyerViewMode);
+    });
+}
+
+function initFlyerCloud() {
+    syncFlyerViewToggle();
+
+    let rt = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(rt);
+        rt = setTimeout(() => { if (flyerViewMode === 'cloud') displayFlyers(); }, 260);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (!focusedFlyerId) return;
+        if (e.key === 'Escape') closeFlyerFocus();
+        else if (e.key === 'ArrowRight') stepFlyerFocus(1);
+        else if (e.key === 'ArrowLeft') stepFlyerFocus(-1);
+    });
+}
+
 async function uploadFlyerImageIfData(flyer) {
     if (!flyer.image || !flyer.image.startsWith('data:image/')) return flyer.image;
 
@@ -2695,6 +2925,10 @@ window.uploadFlyerPicture = uploadFlyerPicture;
 window.uploadFlyerPictureForStory = uploadFlyerPictureForStory;
 window.applyFlyerImageUrl = applyFlyerImageUrl;
 window.refreshAllColors = refreshAllColors;
+window.focusFlyer = focusFlyer;
+window.closeFlyerFocus = closeFlyerFocus;
+window.stepFlyerFocus = stepFlyerFocus;
+window.setFlyerView = setFlyerView;
 window.refreshProverb = refreshProverb;
 window.toggleProverbTranslations = toggleProverbTranslations;
 window.showProverbTranslations = toggleProverbTranslations; // alias
@@ -2797,6 +3031,7 @@ function dedupeLocalStorage() {
     }
 
     setTimeout(addColorRefreshButton, 1000);
+    initFlyerCloud();
     startLogoColorCycle();
 
     // Quote roll init — respects the <option selected> in HTML
