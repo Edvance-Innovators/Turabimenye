@@ -401,15 +401,17 @@
             animation: fadeIn 0.25s ease;
         }
         .login-modal {
-            background: linear-gradient(160deg, #3a5cff 0%, #2b53f0 100%);
-            border: none;
-            border-radius: 28px;
+            background: linear-gradient(160deg, rgba(58, 92, 255, 0.88) 0%, rgba(30, 56, 160, 0.82) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.34);
+            border-radius: 20px;
             padding: clamp(26px, 5vw, 40px);
             max-width: 440px;
             width: min(440px, calc(100% - 24px));
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 24px 60px rgba(8, 18, 70, 0.55);
+            backdrop-filter: blur(18px) saturate(1.35);
+            -webkit-backdrop-filter: blur(18px) saturate(1.35);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 24px 60px rgba(8, 18, 70, 0.55);
             animation: neuPop 0.4s ease;
             position: relative;
             color: #eef2ff;
@@ -419,14 +421,15 @@
             top: 18px; right: 18px;
             width: 42px; height: 42px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.16); border: 1.5px solid #FEEB00;
+            background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.45);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 4px 12px rgba(8, 18, 70, 0.30);
             font-size: 1.4rem; cursor: pointer;
             color: #ffffff;
             transition: all 0.2s ease;
         }
         .login-modal .close-btn:hover {
-            background: #FEEB00;
-            color: #2B5BFF;
+            background: rgba(255, 255, 255, 0.32);
+            transform: translateY(-2px);
         }
         .login-modal h2 {
             color: #FEEB00; margin-bottom: 28px;
@@ -452,48 +455,54 @@
         }
         .login-modal .form-group input {
             width: 100%; padding: 15px 20px;
-            border: 2px solid rgba(254, 235, 0, 0.5);
-            border-radius: 16px;
-            background: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.94);
             color: #1c2450;
             font-size: 1rem;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
         .login-modal .form-group input::placeholder { color: #9aa3c7; }
         .login-modal .form-group input:focus {
             outline: none;
-            border-color: #FEEB00;
-            box-shadow: 0 0 0 4px rgba(254, 235, 0, 0.25);
+            background: #ffffff;
+            border-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.28);
         }
         .login-modal .login-btn {
             width: 100%; padding: 15px;
-            background: #FEEB00; color: #2B5BFF;
-            border: none; border-radius: 16px;
+            background: linear-gradient(135deg, #fff36b 0%, #FEEB00 45%, #FFD400 100%);
+            color: #1f3fbe;
+            border: 1px solid rgba(255, 255, 255, 0.75); border-radius: 12px;
             font-size: 1.05rem; font-weight: 800;
-            cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;
+            cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
             display: flex; align-items: center;
             justify-content: center; gap: 10px;
             margin-bottom: 14px;
-            box-shadow: 0 10px 24px rgba(8, 18, 70, 0.4);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 10px 24px rgba(8, 18, 70, 0.42);
         }
-        .login-modal .login-btn:hover { transform: translateY(-2px); }
+        .login-modal .login-btn:hover { transform: translateY(-2px); filter: brightness(1.05); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 16px 32px rgba(8, 18, 70, 0.48); }
         .login-modal .login-btn:active {
             transform: translateY(0);
-            box-shadow: 0 5px 12px rgba(8, 18, 70, 0.4);
+            box-shadow: inset 0 2px 6px rgba(80, 60, 0, 0.28);
         }
         .login-modal .anonymous-btn {
             width: 100%; padding: 15px;
-            background: rgba(255, 255, 255, 0.14); color: #ffffff;
-            border: 1.5px solid #FEEB00; border-radius: 16px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 12px;
             font-size: 1rem; font-weight: 800; cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 6px 16px rgba(8, 18, 70, 0.28);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
             display: flex; align-items: center;
             justify-content: center; gap: 10px;
         }
         .login-modal .anonymous-btn:hover {
             transform: translateY(-2px);
-            background: rgba(255, 255, 255, 0.24);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.16));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.60), 0 14px 28px rgba(8, 18, 70, 0.36);
         }
+        .login-modal .anonymous-btn:active { transform: translateY(0); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.28); }
         .login-modal .toggle-form {
             text-align: center; margin-top: 22px; color: #dbe3ff;
         }

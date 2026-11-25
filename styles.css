@@ -2238,6 +2238,14 @@ img, svg, video {
     --theme-blue-3: #4664FA;
     --theme-yellow: #FEEB00;
     --theme-yellow-2: #FFD400;
+    /* Stylish button recipe: blue glass fill, white hairline rim, no yellow contour */
+    --btn-fill: linear-gradient(135deg, #3f6bff 0%, #2B5BFF 100%);
+    --btn-rim: rgba(255, 255, 255, 0.32);
+    --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -2px 4px rgba(0, 0, 0, 0.16), 0 6px 16px rgba(8, 18, 60, 0.34), 0 2px 4px rgba(8, 18, 60, 0.22);
+    --btn-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.60), inset 0 -2px 4px rgba(0, 0, 0, 0.16), 0 12px 26px rgba(10, 24, 90, 0.42), 0 4px 8px rgba(10, 24, 90, 0.26);
+    /* Glass surface (frosted, like the reference floating windows) */
+    --glass-fill: linear-gradient(150deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.07) 55%, rgba(255, 255, 255, 0.13) 100%);
+    --glass-rim: rgba(255, 255, 255, 0.30);
 }
 
 /* ---- Page background: blue fading visibly into light blue, faint corner light ---- */
@@ -2254,53 +2262,115 @@ body {
 .app-header p { color: #eaf0ff !important; }
 
 /* ---- Recolor leftover violet accents to blue ---- */
-.quote-roll-arrow { background: linear-gradient(135deg, #2B5BFF, #4664FA) !important; border: 1.5px solid var(--theme-yellow) !important; box-shadow: 0 4px 12px rgba(43, 91, 255, 0.35) !important; }
-.user-status button { background: linear-gradient(135deg, #2B5BFF, #4664FA) !important; color: #ffffff !important; border: 1.5px solid var(--theme-yellow) !important; }
-.user-status button:hover { background: #2B5BFF !important; }
+.quote-roll-arrow { background: var(--btn-fill) !important; border: 1px solid var(--btn-rim) !important; box-shadow: var(--btn-shadow) !important; }
+.user-status button { background: var(--btn-fill) !important; color: #ffffff !important; border: 1px solid var(--btn-rim) !important; box-shadow: var(--btn-shadow) !important; }
+.user-status button:hover { background: #1e4bff !important; transform: translateY(-1px); box-shadow: var(--btn-shadow-hover) !important; }
 .proverb-lang-name,
 .comment-author { color: var(--theme-blue-1) !important; }
 .proverb-trans-modal .loading-spinner { border-color: var(--theme-blue-1) !important; }
 
-/* ---- Surfaces carry NO contour (only a soft shadow); contours live on buttons ---- */
-.flyer-card,
+/* ---- Surfaces: NO yellow contour — frosted glass with a light hairline rim ---- */
 .filter-section,
 .file-upload-section,
-.shared-error,
-.flyer-card .comments-section {
-    border: none !important;
+.shared-error {
+    background: var(--glass-fill) !important;
+    border: 1px solid var(--glass-rim) !important;
+    border-radius: 14px !important;
+    backdrop-filter: blur(10px) saturate(1.25);
+    -webkit-backdrop-filter: blur(10px) saturate(1.25);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 14px 32px rgba(6, 16, 66, 0.34) !important;
 }
 
-/* ---- Flyer cards: coloured RECTANGLES with a white dot-grid in the top corners ---- */
+/* ================================================================
+   FLYER CARD = mounted poster: translucent colour glass, framed
+   edge and a 3D metal screw in every corner (design ref: image_238ef3df)
+   ================================================================ */
 .flyer-card {
-    border: none !important;
-    border-radius: 10px !important;
+    border: 1px solid rgba(255, 255, 255, 0.42) !important;
+    border-radius: 14px !important;
     overflow: hidden !important;
-    box-shadow: 0 22px 45px rgba(6, 16, 66, 0.55), 0 8px 18px rgba(6, 16, 66, 0.40) !important;
+    /* layered inset rings draw the frame; outer shadows lift the card off the page */
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.34),
+        inset 0 0 0 5px rgba(255, 255, 255, 0.11),
+        inset 0 0 0 6px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.50),
+        0 22px 45px rgba(6, 16, 66, 0.48),
+        0 8px 18px rgba(6, 16, 66, 0.34) !important;
 }
-/* Fallback fill only for cards that carry no .color-N class, so the
-   "Hindura Amabara" randomisation stays visible (.flyer-card.color-N is
-   more specific than .flyer-card and therefore wins). */
-.flyer-card:not([class*="color-"]) {
-    background: linear-gradient(160deg, #3a5cff 0%, #2b53f0 100%) !important;
-}
-.flyer-card::before,
-.flyer-card::after {
+/* Light sheen across the glass (top-left highlight, like the reference windows) */
+.flyer-card::before {
     content: "";
     position: absolute;
-    top: 0;
-    width: 64px;
-    height: 48px;
+    inset: 0;
     z-index: 3;
     pointer-events: none;
-    background-image: radial-gradient(rgba(255, 255, 255, 0.85) 1.4px, transparent 1.6px);
-    background-size: 11px 11px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.30) 0%, rgba(255, 255, 255, 0.06) 34%, rgba(255, 255, 255, 0) 60%, rgba(0, 0, 0, 0.14) 100%);
 }
-.flyer-card::before { left: 0; -webkit-mask-image: linear-gradient(135deg, #000 8%, transparent 62%); mask-image: linear-gradient(135deg, #000 8%, transparent 62%); }
-.flyer-card::after { right: 0; -webkit-mask-image: linear-gradient(225deg, #000 8%, transparent 62%); mask-image: linear-gradient(225deg, #000 8%, transparent 62%); }
-.flyer-card .flyer-number-tag { top: 10px !important; right: 10px !important; }
+/* The old decorative dot-grid corners are replaced by real screws */
+.flyer-card::after { content: none !important; }
+/* Colour classes are translucent so the card reads as tinted glass.
+   Kept here (after the base rules) so "Hindura Amabara" still shows. */
+.flyer-card:not([class*="color-"]) {
+    background: linear-gradient(160deg, rgba(58, 92, 255, 0.86) 0%, rgba(43, 83, 240, 0.74) 100%) !important;
+}
+.flyer-card.color-1 { background: linear-gradient(135deg, rgba(226, 72, 63, 0.86), rgba(242, 107, 94, 0.72)) !important; }
+.flyer-card.color-2 { background: linear-gradient(135deg, rgba(16, 117, 107, 0.88), rgba(23, 153, 140, 0.74)) !important; }
+.flyer-card.color-3 { background: linear-gradient(135deg, rgba(30, 127, 198, 0.86), rgba(58, 160, 232, 0.72)) !important; }
+.flyer-card.color-4 { background: linear-gradient(135deg, rgba(23, 112, 63, 0.88), rgba(36, 154, 87, 0.74)) !important; }
+.flyer-card.color-5 { background: linear-gradient(135deg, rgba(200, 130, 10, 0.86), rgba(232, 166, 43, 0.72)) !important; }
+.flyer-card.color-6 { background: linear-gradient(135deg, rgba(108, 75, 196, 0.86), rgba(138, 99, 224, 0.72)) !important; }
+.flyer-card.color-7 { background: linear-gradient(135deg, rgba(232, 112, 15, 0.86), rgba(255, 146, 49, 0.72)) !important; }
+.flyer-card.color-8 { background: linear-gradient(135deg, rgba(51, 80, 111, 0.90), rgba(76, 110, 147, 0.78)) !important; }
+.flyer-card.color-9 { background: linear-gradient(135deg, rgba(194, 46, 106, 0.86), rgba(232, 90, 143, 0.72)) !important; }
+.flyer-card.color-10 { background: linear-gradient(135deg, rgba(74, 46, 138, 0.88), rgba(106, 72, 176, 0.74)) !important; }
+.flyer-card.color-11 { background: linear-gradient(135deg, rgba(42, 46, 54, 0.90), rgba(69, 75, 86, 0.78)) !important; }
+.flyer-card.color-12 { background: linear-gradient(135deg, rgba(26, 95, 214, 0.86), rgba(46, 127, 232, 0.72)) !important; }
+.flyer-card.color-13 { background: linear-gradient(135deg, rgba(93, 107, 31, 0.88), rgba(130, 147, 46, 0.74)) !important; }
+.flyer-card.color-14 { background: linear-gradient(135deg, rgba(139, 31, 53, 0.90), rgba(178, 50, 85, 0.76)) !important; }
+.flyer-card.color-15 { background: linear-gradient(135deg, rgba(15, 95, 102, 0.88), rgba(22, 136, 145, 0.74)) !important; }
+
+/* ---- 3D metal screws, one per corner ---- */
+.flyer-screw {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    z-index: 14;
+    pointer-events: none;
+    background: radial-gradient(circle at 33% 27%, #fdfdff 0%, #e2e6ee 20%, #adb6c7 46%, #727b8d 72%, #3d4552 100%);
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.95),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.55),
+        0 2px 3px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(0, 0, 0, 0.22),
+        0 0 0 3px rgba(255, 255, 255, 0.10);
+}
+/* Phillips cross slot */
+.flyer-screw::before,
+.flyer-screw::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9px;
+    height: 2.4px;
+    border-radius: 1.2px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.22));
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.flyer-screw::before { transform: translate(-50%, -50%) rotate(35deg); }
+.flyer-screw::after { transform: translate(-50%, -50%) rotate(-55deg); }
+.flyer-screw.fs-tl { left: 6px; top: 6px; }
+.flyer-screw.fs-tr { right: 6px; top: 6px; }
+.flyer-screw.fs-bl { left: 6px; bottom: 6px; }
+.flyer-screw.fs-br { right: 6px; bottom: 6px; }
+/* Number tag sits inside the corner screws */
+.flyer-card .flyer-number-tag { top: 12px !important; right: 26px !important; }
 
 .flyer-card .flyer-content {
-    background: transparent !important;
+    /* Soft dark base so the yellow title stays legible on light glass */
+    background: linear-gradient(180deg, rgba(6, 10, 34, 0.04) 0%, rgba(6, 10, 34, 0.26) 100%) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     color: #ffffff !important;
@@ -2317,7 +2387,7 @@ body {
     color: #ffffff !important;
     text-shadow: none !important;
 }
-.flyer-card .flyer-title { color: var(--theme-yellow) !important; }
+.flyer-card .flyer-title { color: var(--theme-yellow) !important; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), 0 0 12px rgba(0, 0, 0, 0.25) !important; }
 
 /* ---- Expanded story text: transparent light-yellow panel, black text ---- */
 .flyer-card .flyer-description-full {
@@ -2338,12 +2408,16 @@ body {
 
 /* ---- Comments panel readable on blue ---- */
 .flyer-card .comments-section {
-    background: rgba(255, 255, 255, 0.10) !important;
+    background: rgba(255, 255, 255, 0.14) !important;
     color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    border-radius: 10px !important;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 .flyer-card .comments-section strong { color: var(--theme-yellow) !important; }
 
-/* ---- Interaction buttons: BLUE fill, yellow contour, sharp corners ---- */
+/* ---- Interaction buttons: BLUE glass fill, light rim (no yellow contour) ---- */
 .flyer-card .interaction-btn,
 .interaction-btn {
     display: inline-flex !important;
@@ -2352,17 +2426,19 @@ body {
     padding: 6px 12px !important;
     font-size: 0.72rem !important;
     font-weight: 700 !important;
-    background: linear-gradient(135deg, #2B5BFF, #4664FA) !important;
+    background: var(--btn-fill) !important;
     color: #ffffff !important;
-    border: 1.5px solid var(--theme-yellow) !important;
+    border: 1px solid var(--btn-rim) !important;
     border-radius: 8px !important;
     filter: none !important;
-    box-shadow: 0 4px 12px rgba(10, 20, 90, 0.35) !important;
+    box-shadow: var(--btn-shadow) !important;
 }
 .interaction-btn:hover:not(:disabled) {
-    background: #1e4bff !important;
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, #4a76ff, #1e4bff) !important;
+    transform: translateY(-2px);
+    box-shadow: var(--btn-shadow-hover) !important;
 }
+.interaction-btn:active:not(:disabled) { transform: translateY(0); box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.30) !important; }
 
 /* Interaction state colors (keep yellow contour + white line-art) */
 .interaction-btn.liked,
@@ -2372,14 +2448,16 @@ body {
 .interaction-btn.didntknow-active,
 .flyer-card .interaction-btn.didntknow-active { background: #e67e22 !important; color: #fff !important; }
 
-/* Comment submit (thin yellow contour) + input (no contour) inside cards */
+/* Comment submit (glass button) + input (no contour) inside cards */
 .flyer-card .comment-input button {
-    background: linear-gradient(135deg, #2B5BFF, #4664FA) !important;
+    background: var(--btn-fill) !important;
     color: #fff !important;
-    border: 1.5px solid var(--theme-yellow) !important;
+    border: 1px solid var(--btn-rim) !important;
     border-radius: 8px !important;
     font-weight: 700 !important;
+    box-shadow: var(--btn-shadow) !important;
 }
+.flyer-card .comment-input button:hover { background: linear-gradient(135deg, #4a76ff, #1e4bff) !important; transform: translateY(-1px); }
 .flyer-card .comment-input input {
     background: #ffffff !important;
     border: none !important;
@@ -2410,49 +2488,94 @@ body {
     stroke-linejoin: round;
 }
 
-/* ---- Yellow contours + sharp corners on the primary action buttons ---- */
+/* ---- Primary action buttons: light rim instead of yellow contour ---- */
 .shared-btn,
 .upload-btn,
 .filter-btn,
 .action-btn,
 .save-match-btn,
 .flyer-references-toggle {
-    border: 1.5px solid var(--theme-yellow) !important;
+    border: 1px solid var(--btn-rim) !important;
     border-radius: 8px !important;
+    box-shadow: var(--btn-shadow) !important;
+    transition: transform .18s ease, box-shadow .22s ease, background .22s ease;
 }
+.shared-btn:hover,
+.upload-btn:hover,
+.filter-btn:hover,
+.action-btn:hover,
+.save-match-btn:hover,
+.flyer-references-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--btn-shadow-hover) !important;
+    filter: brightness(1.07);
+}
+.shared-btn:active,
+.upload-btn:active,
+.filter-btn:active,
+.action-btn:active,
+.save-match-btn:active,
+.flyer-references-toggle:active { transform: translateY(0); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.32) !important; }
 .upload-btn,
 .save-match-btn,
 .filter-btn,
 .shared-btn-primary,
 .shared-btn-secondary,
 .shared-btn-copy {
-    background: linear-gradient(135deg, #2B5BFF, #4664FA) !important;
+    background: var(--btn-fill) !important;
     color: #ffffff !important;
 }
 .action-btn.view,
 .action-btn.edit,
 .action-btn.message { background: #2B5BFF !important; color: #ffffff !important; }
 
-/* ---- Group (filter) buttons above the flyers: transparent blue + overlap fix ---- */
+/* ---- Group (filter) buttons above the flyers: transparent glass + overlap fix ---- */
 .filter-dropdown-btn {
     background: linear-gradient(135deg, rgba(43, 91, 255, 0.45), rgba(140, 180, 255, 0.22)) !important;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     color: #ffffff !important;
-    border: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
     border-radius: 8px !important;
-    box-shadow: 0 4px 14px rgba(6, 16, 66, 0.22) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.40), 0 6px 16px rgba(6, 16, 66, 0.26) !important;
+    transition: transform .18s ease, box-shadow .22s ease, background .22s ease;
 }
-.filter-dropdown-btn:hover { background: linear-gradient(135deg, rgba(43, 91, 255, 0.65), rgba(140, 180, 255, 0.35)) !important; }
+.filter-dropdown-btn:hover {
+    background: linear-gradient(135deg, rgba(43, 91, 255, 0.68), rgba(140, 180, 255, 0.38)) !important;
+    transform: translateY(-2px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 12px 24px rgba(6, 16, 66, 0.34) !important;
+}
 .filter-option.active { background: rgba(43, 91, 255, 0.90) !important; color: #ffffff !important; }
 .controls { z-index: 40 !important; }
 .filter-dropdown:hover,
 .filter-dropdown:focus-within { z-index: 60 !important; }
-.filter-dropdown-content { z-index: 70 !important; border: none !important; }
+.filter-dropdown-content {
+    z-index: 70 !important;
+    background: linear-gradient(160deg, rgba(21, 40, 120, 0.82), rgba(28, 52, 150, 0.72)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.24) !important;
+    border-radius: 12px !important;
+    backdrop-filter: blur(12px) saturate(1.3);
+    -webkit-backdrop-filter: blur(12px) saturate(1.3);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 18px 40px rgba(4, 10, 40, 0.45) !important;
+}
 
-/* ---- User icon: blue fill (see .acct-avatar), yellow hint on hover ---- */
+/* ---- Keyboard focus ring (no yellow contour, but still visible) ---- */
+.interaction-btn:focus-visible,
+.shared-btn:focus-visible,
+.upload-btn:focus-visible,
+.filter-btn:focus-visible,
+.action-btn:focus-visible,
+.save-match-btn:focus-visible,
+.filter-dropdown-btn:focus-visible,
+.user-status button:focus-visible,
+.focus-bar button:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.9);
+    outline-offset: 2px;
+}
+
+/* ---- User icon: blue fill (see .acct-avatar), soft light ring on hover ---- */
 .acct-bar .acct-avatar:hover {
-    box-shadow: 0 0 0 2px rgba(254, 235, 0, 0.75);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.75), 0 8px 18px rgba(4, 10, 40, 0.40);
 }
 
 /* ---- Light-blue cone emitted from the logo down onto the page title ---- */
@@ -2494,18 +2617,20 @@ body {
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     color: #ffffff;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.26);
     border-radius: 8px;
     padding: 6px 14px;
     font-size: 0.8rem;
     font-weight: 700;
     cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 5px 14px rgba(6, 16, 66, 0.24);
     transition: background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
 }
-.view-toggle .view-btn:hover { transform: translateY(-1px); background: linear-gradient(135deg, rgba(43, 91, 255, 0.65), rgba(140, 180, 255, 0.35)); }
+.view-toggle .view-btn:hover { transform: translateY(-2px); background: linear-gradient(135deg, rgba(43, 91, 255, 0.65), rgba(140, 180, 255, 0.35)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.50), 0 10px 22px rgba(6, 16, 66, 0.32); }
 .view-toggle .view-btn.active {
-    background: linear-gradient(135deg, #2B5BFF, #4664FA);
-    box-shadow: 0 4px 14px rgba(10, 20, 90, 0.40);
+    background: var(--btn-fill);
+    border-color: rgba(255, 255, 255, 0.45);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 8px 20px rgba(10, 20, 90, 0.42);
 }
 
 .flyers-grid.flyer-cloud {
@@ -2521,6 +2646,10 @@ body {
     scroll-behavior: smooth;
     border-radius: 18px;
     -webkit-overflow-scrolling: touch;
+    /* Frosted window the cloud floats inside (design ref: stackwindws.webp) */
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0.04) 60%, rgba(255, 255, 255, 0.09) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 18px 40px rgba(6, 16, 66, 0.28);
 }
 .cloud-canvas { position: relative; width: 100%; }
 
@@ -2540,7 +2669,14 @@ body {
 .flyer-tile:focus-visible {
     animation: cloudHover var(--fdur, 9s) ease-in-out infinite;
     z-index: 900 !important;
-    box-shadow: 0 26px 55px rgba(4, 10, 40, 0.62) !important;
+    /* Only the hovered tile gets the expensive frosted blur */
+    backdrop-filter: blur(7px) saturate(1.25);
+    -webkit-backdrop-filter: blur(7px) saturate(1.25);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.40),
+        inset 0 0 0 5px rgba(255, 255, 255, 0.13),
+        inset 0 0 0 6px rgba(0, 0, 0, 0.12),
+        0 30px 60px rgba(4, 10, 40, 0.60) !important;
 }
 @keyframes cloudIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes cloudFloat {
@@ -2563,6 +2699,7 @@ body {
     margin: 0 0 4px;
     padding: 0 !important;
     color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -2572,14 +2709,23 @@ body {
     margin: 0;
     font-size: 0.66rem;
     line-height: 1.35;
-    color: rgba(255, 255, 255, 0.86);
+    color: rgba(255, 255, 255, 0.90);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.40);
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
-.flyer-tile .tile-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; font-size: 0.58rem; color: rgba(255, 255, 255, 0.92); }
-.flyer-tile .flyer-number-tag { position: absolute !important; top: 8px !important; right: 8px !important; width: 26px; height: 26px; font-size: 0.72rem; }
+.flyer-tile .tile-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; font-size: 0.58rem; color: rgba(255, 255, 255, 0.92); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.40); }
+.flyer-tile .flyer-number-tag { position: absolute !important; top: 11px !important; right: 24px !important; width: 24px; height: 24px; font-size: 0.70rem; }
+/* Smaller screws on the compact cloud tiles so they stay inside the frame */
+.flyer-tile .flyer-screw { width: 11px; height: 11px; }
+.flyer-tile .flyer-screw::before,
+.flyer-tile .flyer-screw::after { width: 7px; height: 2px; }
+.flyer-tile .flyer-screw.fs-tl, .flyer-tile .flyer-screw.fs-tr { top: 5px; }
+.flyer-tile .flyer-screw.fs-tl, .flyer-tile .flyer-screw.fs-bl { left: 5px; }
+.flyer-tile .flyer-screw.fs-tr, .flyer-tile .flyer-screw.fs-br { right: 5px; }
+.flyer-tile .flyer-screw.fs-bl, .flyer-tile .flyer-screw.fs-br { bottom: 5px; }
 .flyer-tile.tile-lg .flyer-title { font-size: 0.92rem; }
 .flyer-tile.tile-lg .tile-snippet { font-size: 0.72rem; -webkit-line-clamp: 4; }
 .flyer-tile.tile-xs .tile-snippet { display: none; }
@@ -2616,9 +2762,9 @@ body {
 .focus-scrim {
     position: absolute;
     inset: 0;
-    background: rgba(8, 16, 48, 0.62);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
+    background: rgba(8, 16, 48, 0.42);
+    backdrop-filter: blur(10px) saturate(1.25);
+    -webkit-backdrop-filter: blur(10px) saturate(1.25);
     border-radius: 18px;
 }
 .focus-panel {
@@ -2630,20 +2776,30 @@ body {
     max-height: 94%;
     overflow-y: auto;
     padding: 12px;
+    /* Frosted window frame around the opened flyer */
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.05) 60%, rgba(255, 255, 255, 0.12) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.30);
+    border-radius: 20px;
+    backdrop-filter: blur(12px) saturate(1.3);
+    -webkit-backdrop-filter: blur(12px) saturate(1.3);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 30px 70px rgba(4, 10, 40, 0.55);
     animation: cloudPop 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .focus-bar { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px; }
 .focus-bar button {
-    background: linear-gradient(135deg, #2B5BFF, #4664FA);
+    background: var(--btn-fill);
     color: #ffffff;
-    border: 1.5px solid var(--theme-yellow);
+    border: 1px solid var(--btn-rim);
     border-radius: 8px;
     padding: 6px 12px;
     font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
+    box-shadow: var(--btn-shadow);
+    transition: transform .18s ease, box-shadow .22s ease, filter .22s ease;
 }
-.focus-bar button:hover { background: #1e4bff; }
+.focus-bar button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--btn-shadow-hover); filter: brightness(1.08); }
+.focus-bar button:active:not(:disabled) { transform: translateY(0); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.30); }
 .focus-bar .focus-count { min-width: 78px; text-align: center; font-size: 0.78rem; font-weight: 700; color: #ffffff; }
 .focus-panel .flyer-card { position: relative; }
 @keyframes cloudFade { from { opacity: 0; } to { opacity: 1; } }
@@ -2664,3 +2820,24 @@ body {
     .cloud-scroll-hint { animation: none !important; }
     .flyer-tile { transform: rotate(var(--rot, 0deg)); }
 }
+
+/* ====================================================================
+   FINAL POLISH — colour button, frosted comment rows, keyboard focus
+   ==================================================================== */
+#colorRefreshBtn:hover {
+    background: linear-gradient(135deg, rgba(43, 91, 255, 0.72), rgba(140, 180, 255, 0.40)) !important;
+    transform: translateY(-2px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 12px 24px rgba(6, 16, 66, 0.34) !important;
+}
+#colorRefreshBtn:active { transform: translateY(0); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.30) !important; }
+
+/* Comment rows read as thin frosted plates inside the card */
+.comment-item {
+    background: rgba(255, 255, 255, 0.88) !important;
+    border: 1px solid rgba(255, 255, 255, 0.55) !important;
+    border-radius: 10px !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 4px 12px rgba(4, 10, 40, 0.18) !important;
+}
+
+/* Keyboard users still get a visible ring on the floating tiles */
+.flyer-tile:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.9); outline-offset: 3px; }

@@ -981,7 +981,7 @@ function updateActiveFilters() {
     if (currentFilters.category !== 'all') filters.push(`Icyiciro: ${CATEGORY_NAMES[currentFilters.category]}`);
     if (currentFilters.search) filters.push(`Ushaka: "${currentFilters.search}"`);
     div.style.display = filters.length ? 'block' : 'none';
-    div.innerHTML = filters.length ? `<div style="display:flex; gap:8px; flex-wrap:wrap;">${filters.map(f => `<span style="background:#2B5BFF; color:white; padding:4px 12px; border-radius:8px; font-size:0.75rem; border:2px solid #FEEB00;">${f}</span>`).join('')}</div>` : '';
+    div.innerHTML = filters.length ? `<div style="display:flex; gap:8px; flex-wrap:wrap;">${filters.map(f => `<span style="background:linear-gradient(135deg, rgba(43,91,255,0.55), rgba(140,180,255,0.28)); color:white; padding:4px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; border:1px solid rgba(255,255,255,0.30); box-shadow:inset 0 1px 0 rgba(255,255,255,0.40), 0 4px 12px rgba(6,16,66,0.28); backdrop-filter:blur(6px);">${f}</span>`).join('')}</div>` : '';
 }
 
 function isDuplicateFlyer(title, fullDescription) {
@@ -1155,6 +1155,13 @@ function displayFlyers() {
     }
 }
 
+// Four 3D corner screws painted on every flyer card, like the mounted-poster
+// design reference (image_238ef3df). Decorative only, so CSS ignores pointer events.
+const FLYER_SCREWS_HTML = '<span class="flyer-screw fs-tl"></span>' +
+    '<span class="flyer-screw fs-tr"></span>' +
+    '<span class="flyer-screw fs-bl"></span>' +
+    '<span class="flyer-screw fs-br"></span>';
+
 function createFlyerCard(f, displayIndex) {
     const k = flyerIdKey(f.id);
     const exp = expandedFlyers.has(k);
@@ -1170,6 +1177,7 @@ function createFlyerCard(f, displayIndex) {
     const styleClass = `flyer-style-${flyerStyle}`;
     return `
         <div class="flyer-card ${exp ? 'expanded' : ''} ${styleClass} ${f.colorClass}" onclick="toggleFlyerExpansion('${f.id}', event)" style="position: relative;">
+            ${FLYER_SCREWS_HTML}
             <div class="flyer-number-tag" style="position: absolute; top: -8px; right: -8px; width: 38px; height: 38px; background: #FEEB00; color: #2B5BFF; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 10; border: 2px solid #ffffff;">
                 ${flyerNumber}
             </div>
@@ -1287,6 +1295,7 @@ function createFlyerTile(f, i, g) {
              style="left:${g.x}px;top:${g.y}px;width:${g.w}px;height:${g.h}px;--rot:${g.rot}deg;--fdur:${g.dur}s;--fdel:${g.del}s;--fdel2:${g.del2}s;z-index:${g.z};"
              onclick="focusFlyer('${f.id}', event)"
              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();focusFlyer('${f.id}',event);}">
+            ${FLYER_SCREWS_HTML}
             <div class="flyer-number-tag" style="position:absolute; top:8px; right:8px; width:26px; height:26px; background:#FEEB00; color:#2B5BFF; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:bold; box-shadow:0 2px 6px rgba(0,0,0,0.25); z-index:10; border:2px solid #ffffff;">
                 ${i + 1}
             </div>
@@ -1307,7 +1316,8 @@ function createFlyerTile(f, i, g) {
 
 function renderFlyerCloud(grid, list) {
     grid.className = 'flyers-grid flyer-cloud' + (focusedFlyerId ? ' cloud-focused' : '');
-    const width = Math.max(320, grid.clientWidth || (grid.parentElement ? grid.parentElement.clientWidth : 0) || 900);
+    // The frosted viewport keeps a 1px rim, so reserve a few px from the grid width
+    const width = Math.max(320, (grid.clientWidth || (grid.parentElement ? grid.parentElement.clientWidth : 0) || 900) - 4);
     const layout = computeCloudLayout(list, width);
 
     // Keep the open reader across re-renders (likes, comments, colour refresh)
@@ -1629,7 +1639,7 @@ function addColorRefreshButton() {
     btn.className = 'clear-filter';
     btn.innerHTML = '<i>🎨</i> Hindura Amabara';
     btn.onclick = refreshAllColors;
-    btn.style.cssText = 'background:linear-gradient(135deg, rgba(43,91,255,0.45), rgba(140,180,255,0.22)); color:white; border:none; padding:6px 14px; border-radius:8px; cursor:pointer; margin-left:10px; font-size:0.8rem; backdrop-filter:blur(6px);';
+    btn.style.cssText = 'background:linear-gradient(135deg, rgba(43,91,255,0.50), rgba(140,180,255,0.24)); color:white; border:1px solid rgba(255,255,255,0.30); padding:6px 14px; border-radius:8px; cursor:pointer; margin-left:10px; font-size:0.8rem; font-weight:700; backdrop-filter:blur(6px); box-shadow:inset 0 1px 0 rgba(255,255,255,0.40), 0 5px 14px rgba(6,16,66,0.26); transition:transform .18s ease, box-shadow .22s ease, background .22s ease;';
     filterSection.appendChild(btn);
 }
 
