@@ -80,9 +80,9 @@
             transition: transform 0.15s ease, background 0.15s ease;
         }
         .shared-btn:hover { transform: translateY(-2px); }
-        .shared-btn-primary { background: #f39c12; color: white; }
-        .shared-btn-secondary { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); }
-        .shared-btn-copy { background: #3498db; color: white; }
+        .shared-btn-primary { background: linear-gradient(135deg, #2B5BFF, #4664FA); color: white; }
+        .shared-btn-secondary { background: rgba(255,255,255,0.15); color: white; }
+        .shared-btn-copy { background: linear-gradient(135deg, #2B5BFF, #4664FA); color: white; }
         .shared-error {
             background: rgba(255,255,255,0.96);
             border-radius: 18px;
@@ -235,9 +235,9 @@
             
             .shared-wrap .comment-input button {
                 padding: 10px 22px;
-                border: none;
+                border: 2px solid #FEEB00;
                 border-radius: 999px;
-                background: #764ba2;
+                background: linear-gradient(135deg, #2B5BFF, #4664FA);
                 color: white;
                 font-weight: 700;
                 font-family: inherit;
@@ -248,7 +248,7 @@
             }
             
             .shared-wrap .comment-input button:hover:not(:disabled) {
-                background: #667eea;
+                background: linear-gradient(135deg, #4664FA, #5175FF);
                 transform: translateY(-1px);
             }
             
@@ -381,16 +381,16 @@
 
                         <div class="interaction-bar">
                             <button class="interaction-btn ${liked ? 'liked' : ''}" id="btn-like" ${liked ? 'disabled' : ''}>
-                                ❤️ <span id="count-likes">${flyer.likes || 0}</span>
+                                <span class="btn-ico">❤️</span> <span id="count-likes">${flyer.likes || 0}</span>
                             </button>
                             <button class="interaction-btn" id="btn-comments">
-                                💬 <span id="count-comments">${(flyer.comments || []).length}</span>
+                                <span class="btn-ico">💬</span> <span id="count-comments">${(flyer.comments || []).length}</span>
                             </button>
                             <button class="interaction-btn ${knew ? 'knew-active' : ''}" id="btn-knew" ${knew ? 'disabled' : ''}>
-                                ✅ <span id="count-knew">${flyer.knew || 0}</span>
+                                <span class="btn-ico">✅</span> <span id="count-knew">${flyer.knew || 0}</span>
                             </button>
                             <button class="interaction-btn ${didnt ? 'didntknow-active' : ''}" id="btn-didntknow" ${didnt ? 'disabled' : ''}>
-                                ❓ <span id="count-didntknow">${flyer.didnt_know || flyer.didntKnow || 0}</span>
+                                <span class="btn-ico">❓</span> <span id="count-didntknow">${flyer.didnt_know || flyer.didntKnow || 0}</span>
                             </button>
                         </div>
                         
@@ -413,6 +413,11 @@
                                 </div>
                             </div>
                         ` : ''}
+                    </div>
+                    <div class="flyer-contact-bar">
+                        <span class="contact-item"><span class="contact-ico">📞</span> +250 788 000 000</span>
+                        <span class="contact-item"><span class="contact-ico">🌐</span> turabimenye.vercel.app</span>
+                        <span class="contact-item"><span class="contact-ico">✉️</span> innovatorsedvance@gmail.com</span>
                     </div>
                 </div>
             `;

@@ -2224,3 +2224,180 @@ img, svg, video {
         font-size: 0.72rem;
     }
 }
+
+/* ====================================================================
+   BLUE + YELLOW THEME  (site-wide override, added last so it wins)
+   Palette sampled from the reference flyer:
+   royal blue #2B5BFF -> #3355F6 -> #4664FA, bright yellow #FEEB00.
+   ==================================================================== */
+:root {
+    --theme-blue-1: #2B5BFF;
+    --theme-blue-2: #3355F6;
+    --theme-blue-3: #4664FA;
+    --theme-yellow: #FEEB00;
+    --theme-yellow-2: #FFD400;
+}
+
+/* ---- Page background: the reference blue ---- */
+body {
+    background:
+        radial-gradient(900px 480px at 8% -8%, rgba(120, 150, 255, 0.35) 0%, transparent 55%),
+        radial-gradient(700px 420px at 100% 0%, rgba(254, 235, 0, 0.10) 0%, transparent 46%),
+        linear-gradient(165deg, #2B5BFF 0%, #3355F6 45%, #4664FA 100%) !important;
+    color: #ffffff !important;
+}
+
+.app-header h1 { color: var(--theme-yellow) !important; text-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important; }
+.app-header p { color: #eaf0ff !important; }
+
+/* ---- Yellow contours on the main surfaces ---- */
+.flyer-card,
+.filter-section,
+.file-upload-section,
+.shared-error,
+.flyer-card .comments-section {
+    border: 3px solid var(--theme-yellow) !important;
+}
+
+/* ---- Unify every flyer card to the blue look (overrides color-N gradients) ---- */
+.flyer-card {
+    background: linear-gradient(160deg, #3a5cff 0%, #2b53f0 100%) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 18px 40px rgba(10, 20, 90, 0.45) !important;
+}
+.flyer-card .flyer-content {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    color: #ffffff !important;
+}
+.flyer-card .flyer-title,
+.flyer-card .flyer-description-preview,
+.flyer-card .flyer-description-full,
+.flyer-card .flyer-date,
+.flyer-card .flyer-region,
+.flyer-card .flyer-metadata,
+.flyer-card .read-more-hint,
+.flyer-card .flyer-references,
+.flyer-card .flyer-references-snippet {
+    color: #ffffff !important;
+    text-shadow: none !important;
+}
+.flyer-card .flyer-title { color: var(--theme-yellow) !important; }
+
+/* ---- Image framed with a yellow contour ---- */
+.flyer-image { border-bottom: 3px solid var(--theme-yellow) !important; }
+.flyer-image-badge {
+    background: rgba(0, 0, 0, 0.55) !important;
+    color: var(--theme-yellow) !important;
+    border: 2px solid var(--theme-yellow) !important;
+    border-radius: 999px !important;
+}
+
+/* ---- Comments panel readable on blue ---- */
+.flyer-card .comments-section {
+    background: rgba(255, 255, 255, 0.10) !important;
+    color: #ffffff !important;
+}
+.flyer-card .comments-section strong { color: var(--theme-yellow) !important; }
+
+/* ---- Feature-style interaction buttons (blue fill + yellow contour) ---- */
+.flyer-card .interaction-btn,
+.interaction-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 6px 12px !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+    border: 2px solid var(--theme-yellow) !important;
+    border-radius: 14px !important;
+    filter: none !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+.interaction-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.24) !important;
+    transform: translateY(-1px);
+}
+
+/* Interaction state colors (keep the yellow contour, tint the fill) */
+.interaction-btn.liked,
+.flyer-card .interaction-btn.liked { background: #e74c3c !important; color: #fff !important; }
+.interaction-btn.knew-active,
+.flyer-card .interaction-btn.knew-active { background: #2ecc71 !important; color: #fff !important; }
+.interaction-btn.didntknow-active,
+.flyer-card .interaction-btn.didntknow-active { background: #e67e22 !important; color: #fff !important; }
+
+/* Comment submit + input inside collection cards */
+.flyer-card .comment-input button {
+    background: linear-gradient(135deg, #2B5BFF, #4664FA) !important;
+    color: #fff !important;
+    border: 2px solid var(--theme-yellow) !important;
+    border-radius: 999px !important;
+    font-weight: 700 !important;
+}
+.flyer-card .comment-input input {
+    background: #ffffff !important;
+    border: 2px solid var(--theme-yellow) !important;
+    color: #1c1528 !important;
+}
+
+/* ---- Icon chip: a small white rounded box that holds a button's icon ---- */
+.btn-ico {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--theme-blue-1);
+    font-size: 0.85rem;
+    line-height: 1;
+    flex: 0 0 auto;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* ---- Yellow contours on the primary action buttons across pages ---- */
+.shared-btn,
+.upload-btn,
+.filter-btn,
+.action-btn,
+.save-match-btn,
+.flyer-references-toggle {
+    border: 2px solid var(--theme-yellow) !important;
+}
+
+/* ---- Footer contact bar (white strip with icon items, like the reference) ---- */
+.flyer-contact-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px 18px;
+    background: #ffffff;
+    color: #1c1528;
+    border-top: 3px solid var(--theme-yellow);
+    border-radius: 0 0 19px 19px;
+    padding: 12px 16px;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+.flyer-contact-bar .contact-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.flyer-contact-bar .contact-ico {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--theme-blue-2);
+    color: #ffffff;
+    font-size: 0.85rem;
+}

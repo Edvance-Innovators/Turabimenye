@@ -1155,7 +1155,7 @@ function createFlyerCard(f, displayIndex) {
     const styleClass = `flyer-style-${flyerStyle}`;
     return `
         <div class="flyer-card ${exp ? 'expanded' : ''} ${styleClass} ${f.colorClass}" onclick="toggleFlyerExpansion('${f.id}', event)" style="position: relative;">
-            <div class="flyer-number-tag" style="position: absolute; top: -8px; right: -8px; width: 38px; height: 38px; background: #f39c12; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 10; border: 2px solid white;">
+            <div class="flyer-number-tag" style="position: absolute; top: -8px; right: -8px; width: 38px; height: 38px; background: #FEEB00; color: #2B5BFF; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 10; border: 2px solid #ffffff;">
                 ${flyerNumber}
             </div>
             <div class="flyer-image">
@@ -1177,20 +1177,18 @@ function createFlyerCard(f, displayIndex) {
                 <div class="flyer-metadata" style="display: flex; gap: 10px; font-size: 0.65rem; color: #666; margin-bottom: 8px;">
                     <span><i>📅</i> ${f.date}</span>
                 </div>
-                <div class="interaction-bar" style="display: flex; gap: 5px; flex-wrap: wrap;">
-                    <button class="interaction-btn ${liked ? 'liked' : ''}" onclick="handleLike('${f.id}', event)" ${liked ? 'disabled' : ''} style="background: ${liked ? '#e74c3c' : '#34495e'}; color: white; border: none; padding: 5px 10px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem;">❤️ ${f.likes || 0}</button>
-                    <button class="interaction-btn" onclick="toggleComments('${f.id}', event)" style="background: #34495e; color: white; border: none; padding: 5px 10px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem;">💬 ${f.comments?.length || 0}</button>
-                    <button class="interaction-btn ${knew ? 'knew-active' : ''}" onclick="handleKnew('${f.id}', event)" ${knew ? 'disabled' : ''} style="background: ${knew ? '#2ecc71' : '#34495e'}; color: white; border: none; padding: 5px 10px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem;">✅ ${f.knew || 0}</button>
-                    <button class="interaction-btn ${didnt ? 'didntknow-active' : ''}" onclick="handleDidntKnow('${f.id}', event)" ${didnt ? 'disabled' : ''} style="background: ${didnt ? '#e67e22' : '#34495e'}; color: white; border: none; padding: 5px 10px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem;">❓ ${f.didntKnow || 0}</button>
-                    <button class="interaction-btn" onclick="shareFlyer('${f.id}', event)" title="Sangiza iyi nkuru" style="background: #16a085; color: white; border: none; padding: 5px 10px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem;">
-                        🔗 Sangiza
-                    </button>
+                <div class="interaction-bar" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    <button class="interaction-btn ${liked ? 'liked' : ''}" onclick="handleLike('${f.id}', event)" ${liked ? 'disabled' : ''}><span class="btn-ico">❤️</span> ${f.likes || 0}</button>
+                    <button class="interaction-btn" onclick="toggleComments('${f.id}', event)"><span class="btn-ico">💬</span> ${f.comments?.length || 0}</button>
+                    <button class="interaction-btn ${knew ? 'knew-active' : ''}" onclick="handleKnew('${f.id}', event)" ${knew ? 'disabled' : ''}><span class="btn-ico">✅</span> ${f.knew || 0}</button>
+                    <button class="interaction-btn ${didnt ? 'didntknow-active' : ''}" onclick="handleDidntKnow('${f.id}', event)" ${didnt ? 'disabled' : ''}><span class="btn-ico">❓</span> ${f.didntKnow || 0}</button>
+                    <button class="interaction-btn" onclick="shareFlyer('${f.id}', event)" title="Sangiza iyi nkuru"><span class="btn-ico">🔗</span> Sangiza</button>
                 </div>
                 ${comExp ? `
                     <div class="comments-section" onclick="event.stopPropagation()" style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px;">
                         <div class="comment-input" style="display: flex; gap: 5px;">
                             <input type="text" id="comment-input-${f.id}" placeholder="${ADD_COMMENT_PLACEHOLDER}" style="flex: 1; padding: 5px 8px; border-radius: 20px; border: 1px solid #ddd; font-size: 0.7rem;">
-                            <button onclick="addComment('${f.id}', event)" style="background: #764ba2; color: white; border: none; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-size: 0.65rem;">${POST_BUTTON}</button>
+                            <button onclick="addComment('${f.id}', event)" style="padding: 5px 12px; cursor: pointer; font-size: 0.65rem;">${POST_BUTTON}</button>
                         </div>
                         <div class="comment-list" style="margin-top: 6px; max-height: 100px; overflow-y: auto;">
                             ${(f.comments || []).map(c => `<div style="padding: 4px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.65rem;"><strong>${c.author}</strong>: ${c.text} <span style="color:#999; font-size:0.55rem;">${c.time}</span></div>`).join('')}
@@ -1208,6 +1206,11 @@ function createFlyerCard(f, displayIndex) {
     </button>
     <div class="flyer-references-body"></div>
 </div>
+            </div>
+            <div class="flyer-contact-bar">
+                <span class="contact-item"><span class="contact-ico">📞</span> +250 788 000 000</span>
+                <span class="contact-item"><span class="contact-ico">🌐</span> turabimenye.vercel.app</span>
+                <span class="contact-item"><span class="contact-ico">✉️</span> innovatorsedvance@gmail.com</span>
             </div>
         </div>
     `;
