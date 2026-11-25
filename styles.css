@@ -4,8 +4,8 @@
     --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
     --bg-deep: #1a1233;
     --bg-mid: #3d2170;
-    --accent: #6d4cc4;
-    --accent-2: #5b3d8a;
+    --accent: #2B5BFF;
+    --accent-2: #1e4bff;
     --accent-soft: #ede6f8;
     --surface: #ffffff;
     --text: #1c1528;
@@ -355,7 +355,7 @@ img, svg, video {
     border: none;
     border-radius: 13px;
     background: #eef1f8;
-    color: #5b3d8a;
+    color: #1e4bff;
     font-size: 0.92rem;
     font-weight: 700;
     cursor: pointer;
@@ -376,19 +376,19 @@ img, svg, video {
 }
 
 .nav-tab:hover {
-    background: linear-gradient(135deg, #8f7fe0, #6d4cc4);
+    background: linear-gradient(135deg, #4664FA, #2B5BFF);
     color: #ffffff;
     transform: translateY(-1px);
 }
 
 .nav-tab.active {
-    background: linear-gradient(135deg, #7c5cd6, #5b3d8a);
+    background: linear-gradient(135deg, #3355F6, #1e4bff);
     color: #ffffff;
     box-shadow: 0 8px 20px rgba(91, 61, 138, 0.42);
 }
 
 .nav-tab .count-badge {
-    background: #5b3d8a;
+    background: #1e4bff;
     color: white;
     padding: 2px 8px;
     border-radius: 20px;
@@ -415,7 +415,7 @@ img, svg, video {
 }
 
 .file-upload-label {
-    background: #764ba2;
+    background: #2B5BFF;
     color: white;
     padding: 12px 25px;
     border-radius: 25px;
@@ -428,7 +428,7 @@ img, svg, video {
 }
 
 .file-upload-label:hover {
-    background: #667eea;
+    background: #4664FA;
     transform: scale(1.05);
 }
 
@@ -483,7 +483,7 @@ img, svg, video {
 
 .text-input-area textarea:focus {
     outline: none;
-    border-color: #764ba2;
+    border-color: #2B5BFF;
 }
 
 .extraction-options {
@@ -511,7 +511,7 @@ img, svg, video {
 }
 
 .extract-btn:hover {
-    background: #667eea;
+    background: #4664FA;
     transform: scale(1.05);
 }
 
@@ -526,7 +526,7 @@ img, svg, video {
     border-radius: 15px;
     padding: 25px;
     margin-top: 20px;
-    border-left: 5px solid #764ba2;
+    border-left: 5px solid #2B5BFF;
 }
 
 .story-actions {
@@ -563,7 +563,7 @@ img, svg, video {
 }
 
 .count-indicator {
-    background: #764ba2;
+    background: #2B5BFF;
     color: white;
     padding: 8px 20px;
     border-radius: 25px;
@@ -618,7 +618,7 @@ img, svg, video {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.8rem;
     line-height: 1.6;
-    border-left: 4px solid #764ba2;
+    border-left: 4px solid #2B5BFF;
     overflow-x: auto;
     word-break: break-word;
 }
@@ -756,7 +756,7 @@ img, svg, video {
 }
 
 .filter-option.active {
-    background: #764ba2;
+    background: #2B5BFF;
     color: white;
 }
 
@@ -787,7 +787,7 @@ img, svg, video {
 }
 
 .active-filter-badge {
-    background: #764ba2;
+    background: #2B5BFF;
     color: white;
     padding: 4px 12px;
     border-radius: 20px;
@@ -1012,7 +1012,7 @@ img, svg, video {
     font-weight: 700;
     margin-bottom: 10px;
     color: #333;
-    border-left: 4px solid #764ba2;
+    border-left: 4px solid #2B5BFF;
     padding-left: 12px;
     display: flex;
     align-items: center;
@@ -1022,7 +1022,7 @@ img, svg, video {
 
 .expand-icon {
     font-size: 1.2rem;
-    color: #764ba2;
+    color: #2B5BFF;
     transition: transform 0.3s ease;
     margin-left: auto;
 }
@@ -1054,7 +1054,7 @@ img, svg, video {
 }
 
 .read-more-hint {
-    color: #764ba2;
+    color: #2B5BFF;
     font-size: 0.85rem;
     margin-top: 5px;
     font-style: italic;
@@ -1079,7 +1079,7 @@ img, svg, video {
 }
 
 .flyer-region {
-    color: #764ba2;
+    color: #2B5BFF;
     font-size: 0.85rem;
     display: flex;
     align-items: center;
@@ -1170,7 +1170,7 @@ img, svg, video {
     position: absolute;
     top: -5px;
     right: -5px;
-    background: #764ba2;
+    background: #2B5BFF;
     color: white;
     font-size: 0.7rem;
     padding: 2px 6px;
@@ -1206,7 +1206,7 @@ img, svg, video {
 
 .comment-input button {
     padding: 8px 20px;
-    background: #764ba2;
+    background: #2B5BFF;
     color: white;
     border: none;
     border-radius: 20px;
@@ -1215,7 +1215,7 @@ img, svg, video {
 }
 
 .comment-input button:hover {
-    background: #667eea;
+    background: #4664FA;
 }
 
 .comment-list {
@@ -1234,7 +1234,7 @@ img, svg, video {
 
 .comment-author {
     font-weight: 600;
-    color: #764ba2;
+    color: #2B5BFF;
     margin-right: 8px;
 }
 
@@ -1416,7 +1416,7 @@ img, svg, video {
 }
 
 .flyer-image-picker-preview.has-image {
-    border-color: #764ba2;
+    border-color: #2B5BFF;
 }
 
 .flyer-image-picker-img {
@@ -1443,7 +1443,7 @@ img, svg, video {
     justify-content: center;
     gap: 6px;
     padding: 10px 18px;
-    background: #764ba2;
+    background: #2B5BFF;
     color: white;
     border-radius: 25px;
     font-size: 0.85rem;
@@ -1478,7 +1478,7 @@ img, svg, video {
 
 .flyer-image-url-row input:focus {
     outline: none;
-    border-color: #764ba2;
+    border-color: #2B5BFF;
 }
 
 .flyer-image-url-btn {
@@ -1518,7 +1518,7 @@ img, svg, video {
 .flyer-references-title {
     font-size: 0.8rem;
     font-weight: 700;
-    color: #5b3d8a;
+    color: #1e4bff;
     margin: 0 0 8px;
     letter-spacing: 0.02em;
 }
@@ -1633,7 +1633,7 @@ img, svg, video {
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    border: 2px solid #764ba2;
+    border: 2px solid #2B5BFF;
     background: linear-gradient(135deg, #7c3aed 0%, #5b21b8 100%);
     color: #fff;
     font-weight: 800;
@@ -1675,7 +1675,7 @@ img, svg, video {
     border-radius: 50%;
     border: none;
     background: #ede4f7;
-    color: #5b3d8a;
+    color: #1e4bff;
     cursor: pointer;
     font-size: 0.9rem;
     display: flex;
@@ -1736,7 +1736,7 @@ img, svg, video {
 .acct-menu-links li { padding: 6px 0; }
 .acct-menu-links a {
     text-decoration: none;
-    color: #5b3d8a;
+    color: #1e4bff;
     font-weight: 600;
     display: block;
     padding: 8px 12px;
@@ -1744,7 +1744,7 @@ img, svg, video {
     transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease;
 }
 .acct-menu-links a:hover {
-    background: linear-gradient(135deg, #4ecdc4, #6d4cc4);
+    background: linear-gradient(135deg, #4ecdc4, #2B5BFF);
     color: #fff;
     transform: translateX(2px);
 }
@@ -1773,7 +1773,7 @@ img, svg, video {
     transition: background 0.18s ease, color 0.18s ease;
 }
 .acct-menu-section li:hover {
-    background: linear-gradient(135deg, #4ecdc4, #6d4cc4);
+    background: linear-gradient(135deg, #4ecdc4, #2B5BFF);
     color: #fff;
 }
 .acct-menu-section a {
@@ -1789,7 +1789,7 @@ img, svg, video {
     justify-content: space-between;
     align-items: center;
     font-weight: 700;
-    color: #5b3d8a;
+    color: #1e4bff;
     font-size: 0.78rem;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -1841,7 +1841,7 @@ img, svg, video {
     font-size: 0.85rem;
 }
 .acct-menu-logout { background: #fdecea; color: #c0392b; }
-.acct-menu-login  { background: #764ba2; color: #fff; }
+.acct-menu-login  { background: #2B5BFF; color: #fff; }
 
 @media (max-width: 700px) {
     .acct-bar { top: max(8px, env(safe-area-inset-top)); right: 8px; padding: 5px 8px 5px 5px; }
@@ -2091,7 +2091,7 @@ img, svg, video {
     border-radius: 10px;
     font-size: 0.82rem;
     font-weight: 700;
-    color: #5b3d8a;
+    color: #1e4bff;
     cursor: pointer;
     font-family: inherit;
     text-align: left;
@@ -2104,7 +2104,7 @@ img, svg, video {
 }
 
 .flyer-references-toggle:focus-visible {
-    outline: 2px solid #764ba2;
+    outline: 2px solid #2B5BFF;
     outline-offset: 2px;
 }
 
@@ -2119,7 +2119,7 @@ img, svg, video {
 
 .flyer-references-caret {
     font-size: 0.85rem;
-    color: #5b3d8a;
+    color: #1e4bff;
     transition: transform 0.2s ease;
 }
 
@@ -2198,7 +2198,7 @@ img, svg, video {
 }
 
 .flyer-references-loading .loading-spinner {
-    border-color: #764ba2;
+    border-color: #2B5BFF;
     border-top-color: transparent;
     width: 14px;
     height: 14px;
@@ -2238,17 +2238,25 @@ img, svg, video {
     --theme-yellow-2: #FFD400;
 }
 
-/* ---- Page background: the reference blue ---- */
+/* ---- Page background: white -> light blue gradient ---- */
 body {
     background:
-        radial-gradient(900px 480px at 8% -8%, rgba(120, 150, 255, 0.35) 0%, transparent 55%),
-        radial-gradient(700px 420px at 100% 0%, rgba(254, 235, 0, 0.10) 0%, transparent 46%),
-        linear-gradient(165deg, #2B5BFF 0%, #3355F6 45%, #4664FA 100%) !important;
-    color: #ffffff !important;
+        radial-gradient(1100px 520px at 100% -10%, rgba(70, 100, 250, 0.18) 0%, transparent 55%),
+        radial-gradient(820px 460px at -5% 0%, rgba(43, 91, 255, 0.12) 0%, transparent 50%),
+        linear-gradient(165deg, #ffffff 0%, #eef3ff 45%, #cfe0ff 100%) !important;
+    color: #16224d !important;
 }
 
-.app-header h1 { color: var(--theme-yellow) !important; text-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important; }
-.app-header p { color: #eaf0ff !important; }
+.app-header h1 { color: var(--theme-blue-1) !important; text-shadow: none !important; }
+.app-header p { color: #3a4a7a !important; }
+
+/* ---- Recolor leftover violet accents to blue ---- */
+.quote-roll-arrow { background: linear-gradient(135deg, #2B5BFF, #4664FA) !important; border: 2px solid var(--theme-yellow) !important; box-shadow: 0 4px 12px rgba(43, 91, 255, 0.35) !important; }
+.user-status button { background: linear-gradient(135deg, #2B5BFF, #4664FA) !important; color: #ffffff !important; border: 2px solid var(--theme-yellow) !important; }
+.user-status button:hover { background: #2B5BFF !important; }
+.proverb-lang-name,
+.comment-author { color: var(--theme-blue-1) !important; }
+.proverb-trans-modal .loading-spinner { border-color: var(--theme-blue-1) !important; }
 
 /* ---- Yellow contours on the main surfaces ---- */
 .flyer-card,
@@ -2259,12 +2267,29 @@ body {
     border: 3px solid var(--theme-yellow) !important;
 }
 
-/* ---- Unify every flyer card to the blue look (overrides color-N gradients) ---- */
+/* ---- Flyer cards: blue RECTANGLE with a white dot-grid in the top corners ---- */
 .flyer-card {
     background: linear-gradient(160deg, #3a5cff 0%, #2b53f0 100%) !important;
-    border-radius: 22px !important;
-    box-shadow: 0 18px 40px rgba(10, 20, 90, 0.45) !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    box-shadow: 0 18px 40px rgba(10, 20, 90, 0.35) !important;
 }
+.flyer-card::before,
+.flyer-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 64px;
+    height: 48px;
+    z-index: 3;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.85) 1.4px, transparent 1.6px);
+    background-size: 11px 11px;
+}
+.flyer-card::before { left: 0; -webkit-mask-image: linear-gradient(135deg, #000 8%, transparent 62%); mask-image: linear-gradient(135deg, #000 8%, transparent 62%); }
+.flyer-card::after { right: 0; -webkit-mask-image: linear-gradient(225deg, #000 8%, transparent 62%); mask-image: linear-gradient(225deg, #000 8%, transparent 62%); }
+.flyer-card .flyer-number-tag { top: 10px !important; right: 10px !important; }
+
 .flyer-card .flyer-content {
     background: transparent !important;
     backdrop-filter: none !important;
@@ -2285,13 +2310,13 @@ body {
 }
 .flyer-card .flyer-title { color: var(--theme-yellow) !important; }
 
-/* ---- Image framed with a yellow contour ---- */
-.flyer-image { border-bottom: 3px solid var(--theme-yellow) !important; }
+/* ---- Image framed with a yellow contour (square top corners) ---- */
+.flyer-image { border-bottom: 3px solid var(--theme-yellow) !important; border-radius: 0 !important; }
 .flyer-image-badge {
     background: rgba(0, 0, 0, 0.55) !important;
     color: var(--theme-yellow) !important;
     border: 2px solid var(--theme-yellow) !important;
-    border-radius: 999px !important;
+    border-radius: 8px !important;
 }
 
 /* ---- Comments panel readable on blue ---- */
@@ -2301,28 +2326,28 @@ body {
 }
 .flyer-card .comments-section strong { color: var(--theme-yellow) !important; }
 
-/* ---- Feature-style interaction buttons (blue fill + yellow contour) ---- */
+/* ---- Interaction buttons: BLUE fill, yellow contour, sharp corners ---- */
 .flyer-card .interaction-btn,
 .interaction-btn {
     display: inline-flex !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 7px !important;
     padding: 6px 12px !important;
     font-size: 0.72rem !important;
     font-weight: 700 !important;
-    background: rgba(255, 255, 255, 0.12) !important;
+    background: linear-gradient(135deg, #2B5BFF, #4664FA) !important;
     color: #ffffff !important;
     border: 2px solid var(--theme-yellow) !important;
-    border-radius: 14px !important;
+    border-radius: 8px !important;
     filter: none !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    box-shadow: 0 4px 12px rgba(10, 20, 90, 0.35) !important;
 }
 .interaction-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.24) !important;
+    background: #1e4bff !important;
     transform: translateY(-1px);
 }
 
-/* Interaction state colors (keep the yellow contour, tint the fill) */
+/* Interaction state colors (keep yellow contour + white line-art) */
 .interaction-btn.liked,
 .flyer-card .interaction-btn.liked { background: #e74c3c !important; color: #fff !important; }
 .interaction-btn.knew-active,
@@ -2335,32 +2360,40 @@ body {
     background: linear-gradient(135deg, #2B5BFF, #4664FA) !important;
     color: #fff !important;
     border: 2px solid var(--theme-yellow) !important;
-    border-radius: 999px !important;
+    border-radius: 8px !important;
     font-weight: 700 !important;
 }
 .flyer-card .comment-input input {
     background: #ffffff !important;
     border: 2px solid var(--theme-yellow) !important;
-    color: #1c1528 !important;
+    color: #1c2450 !important;
+    border-radius: 8px !important;
 }
 
-/* ---- Icon chip: a small white rounded box that holds a button's icon ---- */
+/* ---- White line-art icon shown directly on the blue button ---- */
 .btn-ico {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
-    background: #ffffff;
-    color: var(--theme-blue-1);
-    font-size: 0.85rem;
-    line-height: 1;
+    width: 18px;
+    height: 18px;
+    background: transparent;
+    box-shadow: none;
+    color: #ffffff;
     flex: 0 0 auto;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+.ico {
+    width: 17px;
+    height: 17px;
+    display: block;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
-/* ---- Yellow contours on the primary action buttons across pages ---- */
+/* ---- Yellow contours + sharp corners on the primary action buttons ---- */
 .shared-btn,
 .upload-btn,
 .filter-btn,
@@ -2368,36 +2401,31 @@ body {
 .save-match-btn,
 .flyer-references-toggle {
     border: 2px solid var(--theme-yellow) !important;
+    border-radius: 8px !important;
 }
+.upload-btn,
+.save-match-btn,
+.filter-btn,
+.shared-btn-primary,
+.shared-btn-secondary,
+.shared-btn-copy {
+    background: linear-gradient(135deg, #2B5BFF, #4664FA) !important;
+    color: #ffffff !important;
+}
+.action-btn.view,
+.action-btn.edit,
+.action-btn.message { background: #2B5BFF !important; color: #ffffff !important; }
 
-/* ---- Footer contact bar (white strip with icon items, like the reference) ---- */
-.flyer-contact-bar {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 6px 18px;
-    background: #ffffff;
-    color: #1c1528;
-    border-top: 3px solid var(--theme-yellow);
-    border-radius: 0 0 19px 19px;
-    padding: 12px 16px;
-    font-weight: 700;
-    font-size: 0.85rem;
+/* ---- Filter buttons above the flyers: blue -> light-blue gradient + overlap fix ---- */
+.filter-dropdown-btn {
+    background: linear-gradient(135deg, #2B5BFF, #6f9bff) !important;
+    color: #ffffff !important;
+    border: 2px solid var(--theme-yellow) !important;
+    border-radius: 8px !important;
 }
-.flyer-contact-bar .contact-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-.flyer-contact-bar .contact-ico {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: var(--theme-blue-2);
-    color: #ffffff;
-    font-size: 0.85rem;
-}
+.filter-dropdown-btn:hover { background: linear-gradient(135deg, #1e4bff, #4f7dff) !important; }
+.filter-option.active { background: var(--theme-blue-1) !important; color: #ffffff !important; }
+.controls { z-index: 40 !important; }
+.filter-dropdown:hover,
+.filter-dropdown:focus-within { z-index: 60 !important; }
+.filter-dropdown-content { z-index: 70 !important; border: 2px solid var(--theme-yellow) !important; }

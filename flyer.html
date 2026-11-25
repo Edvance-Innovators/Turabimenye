@@ -90,7 +90,7 @@
             text-align: center;
             color: #555;
         }
-        .shared-error h2 { color: #764ba2; margin-bottom: 10px; }
+        .shared-error h2 { color: #2B5BFF; margin-bottom: 10px; }
 
         /* Make the interaction buttons on the shared page clickable */
         .shared-wrap .interaction-btn {
@@ -229,7 +229,7 @@
             
             .shared-wrap .comment-input input:focus {
                 outline: none;
-                border-color: #764ba2;
+                border-color: #2B5BFF;
                 background: #ffffff;
             }
             
@@ -296,13 +296,13 @@
             <div id="sharedFlyerContainer"></div>
             <div class="shared-actions" id="sharedActions" style="display:none;">
                 <a href="index.html" class="shared-btn shared-btn-secondary">
-                    🏠 Ahabanza
+                    <span class="btn-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span> Ahabanza
                 </a>
                 <a href="index.html" id="findMoreBtn" class="shared-btn shared-btn-primary">
-                    🔍 Reba izindi nkuru nk'iyi
+                    <span class="btn-ico"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Reba izindi nkuru nk'iyi
                 </a>
                 <button type="button" class="shared-btn shared-btn-copy" onclick="copySharedLink(event)">
-                    🔗 Sangiza
+                    <span class="btn-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span> Sangiza
                 </button>
             </div>
         </div>
@@ -381,16 +381,16 @@
 
                         <div class="interaction-bar">
                             <button class="interaction-btn ${liked ? 'liked' : ''}" id="btn-like" ${liked ? 'disabled' : ''}>
-                                <span class="btn-ico">❤️</span> <span id="count-likes">${flyer.likes || 0}</span>
+                                <span class="btn-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 1 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></span> <span id="count-likes">${flyer.likes || 0}</span>
                             </button>
                             <button class="interaction-btn" id="btn-comments">
-                                <span class="btn-ico">💬</span> <span id="count-comments">${(flyer.comments || []).length}</span>
+                                <span class="btn-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.3 8.9 8.9 0 0 1-4-.9L3 20.5l1.6-4.4A8.3 8.3 0 0 1 3.5 11.5 8.4 8.4 0 0 1 12 3.2a8.4 8.4 0 0 1 9 8.3z"/></svg></span> <span id="count-comments">${(flyer.comments || []).length}</span>
                             </button>
                             <button class="interaction-btn ${knew ? 'knew-active' : ''}" id="btn-knew" ${knew ? 'disabled' : ''}>
-                                <span class="btn-ico">✅</span> <span id="count-knew">${flyer.knew || 0}</span>
+                                <span class="btn-ico"><svg class="ico" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span> <span id="count-knew">${flyer.knew || 0}</span>
                             </button>
                             <button class="interaction-btn ${didnt ? 'didntknow-active' : ''}" id="btn-didntknow" ${didnt ? 'disabled' : ''}>
-                                <span class="btn-ico">❓</span> <span id="count-didntknow">${flyer.didnt_know || flyer.didntKnow || 0}</span>
+                                <span class="btn-ico"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> <span id="count-didntknow">${flyer.didnt_know || flyer.didntKnow || 0}</span>
                             </button>
                         </div>
                         
@@ -413,11 +413,6 @@
                                 </div>
                             </div>
                         ` : ''}
-                    </div>
-                    <div class="flyer-contact-bar">
-                        <span class="contact-item"><span class="contact-ico">📞</span> +250 788 000 000</span>
-                        <span class="contact-item"><span class="contact-ico">🌐</span> turabimenye.vercel.app</span>
-                        <span class="contact-item"><span class="contact-ico">✉️</span> innovatorsedvance@gmail.com</span>
                     </div>
                 </div>
             `;

@@ -502,7 +502,7 @@ function renderCorrespondingGroups(groups, calc, matchedName, category) {
         : `${label} ahuye muri sisitemu imwe`;
 
     const systems = [
-        { key: 'pythagorean', label: 'Pythagorean', total: calc.pythagorean.total, reduced: calc.pythagorean.reduced, color: '#764ba2' },
+        { key: 'pythagorean', label: 'Pythagorean', total: calc.pythagorean.total, reduced: calc.pythagorean.reduced, color: '#2B5BFF' },
         { key: 'egyptian',    label: 'Egyptian',    total: calc.egyptian.total,    reduced: calc.egyptian.reduced,    color: '#d4a017' },
         { key: 'latin',       label: 'Latin',       total: calc.latin.total,       reduced: calc.latin.reduced,       color: '#2f80ed' },
         { key: 'afro',        label: 'Afro-Sumerian', total: calc.afro.total,      reduced: calc.afro.reduced,        color: '#b8860b' },

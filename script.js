@@ -747,7 +747,7 @@ function displayStoryPreviews(stories) {
         const categoryDisplay = CATEGORY_NAMES[story.category] || story.category;
         html += `
             <div style="background: white; padding: 20px; border-radius: 10px; margin-top: 15px; border: 1px solid #e0e0e0;">
-                <h4 style="color: #764ba2;">${story.title} <span style="background:#3498db; color:white; padding:2px 10px; border-radius:15px; font-size:0.7rem;"><i>🇷🇼</i> Kinyarwanda</span></h4>
+                <h4 style="color: #2B5BFF;">${story.title} <span style="background:#3498db; color:white; padding:2px 10px; border-radius:15px; font-size:0.7rem;"><i>🇷🇼</i> Kinyarwanda</span></h4>
                 <p style="margin: 10px 0;">${story.previewDescription}</p>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0;">
                     ${(story.keywords || []).map(k => `<span style="background:#e0e0e0; padding:3px 12px; border-radius:20px; font-size:0.75rem;">#${k}</span>`).join('')}
@@ -832,7 +832,7 @@ function openEditor(storyIndex) {
     modal.style.cssText = `position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; justify-content:center; align-items:center; z-index:2000;`;
     modal.innerHTML = `
         <div style="background:white; border-radius:20px; padding:30px; max-width:600px; width:90%; max-height:90vh; overflow-y:auto;">
-            <h2 style="color:#764ba2;">✏️ Hindura Inkuru</h2>
+            <h2 style="color:#2B5BFF;">✏️ Hindura Inkuru</h2>
             <div style="margin-bottom:15px;"><label>Umutwe:</label><input type="text" id="editTitle" value="${escapeHtml(currentEditingStory.title)}" style="width:100%; padding:10px; border-radius:10px;"></div>
             <div style="margin-bottom:15px;"><label>Incamake:</label><textarea id="editPreview" rows="3" style="width:100%; padding:10px; border-radius:10px;">${escapeHtml(currentEditingStory.previewDescription)}</textarea></div>
             <div style="margin-bottom:15px;"><label>Inkuru Yuzuye:</label><textarea id="editFull" rows="6" style="width:100%; padding:10px; border-radius:10px;">${escapeHtml(currentEditingStory.fullDescription)}</textarea></div>
@@ -974,7 +974,7 @@ function updateActiveFilters() {
     if (currentFilters.category !== 'all') filters.push(`Icyiciro: ${CATEGORY_NAMES[currentFilters.category]}`);
     if (currentFilters.search) filters.push(`Ushaka: "${currentFilters.search}"`);
     div.style.display = filters.length ? 'block' : 'none';
-    div.innerHTML = filters.length ? `<div style="display:flex; gap:8px; flex-wrap:wrap;">${filters.map(f => `<span style="background:#764ba2; color:white; padding:4px 12px; border-radius:20px; font-size:0.75rem;">${f}</span>`).join('')}</div>` : '';
+    div.innerHTML = filters.length ? `<div style="display:flex; gap:8px; flex-wrap:wrap;">${filters.map(f => `<span style="background:#2B5BFF; color:white; padding:4px 12px; border-radius:8px; font-size:0.75rem; border:2px solid #FEEB00;">${f}</span>`).join('')}</div>` : '';
 }
 
 function isDuplicateFlyer(title, fullDescription) {
@@ -1178,11 +1178,11 @@ function createFlyerCard(f, displayIndex) {
                     <span><i>📅</i> ${f.date}</span>
                 </div>
                 <div class="interaction-bar" style="display: flex; gap: 6px; flex-wrap: wrap;">
-                    <button class="interaction-btn ${liked ? 'liked' : ''}" onclick="handleLike('${f.id}', event)" ${liked ? 'disabled' : ''}><span class="btn-ico">❤️</span> ${f.likes || 0}</button>
-                    <button class="interaction-btn" onclick="toggleComments('${f.id}', event)"><span class="btn-ico">💬</span> ${f.comments?.length || 0}</button>
-                    <button class="interaction-btn ${knew ? 'knew-active' : ''}" onclick="handleKnew('${f.id}', event)" ${knew ? 'disabled' : ''}><span class="btn-ico">✅</span> ${f.knew || 0}</button>
-                    <button class="interaction-btn ${didnt ? 'didntknow-active' : ''}" onclick="handleDidntKnow('${f.id}', event)" ${didnt ? 'disabled' : ''}><span class="btn-ico">❓</span> ${f.didntKnow || 0}</button>
-                    <button class="interaction-btn" onclick="shareFlyer('${f.id}', event)" title="Sangiza iyi nkuru"><span class="btn-ico">🔗</span> Sangiza</button>
+                    <button class="interaction-btn ${liked ? 'liked' : ''}" onclick="handleLike('${f.id}', event)" ${liked ? 'disabled' : ''}><span class="btn-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 1 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></span> ${f.likes || 0}</button>
+                    <button class="interaction-btn" onclick="toggleComments('${f.id}', event)"><span class="btn-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.3 8.9 8.9 0 0 1-4-.9L3 20.5l1.6-4.4A8.3 8.3 0 0 1 3.5 11.5 8.4 8.4 0 0 1 12 3.2a8.4 8.4 0 0 1 9 8.3z"/></svg></span> ${f.comments?.length || 0}</button>
+                    <button class="interaction-btn ${knew ? 'knew-active' : ''}" onclick="handleKnew('${f.id}', event)" ${knew ? 'disabled' : ''}><span class="btn-ico"><svg class="ico" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span> ${f.knew || 0}</button>
+                    <button class="interaction-btn ${didnt ? 'didntknow-active' : ''}" onclick="handleDidntKnow('${f.id}', event)" ${didnt ? 'disabled' : ''}><span class="btn-ico"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> ${f.didntKnow || 0}</button>
+                    <button class="interaction-btn" onclick="shareFlyer('${f.id}', event)" title="Sangiza iyi nkuru"><span class="btn-ico"><svg class="ico" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span> Sangiza</button>
                 </div>
                 ${comExp ? `
                     <div class="comments-section" onclick="event.stopPropagation()" style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px;">
@@ -1206,11 +1206,6 @@ function createFlyerCard(f, displayIndex) {
     </button>
     <div class="flyer-references-body"></div>
 </div>
-            </div>
-            <div class="flyer-contact-bar">
-                <span class="contact-item"><span class="contact-ico">📞</span> +250 788 000 000</span>
-                <span class="contact-item"><span class="contact-ico">🌐</span> turabimenye.vercel.app</span>
-                <span class="contact-item"><span class="contact-ico">✉️</span> innovatorsedvance@gmail.com</span>
             </div>
         </div>
     `;
