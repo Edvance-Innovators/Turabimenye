@@ -3034,3 +3034,54 @@ body { overflow-x: clip; }
     .stack-nav { right: 34px; }
     .flyer-tile { --step-x: 6px; --step-y: 5px; }
 }
+
+/* ==================== FLYER WALL VIEW (3D infinite parallax) ====================
+   Third collection layout built on
+   assets/infinite-parallax-gallery-5-layer-scrolling-image-wall-three-js.
+   Appended last so it wins the cascade against the shared rules above. */
+.flyer-wall { display: block; }
+.wall-viewport {
+    position: relative;
+    height: min(76vh, 680px);
+    overflow: hidden;
+    border-radius: 18px;
+    background: radial-gradient(120% 100% at 50% 0%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.05) 55%, rgba(8, 16, 48, 0.30) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), 0 18px 40px rgba(8, 16, 48, 0.32);
+    cursor: grab;
+    /* Vertical page scrolling stays available; horizontal gestures belong to the wall */
+    touch-action: pan-y;
+}
+.wall-viewport canvas { position: absolute; inset: 0; display: block; }
+.wall-loading {
+    position: absolute; inset: 0; z-index: 6;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; color: #ffffff; pointer-events: none;
+    text-shadow: 0 1px 6px rgba(8, 16, 48, 0.8);
+}
+.wall-caption {
+    position: absolute; top: 14px; left: 50%; z-index: 7;
+    transform: translateX(-50%) translateY(-6px);
+    max-width: min(82%, 520px);
+    padding: 7px 14px; border-radius: 999px;
+    background: rgba(8, 16, 48, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    color: #ffffff; font-size: 0.78rem; font-weight: 600; text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+}
+.wall-caption.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.flyer-wall .flyer-focus-layer { position: absolute; inset: 0; z-index: 1000; display: none; }
+.flyer-wall.cloud-focused .flyer-focus-layer { display: block; animation: cloudFade 0.25s ease; }
+.flyer-wall.cloud-focused .wall-viewport { cursor: default; }
+.wall-off-note { padding: 14px 4px; font-size: 0.85rem; color: #ffffff; }
+.wall-off-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 16px; padding: 12px 0 4px;
+}
+@media (max-width: 560px) {
+    .wall-viewport { height: min(62vh, 460px); }
+    .wall-caption { font-size: 0.7rem; top: 10px; }
+}

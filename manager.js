@@ -12,13 +12,23 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 let realtimeChannel = null;
 
 // ==================== FLYER CLOUD SYNC ====================
-const FLYERS_API = '/api/flyers';
+// Off the deployed origin there are no Vercel functions to answer /api/*, which made a
+// perfectly healthy collection look empty in local preview. Same rule as script.js: use
+// the live backend when the page is not being served by it.
+const LIVE_API_ORIGIN = 'https://turabimenye.vercel.app';
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]', '::1', '0.0.0.0', ''];
+const API_ORIGIN = (!/^https?:$/.test(location.protocol) || LOCAL_HOSTS.includes(location.hostname))
+    ? LIVE_API_ORIGIN : '';
+const FLYERS_API = API_ORIGIN + '/api/flyers';
 
 // ==================== SAVE SAFETY HELPERS ====================
 // Every network call involved in saving is time-boxed, so a stalled request
 // can never leave the Save button hanging forever.
 const CLOUD_TIMEOUT_MS = 15000;
 const STORAGE_TIMEOUT_MS = 20000;
+// A full collection read is multi-megabyte (rows still carry base64 pictures),
+// so it gets its own longer budget instead of the 15s write timeout.
+const FLYERS_READ_TIMEOUT_MS = 45000;
 
 function fetchWithTimeout(url, options = {}, ms = CLOUD_TIMEOUT_MS) {
     const controller = new AbortController();
@@ -46,6 +56,20 @@ function setBtnBusy(btn, busy, label, busyText) {
     } else {
         btn.disabled = false;
         if (label && btn.dataset.saveLabel) label.innerHTML = btn.dataset.saveLabel;
+    }
+}
+
+// The full cloud cache easily exceeds the browser's ~5MB localStorage quota once
+// flyers carry base64 pictures. A raw setItem then throws QuotaExceededError,
+// which used to abort loadData() before checkManagerAuth() ever ran — the
+// dashboard stayed hidden and the pill kept saying "Iringanisha riri gukora".
+function safeSetItem(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch (err) {
+        console.warn(`⚠️ localStorage[${key}] not saved:`, err.name, err.message);
+        return false;
     }
 }
 
@@ -147,16 +171,22 @@ function rowToFlyer(row) {
 }
 
 async function loadFlyersFromCloud() {
-    try {
-        const res = await fetchWithTimeout(FLYERS_API);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const rows = await res.json();
-        console.log(`☁️ Manager: loaded ${rows.length} flyers from cloud`);
-        return rows.map(rowToFlyer);
-    } catch (err) {
-        console.warn('⚠️ Manager cloud load failed:', err.message);
-        return null;
+    // Two attempts: a single stalled read used to abort into the empty local copy,
+    // which is what made the dashboard look like it was syncing forever.
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+            const res = await fetchWithTimeout(FLYERS_API, { cache: 'no-store' }, FLYERS_READ_TIMEOUT_MS);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const rows = await res.json();
+            console.log(`☁️ Manager: loaded ${rows.length} flyers from cloud`);
+            return rows.map(rowToFlyer);
+        } catch (err) {
+            console.warn(`⚠️ Manager cloud load attempt ${attempt} failed:`, err.message);
+            if (attempt === 2) return null;
+            await new Promise(r => setTimeout(r, 800));
+        }
     }
+    return null;
 }
 
 async function saveFlyerToCloud(flyer) {
@@ -230,7 +260,7 @@ async function deleteFlyerFromCloud(id) {
 }
 
 // ==================== MANAGER CLOUD (SUPABASE) ====================
-const MANAGERS_API = '/api/managers';
+const MANAGERS_API = API_ORIGIN + '/api/managers';
 const SUPER_ADMIN_EMAIL = 'innovatorsedvance@gmail.com';
 
 let managerList = [];
@@ -402,7 +432,7 @@ function handleManagerRealtime(payload) {
     updateStats();
     loadFlyersGrid();
     try {
-        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
+        safeSetItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
     } catch {}
 }
 
@@ -530,10 +560,11 @@ async function loadData() {
 
     const cloudFlyers = await loadFlyersFromCloud();
     if (cloudFlyers === null) {
+        console.warn('⚠️ Cloud fetch failed — showing the local copy instead');
         allFlyers = JSON.parse(localStorage.getItem('wrzkk_all_flyers')) || [];
     } else {
         allFlyers = cloudFlyers;
-        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
+        safeSetItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
     }
 
     await fetchManagersFromCloud();
@@ -679,8 +710,8 @@ async function applyStyleToAllFlyers() {
             if (btn) btn.innerHTML = `⏳ Birakora (${Math.min(i + BATCH, allFlyers.length)}/${allFlyers.length}) ...`;
         }
 
-        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
-        localStorage.setItem('wrzkk_flyers', JSON.stringify(allFlyers));
+        safeSetItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
+        safeSetItem('wrzkk_flyers', JSON.stringify(allFlyers));
         localStorage.setItem('wrzkk_global_style', globalFlyerStyle);
 
         loadFlyersGrid();
@@ -702,25 +733,41 @@ async function applyStyleToAllFlyers() {
 async function refreshAllData() {
     console.log('🔄 Refreshing all data from cloud...');
 
+    const statusEl = document.getElementById('syncStatus');
+    if (statusEl) statusEl.innerHTML = '⏳ Iringanisha riri gukora...';
+
     users = JSON.parse(localStorage.getItem('wrzkk_users')) || [];
     messages = JSON.parse(localStorage.getItem('wrzkk_messages')) || [];
 
     const cloudFlyers = await loadFlyersFromCloud();
+    let cloudOk = true;
     if (cloudFlyers !== null) {
         allFlyers = cloudFlyers;
-        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
+        safeSetItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
+    } else {
+        cloudOk = false;
+        showToast('⚠️ Ntibyakunze gukurura ikuru muri cloud — garagaza kopi yo hafi.', 'warning', 6000);
     }
 
-    updateStats();
-    loadUsersTable();
-    loadFlyersGrid();
-    loadMessages();
-    renderManagerEmailsList();
+    try {
+        updateStats();
+        loadUsersTable();
+        loadFlyersGrid();
+        loadMessages();
+        renderManagerEmailsList();
+    } catch (err) {
+        console.error('Render after sync failed:', err);
+    }
 
-    const statusEl = document.getElementById('syncStatus');
     if (statusEl) {
-        statusEl.innerHTML = `✅ Byavuguruwe! ${allFlyers.length} Utuzingo.`;
-        setTimeout(() => { statusEl.innerHTML = '✅ Iringanisha rirakora'; }, 3000);
+        // Three different states, so "backend unreachable", "table empty" and
+        // "RLS blocking the read" no longer all look like a stuck spinner.
+        statusEl.innerHTML = !cloudOk
+            ? `⚠️ Cloud ntiyasubije — kopi yo hafi: ${allFlyers.length} Utuzingo.`
+            : (allFlyers.length
+                ? `✅ Byavuguruwe! ${allFlyers.length} Utuzingo.`
+                : '✅ Byavuguruwe! ⚠️ Cloud yagaragaje 0 — genzura RLS/env.');
+        setTimeout(() => { statusEl.innerHTML = '✅ Iringanisha rirakora'; }, 5000);
     }
 }
 
@@ -1011,7 +1058,7 @@ async function deleteFlyer(flyerId, evt) {
         const ok = await deleteFlyerFromCloud(flyerId);   // timeout-guarded, always resolves
         if (!ok) { showToast('⚠️ Ntibyakunze gusiba kuri seriveri', 'error'); return; }
         allFlyers = allFlyers.filter(f => String(f.id) !== String(flyerId));
-        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
+        safeSetItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
         loadFlyersGrid();
         updateStats();
         showToast('✅ Akazingo kasibwe kuri seriveri no mu bubiko bwa hafi!', 'success');
@@ -1024,8 +1071,8 @@ function deleteUser(userId) {
     if (confirm('Ibi bizasiba umukoresha N\'UTUZINGO TWE TWOSE. Emeza?')) {
         allFlyers = allFlyers.filter(f => f.userId !== userId);
         users = users.filter(u => u.id !== userId);
-        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
-        localStorage.setItem('wrzkk_flyers', JSON.stringify(allFlyers));
+        safeSetItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
+        safeSetItem('wrzkk_flyers', JSON.stringify(allFlyers));
         localStorage.setItem('wrzkk_users', JSON.stringify(users));
         loadUsersTable();
         loadFlyersGrid();
@@ -1154,7 +1201,7 @@ async function saveFlyerChanges() {
             return;
         }
 
-        localStorage.setItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
+        safeSetItem('wrzkk_all_flyers', JSON.stringify(allFlyers));
         closeEditFlyerModal();
         loadFlyersGrid();
         updateStats();
@@ -1239,7 +1286,15 @@ function saveSettings() {
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadData();
+    // loadData() touches the cloud and localStorage; if anything throws here the
+    // dashboard would never appear and the status pill would hang on "riri gukora",
+    // so the whole bootstrap is wrapped and always resolves to a visible state.
+    try {
+        await loadData();
+    } catch (err) {
+        console.error('❌ Manager loadData failed:', err);
+        allFlyers = safeParse(localStorage.getItem('wrzkk_all_flyers')) || [];
+    }
 
     function dedupeManagerStorage() {
     try {
@@ -1257,20 +1312,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             kept.push(f);
         }
         if (removed > 0) {
-            localStorage.setItem('wrzkk_all_flyers', JSON.stringify(kept));
-            localStorage.setItem('wrzkk_flyers', JSON.stringify(kept));
+            safeSetItem('wrzkk_all_flyers', JSON.stringify(kept));
+            safeSetItem('wrzkk_flyers', JSON.stringify(kept));
             console.log(`🧹 Manager dedupe: removed ${removed} duplicates`);
         }
     } catch {}
 }
-    const authed = await checkManagerAuth();
+    const authed = await checkManagerAuth().catch(err => {
+        console.error('❌ Manager auth check failed:', err);
+        return false;
+    });
     if (!authed) {
         document.getElementById('loginSection').style.display = 'block';
         document.getElementById('dashboardSection').style.display = 'none';
+        const statusEl = document.getElementById('syncStatus');
+        if (statusEl) statusEl.innerHTML = '⚠️ Iringanisha ryahagaze — kanda "Vugurura"';
     }
     // Start real-time sync
     startFlyerRealtime();
 });
+
+function safeParse(raw) {
+    try { return JSON.parse(raw); } catch { return null; }
+}
 
 // ==================== GLOBAL EXPORTS ====================
 window.managerLogin = managerLogin;

@@ -1,8 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Same contract as api/managers.js: with SUPABASE_SERVICE_ROLE_KEY set in Vercel the
+// flyers table can stay closed to the public anon role. Without it we fall back to
+// the anon key — and if RLS then blocks SELECT, Supabase answers 200 with [] (not an
+// error), which is exactly the "dashboard syncs but shows nothing" symptom.
+if (!process.env.SUPABASE_URL) console.error('[flyers] SUPABASE_URL env var is missing');
+else if (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_ANON_KEY) console.error('[flyers] no Supabase key env var is set');
+
 const supabase = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_ANON_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
 );
 
 export default async function handler(req, res) {

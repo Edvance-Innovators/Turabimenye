@@ -320,7 +320,14 @@
         // ==================== SHARED FLYER PAGE LOGIC ====================
         const SUPABASE_URL = 'https://yfqmkbzvsxikopbysrep.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmcW1rYnp2c3hpa29wYnlzcmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNjg1ODMsImV4cCI6MjEwNTY0NDU4M30.2egjfNM0UpGjcn5kOFAWBIigTK85bW3icb_thoh0J5Y';
-        const CLOUD_API = '/api/flyers';
+        // Off the deployed origin /api/* has no functions behind it, so a shared flyer page
+        // opened locally showed nothing. Same rule as script.js: fall back to the live
+        // backend, which already sends Access-Control-Allow-Origin: *.
+        const LIVE_API_ORIGIN = 'https://turabimenye.vercel.app';
+        const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]', '::1', '0.0.0.0', ''];
+        const API_ORIGIN = (!/^https?:$/.test(location.protocol) || LOCAL_HOSTS.includes(location.hostname))
+            ? LIVE_API_ORIGIN : '';
+        const CLOUD_API = API_ORIGIN + '/api/flyers';
 
         const CONTINENT_NAMES = {
             'africa': 'Afurika', 'asia': 'Aziya', 'europe': 'Uburayi',
@@ -685,7 +692,7 @@ async function submitSharedComment(event) {
             if (!id) return renderError('Iyi link ntariho flyer.');
 
             try {
-                const res = await fetch(`/api/flyers?id=${encodeURIComponent(id)}`);
+                const res = await fetch(`${API_ORIGIN}/api/flyers?id=${encodeURIComponent(id)}`);
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
                 const live = Array.isArray(data) ? data[0] : data;

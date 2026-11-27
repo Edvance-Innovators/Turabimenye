@@ -7,7 +7,10 @@ let expandedComments = new Set();
 // Flyer cloud (stacked random-size tiles) — view mode, focus target and current list
 const CLOUD_VIEW_KEY = 'wrzkk_flyer_view';
 let flyerViewMode = 'cloud';
-try { flyerViewMode = localStorage.getItem(CLOUD_VIEW_KEY) === 'list' ? 'list' : 'cloud'; } catch (e) { }
+try {
+    const savedView = localStorage.getItem(CLOUD_VIEW_KEY);
+    flyerViewMode = (savedView === 'list' || savedView === 'wall') ? savedView : 'cloud';
+} catch (e) { }
 let focusedFlyerId = null;
 let flyerCloudList = [];
 
@@ -37,7 +40,47 @@ function getStorageClient() {
     }
     return storageClient;
 }
-const CLOUD_API = '/api/flyers';
+// The Vercel functions behind /api/* only exist on the deployed origin. Served from a
+// local preview, or opened straight from disk, those relative paths hit a server that has
+// no functions at all and the collection looked empty even though every story is safe in
+// the database. Off-deployment, talk to the live backend instead — it already answers with
+// Access-Control-Allow-Origin: *, and on the deployed site nothing changes.
+const LIVE_API_ORIGIN = 'https://turabimenye.vercel.app';
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]', '::1', '0.0.0.0', ''];
+const API_ORIGIN = (!/^https?:$/.test(location.protocol) || LOCAL_HOSTS.includes(location.hostname))
+    ? LIVE_API_ORIGIN : '';
+const CLOUD_API = API_ORIGIN + '/api/flyers';
+
+// ==================== STORAGE SAFETY ====================
+// The whole collection is ~2.6MB of JSON and most of it is base64 pictures, so caching it
+// easily passes the browser's ~5MB localStorage quota. A raw setItem then throws
+// QuotaExceededError, and inside initializeCollection() that aborted the function before
+// displayFlyers() — all 32 stories were loaded from the cloud yet nothing was drawn.
+function safeSetItem(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch (err) {
+        console.warn(`⚠️ localStorage[${key}] not saved:`, err.name, err.message);
+        return false;
+    }
+}
+
+function safeParse(text) {
+    if (!text) return null;
+    try { return JSON.parse(text); }
+    catch (err) { console.warn('⚠️ Corrupt localStorage entry ignored:', err.message); return null; }
+}
+
+/** Cache the collection; if its pictures make it too big, cache it without them. */
+function cacheFlyers(list) {
+    if (!Array.isArray(list)) return;
+    if (safeSetItem('wrzkk_flyers', JSON.stringify(list))) return;
+    const slim = list.map(f => ({ ...f, image: isDataImageUrl(f.image) ? '' : f.image }));
+    if (safeSetItem('wrzkk_flyers', JSON.stringify(slim))) {
+        console.warn('📦 Collection cached without base64 pictures (localStorage quota)');
+    }
+}
 
 function currentUserId() {
     const role = localStorage.getItem('wrzkk_user_role');
@@ -89,11 +132,11 @@ function rowToFlyer(row) {
 
 async function saveFlyerToCloud(flyer) {
     // 1. Update local mirror instantly
-    let local = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
+    let local = safeParse(localStorage.getItem('wrzkk_flyers')) || [];
     const idx = local.findIndex(f => f.id === flyer.id);
     if (idx === -1) local.unshift(flyer);
     else local[idx] = flyer;
-    localStorage.setItem('wrzkk_flyers', JSON.stringify(local));
+    cacheFlyers(local);
 
     // 2. Skip cloud for anonymous
     if (!currentUserId() || currentUserId() === 'anonymous') {
@@ -116,11 +159,11 @@ async function saveFlyerToCloud(flyer) {
         if (saved.id && saved.id !== flyer.id) {
             const prevId = flyer.id;
             flyer.id = saved.id;
-            let mirror = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
+            let mirror = safeParse(localStorage.getItem('wrzkk_flyers')) || [];
             const i2 = mirror.findIndex(f => f.id === prevId);
             if (i2 !== -1) {
                 mirror[i2].id = saved.id;
-                localStorage.setItem('wrzkk_flyers', JSON.stringify(mirror));
+                cacheFlyers(mirror);
             }
         }
         return true;
@@ -132,16 +175,23 @@ async function saveFlyerToCloud(flyer) {
 }
 
 async function loadFlyersFromCloud() {
-    try {
-        const res = await fetchWithTimeout(CLOUD_API);   // global read — all users
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const rows = await res.json();
-        console.log(`☁️ Loaded ${rows.length} flyers from cloud (all users)`);
-        return rows.map(rowToFlyer);
-    } catch (err) {
-        console.warn('⚠️ Cloud load failed:', err.message);
-        return null;
+    // The whole collection is a multi-megabyte read (rows still carry base64 pictures),
+    // so it gets a longer budget than a normal write plus one retry: aborting it left
+    // the reader with nothing to show and the manager dashboard "syncing" forever.
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+            const res = await fetchWithTimeout(CLOUD_API, { cache: 'no-store' }, FLYERS_READ_TIMEOUT_MS);   // global read — all users
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const rows = await res.json();
+            console.log(`☁️ Loaded ${rows.length} flyers from cloud (all users)`);
+            return rows.map(rowToFlyer);
+        } catch (err) {
+            console.warn(`⚠️ Cloud load attempt ${attempt} failed:`, err.message);
+            if (attempt === 2) return null;
+            await new Promise(r => setTimeout(r, 800));
+        }
     }
+    return null;
 }
 
 function flyerIdKey(id) { return String(id); }
@@ -213,6 +263,7 @@ const FLYER_CREATED = 'Flyer nshya yakozwe neza! Yabitswe mu bubiko. Reba muri c
 // can never leave the Save button hanging forever.
 const CLOUD_TIMEOUT_MS = 15000;
 const STORAGE_TIMEOUT_MS = 20000;
+const FLYERS_READ_TIMEOUT_MS = 45000;
 
 function fetchWithTimeout(url, options = {}, ms = CLOUD_TIMEOUT_MS) {
     const controller = new AbortController();
@@ -552,7 +603,7 @@ async function initializeCollection() {
     let source;
     if (cloudFlyers === null) {
         // Backend unreachable — use cache, but DON'T merge, so we don't re-create rows
-        source = JSON.parse(localStorage.getItem('wrzkk_flyers')) || [];
+        source = safeParse(localStorage.getItem('wrzkk_flyers')) || [];
         console.log('↩️ Cloud unavailable — using local cache only');
     } else if (cloudFlyers.length === 0) {
         // Truly empty — seed samples
@@ -571,13 +622,12 @@ async function initializeCollection() {
         return f;
     });
 
-    // Overwrite local cache to match EXACTLY what the cloud has.
-    // This is what kills the resurrection bug — stale orphans get wiped.
-    localStorage.setItem('wrzkk_flyers', JSON.stringify(flyersCollection));
-
+    // Draw first, cache second: a full localStorage must never decide whether the
+    // stories appear. Overwriting the cache also kills stale orphans (resurrection bug).
     console.log(`✅ Collection ready: ${flyersCollection.length}`);
     updateCollectionCount();
     displayFlyers();
+    cacheFlyers(flyersCollection);
 }
 
 // ==================== FILE HANDLING ====================
@@ -909,7 +959,7 @@ async function saveEditedStory() {
         // Offload base64 picture to Storage (timeout-protected) before saving the row
         editedStory.image = await uploadFlyerImageIfData(editedStory);
         const ok = await saveFlyerToCloud(editedStory);
-        localStorage.setItem('wrzkk_flyers', JSON.stringify(flyersCollection));
+        cacheFlyers(flyersCollection);
         delete storyImageOverrides[storyIndexToClear];
         closeEditor();
         updateCollectionCount();
@@ -1148,7 +1198,10 @@ function displayFlyers() {
     }
     if (flyerViewMode === 'cloud') {
         renderFlyerCloud(grid, filtered);
+    } else if (flyerViewMode === 'wall') {
+        renderFlyerWall(grid, filtered);
     } else {
+        destroyFlyerWall();
         focusedFlyerId = null;
         grid.className = 'flyers-grid';
         grid.innerHTML = filtered.map((f, i) => createFlyerCard(f, i)).join('');
@@ -1436,7 +1489,7 @@ function renderFlyerCloud(grid, list) {
                     </div>`).join('')}
             </div>
         </div>
-        <div class="cloud-scroll-hint">🖱 Zunguruka uruzi rw'imbeba kugira uhindure ikarita · kanda usome inkuru</div>
+        <div class="cloud-scroll-hint">🖱 Karaga uruziga rw'imbeba kugirango uhindure ikarita · Kanda usome inkuru</div>
         <div class="flyer-focus-layer" id="flyerFocusLayer"></div>`;
 
     const vp = document.getElementById('cloudViewport');
@@ -1526,7 +1579,8 @@ function closeFlyerFocus(ev) {
 }
 
 function setFlyerView(mode) {
-    flyerViewMode = mode === 'list' ? 'list' : 'cloud';
+    flyerViewMode = (mode === 'list' || mode === 'wall') ? mode : 'cloud';
+    if (flyerViewMode !== 'wall') destroyFlyerWall();
     try { localStorage.setItem(CLOUD_VIEW_KEY, flyerViewMode); } catch (e) { }
     focusedFlyerId = null;
     document.querySelectorAll('#flyerViewToggle .view-btn').forEach(btn => {
@@ -1539,6 +1593,748 @@ function syncFlyerViewToggle() {
     document.querySelectorAll('#flyerViewToggle .view-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.view === flyerViewMode);
     });
+}
+
+// ==================== FLYER WALL (3D PARALLAX) ====================
+// A third collection layout that uses the engine from
+// assets/infinite-parallax-gallery-5-layer-scrolling-image-wall-three-js and nothing else
+// from it: the pictures travelling across the wall are the story flyers themselves. Each
+// slot is one flyer, drawn from the same source as every other view — normalizeFlyerImage
+// (item.image, item) — so the wall shows exactly what a flyer already carries and never
+// invents or replaces content. Each sprite is painted as the same mounted-poster card the
+// cloud view uses: round corners, glass frame rings, four corner screws and the story
+// title on a dark band at the bottom. Clicking a card opens that flyer in the existing
+// reader. Three.js is fetched only when this mode is first opened, and WebGL is probed
+// before it is used, so the page still works (as the card grid) where the wall cannot run.
+const WALL_THREE_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+const WALL_LAYERS = [
+    { scale: 1.00, speed: 44, opacity: 1.00 },
+    { scale: 0.78, speed: 30, opacity: 0.84 },
+    { scale: 0.60, speed: 21, opacity: 0.68 },
+    { scale: 0.46, speed: 14, opacity: 0.52 },
+    { scale: 0.36, speed: 9, opacity: 0.38 }
+];
+const WALL_PER_LAYER = 8;
+// Card geometry, in the units sprites are scaled by: a 16:9 picture window with the story
+// title on a band underneath, so every card keeps one shape at every depth.
+const WALL_TILE_W = 224;
+const WALL_IMG_H = 126;
+const WALL_TITLE_H = 56;
+const WALL_TILE_H = WALL_IMG_H + WALL_TITLE_H;
+const WALL_MAX_SPEED = 5;
+// Cards are painted at 2 samples per unit so the title and screws stay sharp on the near
+// layer, where a card is drawn close to its natural size.
+const WALL_CARD_SS = 2;
+
+const flyerWall = {
+    built: false, signature: '', items: [],
+    scene: null, camera: null, renderer: null, loader: null, raycaster: null,
+    layers: [], textureCache: new Map(),
+    container: null, canvas: null, caption: null, loading: null, raf: 0, lastTime: 0,
+    speedFactor: 1, dragActive: false, dragMoved: 0, lastX: 0, dragVelocity: 0,
+    pointer: null, pointerDirty: false, hovered: -1, listeners: null, resizeTimer: 0
+};
+
+let threePromise = null;
+
+/** Injects the Three.js UMD build once; resolves false if the CDN is unreachable. */
+function ensureThreeLoaded() {
+    if (window.THREE) return Promise.resolve(true);
+    if (!threePromise) {
+        threePromise = new Promise(resolve => {
+            const tag = document.createElement('script');
+            tag.src = WALL_THREE_SRC;
+            tag.async = true;
+            tag.onload = () => resolve(true);
+            tag.onerror = () => { threePromise = null; resolve(false); };
+            document.head.appendChild(tag);
+        });
+    }
+    return threePromise;
+}
+
+function webglAvailable() {
+    try {
+        const probe = document.createElement('canvas');
+        return !!(window.WebGLRenderingContext &&
+            (probe.getContext('webgl') || probe.getContext('experimental-webgl')));
+    } catch (e) { return false; }
+}
+
+// A re-render (like, comment, colour refresh) must not rebuild the GL scene, so the
+// wall is only rebuilt when the visible set itself changed.
+function wallSignatureOf(list) {
+    return list.length + ':' + (list[0] ? list[0].id : '') + ':' +
+        (list.length ? list[list.length - 1].id : '');
+}
+
+// The wall's zones copy each flyer's own poster colour, so a colour shuffle has to reach
+// the wall too. Tracking the colours separately lets that repaint happen in place.
+function wallColorsSignatureOf(list) {
+    return list.map(f => f.colorClass || '').join(',');
+}
+
+function repaintWallZones(list) {
+    if (!flyerWall.textureCache) return;
+    list.forEach(item => {
+        const entry = flyerWall.textureCache.get(wallCardKey(item));
+        if (entry) paintWallCard(entry, item, entry.img);   // reuses the loaded picture
+    });
+}
+
+function wallRand(min, max) { return Math.random() * (max - min) + min; }
+
+function renderFlyerWall(grid, list) {
+    const vp = document.getElementById('flyerWallViewport');
+    const sig = wallSignatureOf(list);
+
+    if (flyerWall.built && vp && sig === flyerWall.signature && document.body.contains(vp)) {
+        flyerWall.items = list;               // keep the click mapping in sync
+        const csig = wallColorsSignatureOf(list);
+        if (csig !== flyerWall.colorsSignature) {
+            repaintWallZones(list);
+            flyerWall.colorsSignature = csig;
+        }
+        if (grid) grid.classList.toggle('cloud-focused', !!focusedFlyerId);
+        if (focusedFlyerId) renderFlyerFocusLayer();
+        return;
+    }
+
+    destroyFlyerWall();
+    grid.className = 'flyers-grid flyer-wall' + (focusedFlyerId ? ' cloud-focused' : '');
+    grid.innerHTML = `
+        <div class="wall-viewport" id="flyerWallViewport">
+            <div class="wall-loading" id="flyerWallLoading">⏳ Tegereza, inkuta irimo gutangira...</div>
+            <div class="wall-caption" id="flyerWallCaption"></div>
+        </div>
+        <div class="cloud-scroll-hint">🖱 Nyereza cyangwa koresha uruziga rw'imbeba kugirango uyobore · Kanda ifoto usome inkuru yuzuye</div>
+        <div class="flyer-focus-layer" id="flyerFocusLayer"></div>`;
+
+    const viewport = document.getElementById('flyerWallViewport');
+    flyerWall.colorsSignature = wallColorsSignatureOf(list);
+    flyerWall.caption = document.getElementById('flyerWallCaption');
+    flyerWall.loading = document.getElementById('flyerWallLoading');
+    if (!viewport) return;
+
+    if (!webglAvailable()) { wallStaticFallback(viewport, list, 'WebGL ntiboneka kuri iyi browser.'); return; }
+    ensureThreeLoaded().then(ok => {
+        // The user may have switched views before the CDN answered
+        if (!document.body.contains(viewport)) return;
+        if (!ok || !window.THREE) {
+            wallStaticFallback(viewport, list, 'Three.js ntiyabashije gukururwa.');
+            return;
+        }
+        try {
+            buildFlyerWall(viewport, list);
+        } catch (err) {
+            console.warn('Wall build failed:', err);
+            destroyFlyerWall();
+            wallStaticFallback(viewport, list, 'Inkuta y\'amafoto ntiyashoboye gukora.');
+        }
+    });
+
+    if (focusedFlyerId) renderFlyerFocusLayer();
+}
+
+/** No WebGL / no Three.js: the same flyers as ordinary cards inside the wall frame. */
+function wallStaticFallback(viewport, list, reason) {
+    viewport.innerHTML = `<div class="wall-off-note">🖼 ${reason} Inkuta y'amafoto ntikora hano, ariko utuzingo turagaragara nka makarita.
+        <div class="wall-off-grid">${list.map((f, i) => createFlyerCard(f, i)).join('')}</div></div>`;
+}
+
+function buildFlyerWall(viewport, list) {
+    const size = wallSize();
+
+    flyerWall.container = viewport;
+    flyerWall.items = list;
+    flyerWall.signature = wallSignatureOf(list);
+    flyerWall.built = true;
+    flyerWall.speedFactor = flyerWall.speedFactor || 1;
+    flyerWall.layers = WALL_LAYERS.map(() => []);
+    flyerWall.lastW = 0;
+    flyerWall.lastH = 0;
+
+    flyerWall.scene = new THREE.Scene();
+    flyerWall.camera = new THREE.OrthographicCamera(0, size.w, size.h, 0, -1000, 1000);
+    flyerWall.camera.position.z = 10;
+
+    flyerWall.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    flyerWall.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    flyerWall.renderer.setSize(size.w, size.h);
+    flyerWall.renderer.setClearColor(0x000000, 0);
+    viewport.appendChild(flyerWall.renderer.domElement);
+    flyerWall.canvas = flyerWall.renderer.domElement;
+
+    flyerWall.loader = new THREE.TextureLoader();
+    flyerWall.loader.crossOrigin = 'anonymous';
+    flyerWall.raycaster = new THREE.Raycaster();
+
+    buildWallSprites();
+    layoutWallSprites();
+    bindWallInput();
+
+    // The collection can be built while its tab is still hidden (clientWidth 0), so the
+    // real size is picked up by an observer as soon as the wall becomes visible.
+    if (window.ResizeObserver) {
+        flyerWall.observer = new ResizeObserver(() => syncWallSize());
+        flyerWall.observer.observe(viewport);
+    }
+    syncWallSize();
+
+    flyerWall.lastTime = performance.now();
+    cancelAnimationFrame(flyerWall.raf);
+    flyerWall.raf = requestAnimationFrame(animateFlyerWall);
+    if (flyerWall.loading) flyerWall.loading.style.display = 'none';
+}
+
+/** Viewport box, clamped so a hidden container still yields a usable camera. */
+function wallSize() {
+    const vp = flyerWall.container;
+    return {
+        w: Math.max(320, (vp && vp.clientWidth) || 900),
+        h: Math.max(280, (vp && vp.clientHeight) || 460)
+    };
+}
+
+function syncWallSize() {
+    if (!flyerWall.renderer || !flyerWall.container) return;
+    const size = wallSize();
+    if (size.w === flyerWall.lastW && size.h === flyerWall.lastH) return;
+    flyerWall.lastW = size.w;
+    flyerWall.lastH = size.h;
+    flyerWall.renderer.setSize(size.w, size.h);
+    flyerWall.camera.right = size.w;
+    flyerWall.camera.top = size.h;
+    flyerWall.camera.updateProjectionMatrix();
+    layoutWallSprites();
+}
+
+/** Spread every layer across the visible band, so the wall never shows a seam. */
+function layoutWallSprites() {
+    const size = wallSize();
+    const w = size.w, h = size.h;
+    flyerWall.layers.forEach((sprites, l) => {
+        const cfg = WALL_LAYERS[l];
+        const per = (sprites || []).length;
+        if (!per) return;
+        const lane = (w + cfg.tileW) / per;
+        sprites.forEach((s, i) => {
+            const ud = s.userData;
+            ud.lane = lane;
+            ud.slotX = -ud.width / 2 + lane * (i + 0.5);
+            s.position.x = ud.slotX + wallRand(-lane * 0.18, lane * 0.18);
+            ud.baseY = wallRand(ud.height * 0.65, Math.max(ud.height * 0.7, h - ud.height * 0.65));
+            s.position.y = ud.baseY;
+        });
+    });
+}
+
+// ---- Card painter: the cloud view's mounted poster, drawn into a canvas texture ----
+// One canvas per flyer, shared by every sprite showing it, so a picture is decoded and
+// composed once no matter how many copies travel across the five layers.
+function wallCardKey(item) {
+    return 'card:' + (item && item.id != null ? item.id : (item ? item.title : ''));
+}
+
+function wallRoundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+/** The story title wrapped to at most two lines, the last one ellipsised. */
+function wallTitleLines(ctx, title, maxWidth, maxLines) {
+    const words = String(title || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    const lines = [];
+    let line = '';
+    for (const word of words) {
+        const test = line ? line + ' ' + word : word;
+        if (line && ctx.measureText(test).width > maxWidth) {
+            lines.push(line);
+            line = word;
+            if (lines.length === maxLines) break;
+        } else line = test;
+    }
+    if (lines.length < maxLines && line) lines.push(line);
+    if (lines.length === maxLines) {
+        let last = lines[maxLines - 1];
+        if (ctx.measureText(last).width > maxWidth) {
+            while (last.length > 1 && ctx.measureText(last + '…').width > maxWidth) last = last.slice(0, -1);
+            lines[maxLines - 1] = last.trim() + '…';
+        }
+    }
+    return lines;
+}
+
+/** A Phillips-head screw, matching the .flyer-screw gradient and its slot. */
+function wallDrawScrew(ctx, cx, cy, r) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 1.3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.26)';
+    ctx.fill();
+
+    const metal = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.1, cx, cy, r);
+    metal.addColorStop(0, '#fdfdff');
+    metal.addColorStop(0.2, '#e2e6ee');
+    metal.addColorStop(0.46, '#adb6c7');
+    metal.addColorStop(0.72, '#727b8d');
+    metal.addColorStop(1, '#3d4552');
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = metal;
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.5, cy - r * 0.5); ctx.lineTo(cx + r * 0.5, cy + r * 0.5);
+    ctx.moveTo(cx + r * 0.5, cy - r * 0.5); ctx.lineTo(cx - r * 0.5, cy + r * 0.5);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.9, -Math.PI * 0.78, -Math.PI * 0.12);
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+}
+
+// The poster palette from styles.css :root, in the same order as .color-1 … .color-15, so
+// a card's lower zone is the very hue that flyer already wears in the cloud view and the
+// existing colour shuffle shows up on the wall too.
+const WALL_PALETTE = [
+    ['#E2483F', '#F26B5E'], ['#10756B', '#17998C'], ['#1E7FC6', '#3AA0E8'],
+    ['#17703F', '#249A57'], ['#C8820A', '#E8A62B'], ['#6C4BC4', '#8A63E0'],
+    ['#E8700F', '#FF9231'], ['#33506F', '#4C6E93'], ['#C22E6A', '#E85A8F'],
+    ['#4A2E8A', '#6A48B0'], ['#2A2E36', '#454B56'], ['#1A5FD6', '#2E7FE8'],
+    ['#5D6B1F', '#82932E'], ['#8B1F35', '#B23255'], ['#0F5F66', '#168891']
+];
+
+function wallColorIndexOf(item) {
+    const m = /color-(\d+)/.exec((item && item.colorClass) || '');
+    if (m) {
+        const i = parseInt(m[1], 10) - 1;
+        if (i >= 0 && i < WALL_PALETTE.length) return i;
+    }
+    // Uncoloured flyer: derive a stable index so the zone never changes between repaints
+    const seed = String((item && item.id != null) ? item.id : ((item && item.title) || ''));
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+    return h % WALL_PALETTE.length;
+}
+
+function wallRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+// WCAG relative luminance and contrast ratio, so the title tone is chosen by measurement
+// rather than by assuming every poster colour is dark enough.
+function wallLuminance(rgb) {
+    const ch = rgb.map(v => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+}
+
+function wallContrast(a, b) {
+    const l1 = wallLuminance(a), l2 = wallLuminance(b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+
+function wallScale(rgb, f) {
+    return rgb.map(v => Math.max(0, Math.min(255, Math.round(v * f))));
+}
+
+/**
+ * The flyer's random poster colour, with the title tone picked for it and the zone moved
+ * just far enough in lightness that the weakest end still clears WCAG AA (4.5:1). Only
+ * lightness changes, never hue, so the zones stay varied instead of all turning dark.
+ */
+function wallCardZone(item) {
+    const index = wallColorIndexOf(item);
+    const pair = WALL_PALETTE[index];
+    const rawTop = wallRgb(pair[1]), rawBottom = wallRgb(pair[0]);
+    const candidates = [
+        { ink: '#ffffff', shadow: 'rgba(0,0,0,0.60)', rgb: [255, 255, 255], move: -1 },
+        { ink: '#0d1020', shadow: 'rgba(255,255,255,0.55)', rgb: [13, 16, 32], move: 1 }
+    ];
+    const score = (cand, top, bottom) =>
+        Math.min(wallContrast(cand.rgb, top), wallContrast(cand.rgb, bottom));
+
+    let pick = candidates[0], ratio = -1;
+    for (const cand of candidates) {
+        const r = score(cand, rawTop, rawBottom);
+        if (r > ratio) { pick = cand; ratio = r; }
+    }
+
+    let top = rawTop, bottom = rawBottom, step = 0;
+    while (ratio < 4.5 && step < 70) {
+        step += 2;
+        const f = (100 + pick.move * step) / 100;
+        top = wallScale(rawTop, f);
+        bottom = wallScale(rawBottom, f);
+        ratio = score(pick, top, bottom);
+    }
+
+    const css = rgb => 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+    return {
+        index, top: css(top), bottom: css(bottom),
+        ink: pick.ink, shadow: pick.shadow, ratio: +ratio.toFixed(2)
+    };
+}
+
+/** Paint one card: picture on top, coloured title zone below, frame rings and screws. */
+function paintWallCard(entry, item, img) {
+    const c = entry.canvas;
+    const ctx = c.getContext('2d');
+    const W = WALL_TILE_W, H = WALL_TILE_H, IH = WALL_IMG_H, TH = WALL_TITLE_H, R = 14;
+    if (img) entry.img = img;
+    const zone = wallCardZone(item);
+
+    ctx.setTransform(WALL_CARD_SS, 0, 0, WALL_CARD_SS, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    // Everything inside the rounded outline; the corners stay genuinely transparent
+    wallRoundRect(ctx, 0.5, 0.5, W - 1, H - 1, R);
+    ctx.save();
+    ctx.clip();
+
+    ctx.fillStyle = zone.bottom;
+    ctx.fillRect(0, 0, W, H);
+
+    const picture = entry.img;
+    if (picture && picture.width && picture.height) {
+        // Cover-crop into the 16:9 window, the same framing the cloud tiles give
+        const scale = Math.max(W / picture.width, IH / picture.height);
+        const dw = picture.width * scale, dh = picture.height * scale;
+        ctx.drawImage(picture, (W - dw) / 2, (IH - dh) / 2, dw, dh);
+    } else {
+        // Still loading: the flyer's own colour, dimmed, instead of a grey slab
+        const ph = ctx.createLinearGradient(0, 0, W, IH);
+        ph.addColorStop(0, zone.top);
+        ph.addColorStop(1, zone.bottom);
+        ctx.fillStyle = ph;
+        ctx.fillRect(0, 0, W, IH);
+        ctx.fillStyle = 'rgba(6,10,34,0.42)';
+        ctx.fillRect(0, 0, W, IH);
+    }
+
+    // Lower zone in that random colour, lighter at the picture seam and deeper at the rim
+    const band = ctx.createLinearGradient(0, IH, W, H);
+    band.addColorStop(0, zone.top);
+    band.addColorStop(1, zone.bottom);
+    ctx.fillStyle = band;
+    ctx.fillRect(0, IH, W, TH);
+    ctx.fillStyle = 'rgba(6,10,34,0.34)';
+    ctx.fillRect(0, IH, W, 1);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 13px "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif';
+    const lines = wallTitleLines(ctx, item && item.title, W - 26, 2);
+    entry.ratio = zone.ratio;
+    ctx.shadowColor = zone.shadow;
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetY = 1;
+    ctx.fillStyle = zone.ink;
+    const startY = IH + 16 - ((lines.length - 1) * 15) / 2;
+    lines.forEach((t, i) => ctx.fillText(t, 13, startY + i * 15));
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+
+    // The glass frame .flyer-card draws with layered inset rings, plus its 145deg sheen.
+    // The gloss is kept on the picture only — washing the title zone with white would drop
+    // the measured contrast of the text back under the AA floor.
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255,255,255,0.42)';
+    wallRoundRect(ctx, 0.5, 0.5, W - 1, H - 1, R);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.11)';
+    wallRoundRect(ctx, 3, 3, W - 6, H - 6, R - 3);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    wallRoundRect(ctx, 4, 4, W - 8, H - 8, R - 4);
+    ctx.stroke();
+    const sheen = ctx.createLinearGradient(0, 0, W * 0.6, H);
+    sheen.addColorStop(0, 'rgba(255,255,255,0.30)');
+    sheen.addColorStop(0.34, 'rgba(255,255,255,0.06)');
+    sheen.addColorStop(0.60, 'rgba(255,255,255,0)');
+    sheen.addColorStop(1, 'rgba(0,0,0,0.14)');
+    ctx.fillStyle = sheen;
+    ctx.fillRect(0, 0, W, IH);
+    ctx.restore();
+
+    // Screws sit over the frame, 6px from each corner like .fs-tl … .fs-br
+    const r = 7, inset = 8;
+    wallDrawScrew(ctx, inset + r, inset + r, r);
+    wallDrawScrew(ctx, W - inset - r, inset + r, r);
+    wallDrawScrew(ctx, inset + r, H - inset - r, r);
+    wallDrawScrew(ctx, W - inset - r, H - inset - r, r);
+
+    entry.texture.needsUpdate = true;
+}
+
+function wallCardEntry(item) {
+    const key = wallCardKey(item);
+    const hit = flyerWall.textureCache.get(key);
+    if (hit) return hit;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = WALL_TILE_W * WALL_CARD_SS;
+    canvas.height = WALL_TILE_H * WALL_CARD_SS;
+    const texture = new THREE.CanvasTexture(canvas);
+    // Cards are UI art, not photographs: no mipmaps keeps the text and screws crisp and
+    // avoids the non-power-of-two warning on WebGL1
+    texture.generateMipmaps = false;
+    texture.minFilter = THREE.LinearFilter;
+    const entry = { texture, canvas, img: null };
+    flyerWall.textureCache.set(key, entry);
+    paintWallCard(entry, item, null);
+    return entry;
+}
+
+function buildWallSprites() {
+    if (!flyerWall.items.length) return;
+    const byUrl = new Map();
+
+    for (let l = 0; l < WALL_LAYERS.length; l++) {
+        const cfg = WALL_LAYERS[l];
+        const per = WALL_PER_LAYER;
+        cfg.tileW = WALL_TILE_W * cfg.scale;
+        cfg.tileH = WALL_TILE_H * cfg.scale;
+        for (let i = 0; i < per; i++) {
+            // One flyer per slot, cycling through the collection so every story is on the
+            // wall and every one is reachable by clicking its own card.
+            const flyerIndex = (l * per + i) % flyerWall.items.length;
+            const item = flyerWall.items[flyerIndex];
+            const photo = normalizeFlyerImage(item.image, item);
+            const entry = wallCardEntry(item);
+            const mat = new THREE.SpriteMaterial({ map: entry.texture, transparent: true, opacity: cfg.opacity });
+            const sprite = new THREE.Sprite(mat);
+            sprite.scale.set(cfg.tileW, cfg.tileH, 1);
+            sprite.position.set(0, 0, -l * 40);
+            sprite.userData = {
+                flyerIndex: flyerIndex, layer: l, depth: l, photo: photo,
+                width: cfg.tileW, height: cfg.tileH, speed: cfg.speed * wallRand(0.8, 1.15),
+                baseY: 0, seed: wallRand(0, 1000), opacity: cfg.opacity
+            };
+            flyerWall.layers[l].push(sprite);
+            flyerWall.scene.add(sprite);
+
+            if (!byUrl.has(photo)) byUrl.set(photo, []);
+            byUrl.get(photo).push(item);
+        }
+    }
+
+    // Fetch each picture once, then repaint that flyer's card for every sprite using it
+    byUrl.forEach((items, url) => {
+        flyerWall.loader.load(url, tex => {
+            const seen = new Set();
+            items.forEach(item => {
+                if (seen.has(item.id)) return;
+                seen.add(item.id);
+                const entry = flyerWall.textureCache.get(wallCardKey(item));
+                if (entry) paintWallCard(entry, item, tex.image);
+            });
+        }, undefined, () => { /* the card keeps its title-only face */ });
+    });
+}
+
+function animateFlyerWall(now) {
+    flyerWall.raf = requestAnimationFrame(animateFlyerWall);
+    if (!flyerWall.renderer || !document.body.contains(flyerWall.container)) return;
+
+    const t = now || performance.now();
+    const dt = Math.min(40, t - flyerWall.lastTime) / 1000;
+    flyerWall.lastTime = t;
+
+    const viewport = flyerWall.container;
+    const w = viewport.clientWidth;
+
+    // Frozen behind the reader: the stories stay visible but cost nothing to move
+    if (focusedFlyerId) {
+        flyerWall.renderer.render(flyerWall.scene, flyerWall.camera);
+        return;
+    }
+
+    flyerWall.dragVelocity *= 0.92;
+    if (flyerWall.dragVelocity !== 0) flyerWall.speedFactor = Math.sign(flyerWall.dragVelocity);
+    // Idle drift keeps the wall alive; dragging or the wheel multiplies it briefly
+    const dir = flyerWall.speedFactor || 1;
+    const boost = 1 + Math.min(4, Math.abs(flyerWall.dragVelocity) * 14);
+    const step = dir * dt * boost;
+
+    if (flyerWall.pointerDirty) { flyerWall.pointerDirty = false; hoverWall(); }
+
+    for (const sprites of flyerWall.layers) {
+        if (!sprites || !sprites.length) continue;
+        for (const s of sprites) {
+            const ud = s.userData;
+            s.position.x += ud.speed * step;
+            if (step > 0 && s.position.x - ud.width / 2 > w) s.position.x = -ud.width / 2 - wallRand(0, ud.width);
+            else if (step < 0 && s.position.x + ud.width / 2 < 0) s.position.x = w + ud.width / 2 + wallRand(0, ud.width);
+            s.position.y = ud.baseY + Math.sin(t * 0.0009 + ud.seed) * 5;
+            const pulse = 1 + Math.sin(t * 0.001 + ud.seed) * 0.015;
+            s.scale.x = ud.width * pulse;
+            s.scale.y = ud.height * pulse;
+            s.material.opacity = (ud.flyerIndex === flyerWall.hovered) ? Math.min(1, ud.opacity + 0.18) : ud.opacity;
+        }
+    }
+
+    flyerWall.renderer.render(flyerWall.scene, flyerWall.camera);
+}
+
+/** Screen point -> the flyer picture under it, in wall-pixel space. */
+function wallPick(clientX, clientY) {
+    const viewport = flyerWall.container;
+    if (!viewport || !flyerWall.raycaster || !flyerWall.camera) return -1;
+    const box = viewport.getBoundingClientRect();
+    const w = box.width || 1, h = box.height || 1;
+    const ndc = new THREE.Vector2(
+        ((clientX - box.left) / w) * 2 - 1,
+        -((clientY - box.top) / h) * 2 + 1
+    );
+    flyerWall.raycaster.setFromCamera(ndc, flyerWall.camera);
+    const flat = [];
+    flyerWall.layers.forEach(list => (list || []).forEach(s => flat.push(s)));
+    const hits = flyerWall.raycaster.intersectObjects(flat);
+    return hits.length ? hits[0].object.userData.flyerIndex : -1;
+}
+
+function hoverWall() {
+    if (!flyerWall.pointer) return;
+    const idx = wallPick(flyerWall.pointer.x, flyerWall.pointer.y);
+    if (idx === flyerWall.hovered) return;
+    flyerWall.hovered = idx;
+    const item = idx >= 0 ? flyerWall.items[idx] : null;
+    if (flyerWall.caption) {
+        // Titles live on the cards now, so the pill only offers the click hint
+        flyerWall.caption.textContent = item ? '📖 Kanda usome inkuru yuzuye' : '';
+        flyerWall.caption.classList.toggle('show', !!item);
+    }
+    if (flyerWall.canvas) flyerWall.canvas.style.cursor = item ? 'pointer' : 'grab';
+}
+
+/** Wheel notches accelerate the drift, up to WALL_MAX_SPEED, in either direction. */
+function wallBoost(delta) {
+    const dir = delta === 0 ? (flyerWall.speedFactor || 1) : Math.sign(delta);
+    const next = Math.abs(flyerWall.speedFactor || 1) + 0.7;
+    flyerWall.speedFactor = dir * Math.min(WALL_MAX_SPEED, next);
+}
+
+function bindWallInput() {
+    const vp = flyerWall.container;
+    if (!vp) return;
+
+    const start = (x, y) => {
+        flyerWall.dragActive = true;
+        flyerWall.dragMoved = 0;
+        flyerWall.lastX = x;
+        flyerWall.pointer = { x, y };
+        flyerWall.pointerDirty = true;
+        if (flyerWall.canvas) flyerWall.canvas.style.cursor = 'grabbing';
+    };
+    const move = (x, y) => {
+        flyerWall.pointer = { x, y };
+        flyerWall.pointerDirty = true;
+        if (!flyerWall.dragActive) return;
+        const dx = x - flyerWall.lastX;
+        flyerWall.lastX = x;
+        flyerWall.dragMoved += Math.abs(dx);
+        flyerWall.dragVelocity = dx * 0.035;
+    };
+    const end = (x, y) => {
+        if (flyerWall.dragActive && flyerWall.dragMoved < 8) {
+            const idx = wallPick(x, y);        // a tap, not a drag -> open the story
+            if (idx >= 0 && flyerWall.items[idx]) focusFlyer(flyerWall.items[idx].id);
+        }
+        flyerWall.dragActive = false;
+        if (flyerWall.canvas) flyerWall.canvas.style.cursor = 'grab';
+    };
+
+    const onDown = (e) => { start(e.clientX, e.clientY); };
+    const onMove = (e) => { move(e.clientX, e.clientY); };
+    const onUp = (e) => { end(e.clientX, e.clientY); };
+    const onTouchStart = (e) => { const t = e.touches[0]; if (t) start(t.clientX, t.clientY); };
+    const onTouchMove = (e) => { const t = e.touches[0]; if (t) move(t.clientX, t.clientY); };
+    const onTouchEnd = (e) => {
+        const t = (e.changedTouches && e.changedTouches[0]) || null;
+        if (t) end(t.clientX, t.clientY); else end(-1, -1);
+    };
+    const onWheel = (e) => { e.preventDefault(); flyerWall.dragVelocity = 0; wallBoost(e.deltaY || e.deltaX); };
+    const onLeave = () => {
+        flyerWall.hovered = -1;
+        if (flyerWall.caption) { flyerWall.caption.classList.remove('show'); flyerWall.caption.textContent = ''; }
+    };
+
+    flyerWall.listeners = { onDown, onMove, onUp, onTouchStart, onTouchMove, onTouchEnd, onWheel, onLeave };
+    vp.addEventListener('mousedown', onDown);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    vp.addEventListener('touchstart', onTouchStart, { passive: true });
+    vp.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd);
+    vp.addEventListener('wheel', onWheel, { passive: false });
+    vp.addEventListener('mouseleave', onLeave);
+
+    flyerWall.onResize = () => {
+        clearTimeout(flyerWall.resizeTimer);
+        flyerWall.resizeTimer = setTimeout(syncWallSize, 220);
+    };
+    window.addEventListener('resize', flyerWall.onResize);
+}
+
+/** Frees the GL context, the textures and every listener the wall installed. */
+function destroyFlyerWall() {
+    cancelAnimationFrame(flyerWall.raf);
+    flyerWall.raf = 0;
+    clearTimeout(flyerWall.resizeTimer);
+    if (flyerWall.observer) { flyerWall.observer.disconnect(); flyerWall.observer = null; }
+
+    const l = flyerWall.listeners;
+    if (l && flyerWall.container) {
+        flyerWall.container.removeEventListener('mousedown', l.onDown);
+        window.removeEventListener('mousemove', l.onMove);
+        window.removeEventListener('mouseup', l.onUp);
+        flyerWall.container.removeEventListener('touchstart', l.onTouchStart);
+        flyerWall.container.removeEventListener('touchmove', l.onTouchMove);
+        window.removeEventListener('touchend', l.onTouchEnd);
+        flyerWall.container.removeEventListener('wheel', l.onWheel);
+        flyerWall.container.removeEventListener('mouseleave', l.onLeave);
+    }
+    if (flyerWall.onResize) window.removeEventListener('resize', flyerWall.onResize);
+
+    flyerWall.layers.forEach(list => (list || []).forEach(s => {
+        if (flyerWall.scene) flyerWall.scene.remove(s);
+        if (s.material) s.material.dispose();
+        if (s.geometry) s.geometry.dispose();
+    }));
+
+    flyerWall.textureCache.forEach(entry => { if (entry.texture) entry.texture.dispose(); });
+    flyerWall.textureCache.clear();
+
+    if (flyerWall.canvas && flyerWall.canvas.parentNode) flyerWall.canvas.parentNode.removeChild(flyerWall.canvas);
+    if (flyerWall.renderer) flyerWall.renderer.dispose();
+
+    flyerWall.scene = flyerWall.camera = flyerWall.renderer = flyerWall.loader = null;
+    flyerWall.raycaster = null;
+    flyerWall.layers = [];
+    flyerWall.canvas = flyerWall.caption = flyerWall.loading = flyerWall.container = null;
+    flyerWall.listeners = null;
+    flyerWall.onResize = null;
+    flyerWall.signature = '';
+    flyerWall.built = false;
+    flyerWall.hovered = -1;
+    flyerWall.dragActive = false;
+    flyerWall.dragVelocity = 0;
+    flyerWall.speedFactor = 1;
 }
 
 function initFlyerCloud() {
@@ -1562,7 +2358,14 @@ function initFlyerCloud() {
             else if (e.key === 'ArrowLeft') stepFlyerFocus(-1);
             return;
         }
-        if (typing || flyerViewMode !== 'cloud') return;
+        if (typing) return;
+        // In the wall view the arrows turn the drift direction instead of a pile
+        if (flyerViewMode === 'wall') {
+            if (e.key === 'ArrowRight') { flyerWall.speedFactor = 1; wallBoost(0); }
+            else if (e.key === 'ArrowLeft') { flyerWall.speedFactor = -1; wallBoost(0); }
+            return;
+        }
+        if (flyerViewMode !== 'cloud') return;
         if (e.key === 'ArrowRight') rotateStack(getStackEl(activeStackIndex), 1);
         else if (e.key === 'ArrowLeft') rotateStack(getStackEl(activeStackIndex), -1);
     });
@@ -2112,7 +2915,7 @@ async function injectManagerLink() {
         if (myEmail === SUPER_ADMIN_EMAIL) {
             allowed = true;
         } else if (myEmail) {
-            const res = await fetch('/api/managers');
+            const res = await fetch(API_ORIGIN + '/api/managers');
             if (res.ok) {
                 const list = await res.json();
                 allowed = list.some(m =>
@@ -2190,7 +2993,7 @@ function handleRealtimeChange(payload) {
     updateCollectionCount();
     displayFlyers();
     try {
-        localStorage.setItem('wrzkk_flyers', JSON.stringify(flyersCollection));
+        safeSetItem('wrzkk_flyers', JSON.stringify(flyersCollection));
     } catch {}
 }
 
@@ -3057,6 +3860,7 @@ window.focusFlyer = focusFlyer;
 window.closeFlyerFocus = closeFlyerFocus;
 window.stepFlyerFocus = stepFlyerFocus;
 window.setFlyerView = setFlyerView;
+window.destroyFlyerWall = destroyFlyerWall;
 window.refreshProverb = refreshProverb;
 window.toggleProverbTranslations = toggleProverbTranslations;
 window.showProverbTranslations = toggleProverbTranslations; // alias
@@ -3114,7 +3918,7 @@ function dedupeLocalStorage() {
         }
 
         if (removed > 0) {
-            localStorage.setItem('wrzkk_flyers', JSON.stringify(kept));
+            cacheFlyers(kept);
             console.log(`🧹 Local dedupe: removed ${removed} duplicates (${list.length} → ${kept.length})`);
         }
     } catch (err) {
@@ -3122,8 +3926,14 @@ function dedupeLocalStorage() {
     }
 }
 
-    // Collection can load in parallel
-    initializeCollection();
+    // Collection can load in parallel. Whatever happens inside it, the page must still
+    // paint the stories it managed to read instead of leaving an empty collection.
+    initializeCollection().catch(err => {
+        console.error('❌ initializeCollection failed:', err);
+        if (!flyersCollection.length) flyersCollection = safeParse(localStorage.getItem('wrzkk_flyers')) || [];
+        updateCollectionCount();
+        displayFlyers();
+    });
 
     // Read ?cat= and ?cont= from the URL and pre-apply filters
 (function applyUrlFilters() {
