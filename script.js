@@ -254,6 +254,7 @@ const NO_RESULTS = 'Nta flyer zihuje. Kora zimwe muri generator!';
 const NO_STORIES = 'Nta nkuru ziboneka. Gerageza kwandika inkuru ndende.';
 const LOADING = 'Irahindura...';
 const TRANSLATION_SUCCESS = 'zahinduwe mu Kinyarwanda!';
+const KEPT_IN_KINYARWANDA = 'zisanzwe ziri mu Kinyarwanda, nta guhindura kwakozwe!';
 const TRANSLATION_FAILED = 'Kutahindura byanze. Ongera ugerageze.';
 const SAVED_TO_COLLECTION = 'Flyer yahinduwe neza! Reba muri collection.';
 const FLYER_CREATED = 'Flyer nshya yakozwe neza! Yabitswe mu bubiko. Reba muri collection.';
@@ -373,6 +374,8 @@ async function translateWithMyMemoryFallback(text) {
 }
 
 async function translateLongText(text) {
+    // An author who already wrote in Kinyarwanda keeps their own wording untouched
+    if (!text || text.trim() === '' || looksLikeKinyarwanda(text)) return text;
     if (text.length < 500) return await translateToKinyarwanda(text);
     const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
     let result = [];
@@ -678,17 +681,17 @@ function parseFileContent(content) {
 async function extractStories() {
     const extractBtn = document.getElementById('extractBtn');
     const originalText = extractBtn.innerHTML;
-    extractBtn.innerHTML = `<i class="loading-spinner"></i> ${LOADING}`;
-    extractBtn.disabled = true;
     const text = document.getElementById('historicalText').value.trim();
     if (!text) {
         alert('Andika inkuru mbere!');
-        extractBtn.innerHTML = originalText;
-        extractBtn.disabled = false;
         return;
     }
+    // Stories already written in Kinyarwanda are kept word for word, so say so on the button
+    const alreadyKinyarwanda = looksLikeKinyarwanda(text);
+    extractBtn.innerHTML = `<i class="loading-spinner"></i> ${alreadyKinyarwanda ? 'Iratunganya...' : LOADING}`;
+    extractBtn.disabled = true;
     try {
-        const translatedText = await translateLongText(text);
+        const translatedText = alreadyKinyarwanda ? text : await translateLongText(text);
         const stories = [];
         const paragraphs = translatedText.split(/\n\s*\n/);
         paragraphs.forEach((paragraph, index) => {
@@ -705,14 +708,14 @@ async function extractStories() {
                 continent: detectContinent(paragraph),
                 category: detectCategory(paragraph),
                 region: extractRegion(paragraph),
-                translated: true
+                translated: !alreadyKinyarwanda
             });
         });
         clearStoryImages();
         extractedStories = stories;
         displayStoryPreviews(stories);
         if (stories.length === 0) alert(`⚠️ ${NO_STORIES}`);
-        else alert(`✅ Inkuru ${stories.length} ${TRANSLATION_SUCCESS}`);
+        else alert(`✅ Inkuru ${stories.length} ${alreadyKinyarwanda ? KEPT_IN_KINYARWANDA : TRANSLATION_SUCCESS}`);
     } catch (error) {
         console.error('Translation error:', error);
         alert(TRANSLATION_FAILED);
@@ -3210,6 +3213,29 @@ const LOCAL_QUOTES_FALLBACK = {
     ]
 };
 
+/**
+ * The figures behind the quote roll come from data/quotes.js, which carries their real
+ * sayings, so the card prints the actual quote of the name it shows. If that file ever
+ * fails to load, the smaller inline lists above are folded into the same shape instead.
+ */
+function legacyFiguresFor(category) {
+    const names = QUOTE_AUTHORS_BY_CATEGORY[category] || [];
+    const pool = LOCAL_QUOTES_FALLBACK[category] || [];
+    return names.map(name => ({
+        name: name,
+        role: '',
+        quotes: pool.filter(q => q.author === name).map(q => q.quote)
+    }));
+}
+
+const QUOTE_FIGURES_BY_CATEGORY = {};
+Object.keys(QUOTE_CATEGORY_COLORS).forEach(category => {
+    const fromLibrary = window.QUOTES_LIBRARY && window.QUOTES_LIBRARY[category];
+    QUOTE_FIGURES_BY_CATEGORY[category] = (fromLibrary && fromLibrary.length)
+        ? fromLibrary
+        : legacyFiguresFor(category);
+});
+
 const QUOTE_FETCH_TIMEOUT_MS = 4000;
 const PORTRAIT_FETCH_TIMEOUT_MS = 3500;
 
@@ -3270,7 +3296,10 @@ async function fetchFromWikiquote(author) {
         const hits = searchJson?.query?.search || [];
 
         const lastWord = author.toLowerCase().split(/\s+/).pop();
-        const match = hits.find(h => (h.title || '').toLowerCase().includes(lastWord));
+        // Only accept a page that really is this person's quote page, not a place or a
+        // relative with the same surname, otherwise the card prints someone else's words
+        const match = hits.find(h => authorMatches(author, h.title))
+                   || hits.find(h => (h.title || '').toLowerCase().includes(lastWord));
         if (!match) throw new Error('no matching wikiquote page');
 
         const pageUrl = `https://en.wikiquote.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(match.title)}&format=json&origin=*`;
@@ -3381,12 +3410,28 @@ async function fetchAuthorPortrait(author) {
 
 let quoteRollState = {
     category: 'worldwide-famous',
-    authors: [],
+    figures: [],
     index: 0,
     timer: null,
     autoAdvanceMs: 77000,
-    paintToken: 0
+    paintToken: 0,
+    shown: {}                 // category:name -> how many of that figure's lines have been used
 };
+
+/**
+ * Pick the next saying of the figure currently on screen. Every line returned here belongs
+ * to that figure, which is the point: the old code grabbed any quote from the category pool
+ * (and finally a made-up placeholder), so the card often printed someone else's words under
+ * the wrong name.
+ */
+function nextQuoteFor(figure, category) {
+    const quotes = (figure && figure.quotes) || [];
+    if (!quotes.length) return null;
+    const key = category + ':' + figure.name;
+    const at = (quoteRollState.shown[key] || 0) % quotes.length;
+    quoteRollState.shown[key] = at + 1;
+    return { quote: quotes[at], author: figure.name, role: figure.role || '' };
+}
 
 function shuffleArray(arr) {
     const a = [...arr];
@@ -3431,8 +3476,8 @@ async function paintQuoteRoll(direction) {
     const list = document.getElementById('quoteRollList');
     if (!list) return;
 
-    const author = quoteRollState.authors[quoteRollState.index];
-    if (!author) {
+    const figure = quoteRollState.figures[quoteRollState.index];
+    if (!figure) {
         list.innerHTML = `<div class="quote-roll-empty">Nta magambo abonetse muri itsinda ryatoranyijwe.</div>`;
         return;
     }
@@ -3440,24 +3485,23 @@ async function paintQuoteRoll(direction) {
     const color = QUOTE_CATEGORY_COLORS[quoteRollState.category]
                || QUOTE_CATEGORY_COLORS['worldwide-famous'];
 
-    const fallbackPool = LOCAL_QUOTES_FALLBACK[quoteRollState.category]
-                      || LOCAL_QUOTES_FALLBACK['worldwide-famous'];
-    const fallback = fallbackPool.find(f => f.author === author)
-                  || fallbackPool[Math.floor(Math.random() * fallbackPool.length)]
-                  || { quote: 'Ubwenge bw\'abanyacyubahiro.', author };
-
+    // The library line is what gets printed; the web is only consulted for a figure the
+    // library has no saying for, so a card is never left empty
+    let shown = nextQuoteFor(figure, quoteRollState.category);
     const myToken = ++quoteRollState.paintToken;
-    list.innerHTML = buildQuoteCardHTML(fallback, color, direction, null, true);
+    list.innerHTML = buildQuoteCardHTML(
+        shown || { quote: 'Irashakisha amagambo...', author: figure.name, role: figure.role || '' },
+        color, direction, null, true);
 
-    const [onlineQuote, portraitUrl] = await Promise.all([
-        fetchOnlineQuote(author),
-        fetchAuthorPortrait(author)
-    ]);
+    if (!shown) shown = await fetchOnlineQuote(figure.name);
+    const portraitUrl = await fetchAuthorPortrait(figure.name);
 
     if (myToken !== quoteRollState.paintToken) return;
-
-    const finalQuote = onlineQuote ? onlineQuote : fallback;
-    list.innerHTML = buildQuoteCardHTML(finalQuote, color, direction, portraitUrl, false);
+    if (!shown) {
+        list.innerHTML = `<div class="quote-roll-empty">Nta gambo ribonetse kuri ${escapeHtml(figure.name)}.</div>`;
+        return;
+    }
+    list.innerHTML = buildQuoteCardHTML(shown, color, direction, portraitUrl, false);
 }
 
 function scheduleQuoteAutoAdvance() {
@@ -3468,15 +3512,15 @@ function scheduleQuoteAutoAdvance() {
 }
 
 function setQuoteCategory(category, preserveIndex) {
-    const key = QUOTE_AUTHORS_BY_CATEGORY[category]
+    const key = QUOTE_FIGURES_BY_CATEGORY[category]
         ? category
         : 'worldwide-famous';
     quoteRollState.category = key;
 
-    const authors = QUOTE_AUTHORS_BY_CATEGORY[key];
-    quoteRollState.authors = shuffleArray(authors);
+    const figures = QUOTE_FIGURES_BY_CATEGORY[key] || [];
+    quoteRollState.figures = shuffleArray(figures);
     if (!preserveIndex) quoteRollState.index = 0;
-    if (quoteRollState.index >= quoteRollState.authors.length) quoteRollState.index = 0;
+    if (quoteRollState.index >= quoteRollState.figures.length) quoteRollState.index = 0;
 
     const sel = document.getElementById('quoteContinentSelect');
     if (sel && sel.value !== key) sel.value = key;
@@ -3490,15 +3534,15 @@ function onQuoteCategoryChange(value) {
 }
 
 function quoteRollNext() {
-    if (!quoteRollState.authors.length) return;
-    quoteRollState.index = (quoteRollState.index + 1) % quoteRollState.authors.length;
+    if (!quoteRollState.figures.length) return;
+    quoteRollState.index = (quoteRollState.index + 1) % quoteRollState.figures.length;
     paintQuoteRoll('down');
     scheduleQuoteAutoAdvance();
 }
 
 function quoteRollPrev() {
-    if (!quoteRollState.authors.length) return;
-    quoteRollState.index = (quoteRollState.index - 1 + quoteRollState.authors.length) % quoteRollState.authors.length;
+    if (!quoteRollState.figures.length) return;
+    quoteRollState.index = (quoteRollState.index - 1 + quoteRollState.figures.length) % quoteRollState.figures.length;
     paintQuoteRoll('up');
     scheduleQuoteAutoAdvance();
 }
@@ -3519,22 +3563,83 @@ const REFERENCE_SOURCES = [
 ];
 
 /**
- * Detect whether the string looks like Kinyarwanda (or a similar Bantu language).
- * Very lightweight heuristic — counts common Bantu prefixes/suffixes.
+ * Detect whether the text is already Kinyarwanda. Whole-word markers are counted for each
+ * language instead of loose substrings, because the old version matched ' wa '/' mu '/
+ * ' ing ' and could read an English paragraph as Kinyarwanda — and then a Kinyarwanda story
+ * written by an author got sent through the en→rw translator and came back mangled.
  */
+const KINYARWANDA_MARKERS = new Set([
+    'na', 'muri', 'mu', 'ku', 'ni', 'kuri', 'kandi', 'ariko', 'cyakora', 'ndetse', 'bityo',
+    'gusa', 'cyane', 'niba', 'iyo', 'uko', 'kuko', 'jye', 'twe', 'mwe', 'wowe', 'bose',
+    'uri', 'turi', 'bari', 'yari', 'wari', 'uzaba', 'azaba', 'tuzaba', 'bazaba', 'nini',
+    'nyinshi', 'macye', 'nziza', 'mwiza', 'byiza', 'kubi', 'gukora', 'gukundira', 'guhindura',
+    'gusoma', 'kwandika', 'kubaka', 'kurwanya', 'gutanga', 'kumenya', 'kuvuga', 'gushaka',
+    'igihugu', 'ibihugu', 'umuntu', 'abantu', 'umwami', 'abami', 'ubwami', 'inkuru',
+    'amateka', 'umuco', 'imico', 'intambara', 'umwaka', 'imyaka', 'igihe', 'ubuzima',
+    'urupfu', 'umuryango', 'imiryango', 'ishuri', 'amashuri', 'ubumwe', 'ubwisanzure',
+    'kinyarwanda', 'abanyarwanda', 'banyarwanda', 'ikinyejana', 'imyiteguro', 'umujyi',
+    'imijyi', 'umurage', 'ubutwari', 'ubwenge', 'urumuri', 'umwijima', 'amagambo', 'ijambo',
+    'ya', 'bya', 'nti', 'ubwo', 'nuko', 'yitwa', 'bazwi', 'harimo', 'kirimo', 'birimo', 'kugeza',
+    'rwanda', 'nyarwanda', 'muraho', 'ngiye', 'dore', 'kane'
+]);
+
+const ENGLISH_MARKERS = new Set([
+    'the', 'and', 'of', 'to', 'in', 'was', 'were', 'that', 'this', 'these', 'those', 'with',
+    'for', 'from', 'have', 'has', 'had', 'they', 'their', 'there', 'which', 'who', 'when',
+    'where', 'while', 'because', 'about', 'between', 'into', 'over', 'under', 'then', 'once',
+    'here', 'why', 'how', 'what', 'your', 'ours', 'its', 'his', 'hers', 'some', 'such',
+    'most', 'more', 'other', 'many', 'much', 'each', 'every', 'all', 'any', 'but', 'not',
+    'so', 'if', 'as', 'at', 'an', 'on', 'by', 'he', 'she', 'it', 'we', 'us', 'me', 'my',
+    'you', 'out', 'up', 'down', 'again', 'further', 'both', 'few', 'own', 'same', 'than',
+    'too', 'very', 'can', 'will', 'just', 'should', 'now', 'during', 'after', 'before',
+    'them', 'been', 'were', 'are', 'am', 'is', 'would', 'could', 'must', 'may', 'might', 'among'
+]);
+
+const KINYARWANDA_CLUSTERS = ['ny', 'cy', 'gy', 'kw', 'gw', 'tw', 'dw', 'mb', 'nd', 'ng', 'nj', 'rg', 'mp'];
+
+// Noun-class prefixes (um-, ab-, in-, ku-, ru- ...) shape nearly every Kinyarwanda word. They
+// are only trusted when the text holds no English stop-word at all, because English shares a
+// few of these letter runs ('independence', 'imperial', 'warrior' ...).
+const KINYARWANDA_PREFIXES = /^(um|ur|uk|ug|uw|in|im|ik|is|iy|iz|ab|ib|ir|kw|ky|gw|ny|cy|mw|mv|mb|nd|ng|nj|nk|nt|mp|bu|du|ru|tu|jy|sh)/;
+
 function looksLikeKinyarwanda(text) {
     if (!text) return false;
-    const s = String(text).toLowerCase();
-    // Common Kinyarwanda syllable patterns and prefixes
-    const markers = [
-        ' umu', ' aba', ' uku', ' iki', ' icy', ' uru', ' inz', ' ing',
-        ' wa ', ' ya ', ' cya ', ' rya ', ' mu ', ' ku ', ' ni ', ' ku ',
-        'nyarwanda', 'nkuru', 'nziza', 'cyane', 'mbere', 'nyuma'
-    ];
-    const hits = markers.filter(m => s.includes(m)).length;
-    // Also check for typical word endings
-    const ends = ['ye', 'we', 'ba', 'ra', 'ka', 'ma', 'na'].some(e => s.trim().endsWith(e));
-    return hits >= 2 || (hits >= 1 && ends);
+    const tokens = String(text).toLowerCase()
+        .replace(/[^a-zà-ÿ' ]+/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length > 1);
+    if (!tokens.length) return false;
+
+    let rw = 0, en = 0;
+    tokens.forEach(t => {
+        if (KINYARWANDA_MARKERS.has(t)) rw++;
+        if (ENGLISH_MARKERS.has(t)) en++;
+    });
+
+    // Any English signal stronger than the Kinyarwanda one means the text needs translating
+    if (en > rw) return false;
+    if (rw >= 3) return true;
+
+    // Short titles carry too few markers to reach 3, so fall back on word structure:
+    // Kinyarwanda is built on prenasalled and palatal clusters (mb, nd, ny, cy, gw, kw, rg)
+    let struct = 0;
+    tokens.forEach(t => {
+        // English endings in -ing/-ong/-ang ('singing', 'among', 'kings') must not be read as
+        // the 'ng' cluster; Kinyarwanda words almost never close on a consonant
+        let w = t;
+        while (w.length >= 4 && /[aeiou]ng$/.test(w)) w = w.slice(0, -3);
+        if (KINYARWANDA_CLUSTERS.some(c => w.includes(c))) struct++;
+    });
+    let prefixes = 0;
+    if (en === 0) tokens.forEach(t => { if (KINYARWANDA_PREFIXES.test(t)) prefixes++; });
+    const shape = struct + prefixes;
+
+    if (rw >= 1 && shape >= 2) return true;
+    // no English word at all and the phrasing is Kinyarwanda through and through
+    if (en === 0 && struct >= 2 && shape >= 4) return true;
+    // A title of a few words can miss every cluster ('Umukuru wa Rukara'), so two noun-class
+    // openings across at least three words are accepted as well
+    return en === 0 && prefixes >= 2 && tokens.length >= 3;
 }
 
 /**
